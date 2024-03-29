@@ -27,3 +27,11 @@
 .filter-options {
     padding: 5px;
 }
+
+.ifc-Owned {
+    background-color: #107c10ff;
+}
+
+.ifc-UnPurchasable {
+    background-color: #dc3545ff;
+}
