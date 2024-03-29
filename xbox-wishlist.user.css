@@ -1,3 +1,10 @@
+#ifc_ButtonContainer {
+    position: relative;
+    top: 100px;
+    right: 100px;
+    z-index: 10000;
+}
+
 #btn_ifcFilter:hover {
     cursor: pointer;
 }
