@@ -1,5 +1,5 @@
 #ifc_ButtonContainer {
-    position: relative;
+    position: fixed;
     top: 100px;
     right: 100px;
     z-index: 10000;
