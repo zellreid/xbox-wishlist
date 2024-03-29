@@ -35,3 +35,7 @@
 .ifc-UnPurchasable {
     background-color: #dc3545ff;
 }
+
+.my-2 {
+    border-radius: 10px;
+}
