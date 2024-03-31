@@ -28,12 +28,20 @@
     padding: 5px;
 }
 
-.ifc-Owned {
+.theme-light .ifc-Owned {
     background-color: #107c10ff;
 }
 
-.ifc-UnPurchasable {
+.theme-light .ifc-UnPurchasable {
     background-color: #dc3545ff;
+}
+
+.theme-dark .ifc-Owned {
+    background-color: #107c10c8;
+}
+
+.theme-dark .ifc-UnPurchasable {
+    background-color: #dc3545c8;
 }
 
 .my-2 {
