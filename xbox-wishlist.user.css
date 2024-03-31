@@ -29,11 +29,11 @@
 }
 
 .theme-light .ifc-Owned {
-    background-color: #107c10ff;
+    background-color: #107c10c8;
 }
 
 .theme-light .ifc-UnPurchasable {
-    background-color: #dc3545ff;
+    background-color: #dc3545c8;
 }
 
 .theme-dark .ifc-Owned {
@@ -46,4 +46,5 @@
 
 .my-2 {
     border-radius: 10px;
+    border-color: #757575ff;
 }
