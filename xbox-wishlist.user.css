@@ -29,19 +29,51 @@
 }
 
 .ifc-Owned {
-    background-color: #107c1059;
+    background-color: #10e11059;
+}
+
+.theme-dark .ifc-Owned {
+    background-color: #10e11059;
 }
 
 .ifc-UnPurchasable {
     background-color: #dc354559;
 }
 
-.theme-dark .ifc-Owned {
+.theme-dark .ifc-UnPurchasable {
+    background-color: #dc354559;
+}
+
+.ifc-Sub-GamePass {
     background-color: #107c1059;
 }
 
-.theme-dark .ifc-UnPurchasable {
-    background-color: #dc354559;
+.theme-dark .ifc-Sub-GamePass {
+    background-color: #107c1059;
+}
+
+.ifc-Sub-EA {
+    background-color: #ff474759;
+}
+
+.theme-dark .ifc-Sub-EA {
+    background-color: #ff474759;
+}
+
+.ifc-Sub-Ubisoft {
+    background-color: #006EF559;
+}
+
+.theme-dark .ifc-Sub-Ubisoft {
+    background-color: #006EF559;
+}
+
+.ifc-Discounted {
+    background-color: #ffb90059;
+}
+
+.theme-dark .ifc-Discounted {
+    background-color: #ffb90059;
 }
 
 .my-2 {
