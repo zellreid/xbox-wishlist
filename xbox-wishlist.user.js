@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         XBOX Wishlist
 // @namespace    https://github.com/zellreid/xbox-wishlist
-// @version      1.0.24087.1
+// @version      1.0.24090.22
 // @description  A Tampermonkey userscript to add additional functionality to the XBOX Wishlist
 // @author       ZellReid
 // @homepage     https://github.com/zellreid/xbox-wishlist
@@ -10,48 +10,69 @@
 // @match        https://www.xbox.com/*/wishlist
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=xbox.com
 // @run-at       document-body
-// @resource     JSJQuery https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js
-// @resource     JSBootstrap https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.1.3/js/bootstrap.min.js
-// @resource     JSSelect2 https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js
-// @resource     CSSSelect2 https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css
-// @resource     CSSSelect2 https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css
-// @resource     CSSFilter https://raw.githubusercontent.com/zellreid/halo-5-guardians-requisitions-filters/main/halo-5-guardians-requisitions-filters.user.css?ver=4.5
-// @resource     IMGFilter https://raw.githubusercontent.com/zellreid/halo-5-guardians-requisitions-filters/dfe2d6891ccc3dadca173bf852e51b721b4f7f06/filter.png
+// @resource     JSJQuery https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js?ver=@version
+// @resource     JSBootstrap https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.1.3/js/bootstrap.min.js?ver=@version
+// @resource     JSSelect2 https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js?ver=@version
+// @resource     CSSSelect2 https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css?ver=@version
+// @resource     CSSFilter https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/xbox-wishlist.user.css?ver=@version
+// @resource     IMGFilter https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/filter.svg?ver=@version
+// @resource     IMGSort https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/sort.svg?ver=@version
+// @resource     IMGExpand https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/expand.svg?ver=@version
+// @resource     IMGCollapse https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/collapse.svg?ver=@version
 // @grant        GM_getResourceURL
 // ==/UserScript==
 
 (function() {
-    'use strict';
+    `use strict`;
 
     window.injected = {
         info: GM_info,
         scripts: [],
         styles: [],
         ui: {
-            floatReq: false,
+            floatButtons: false,
+            lblFilter: false,
             btnFilter: false,
             divFilter: false,
-            divFilterShow: false
+            divFilterShow: false,
+            complete: false,
         },
         filters: {
+            totalCount: 0,
+            filteredCount: 0,
             owned: {
-                owned: true,
+                isOwned: true,
+                ownedCount: 0,
+                ownedColour: `#107c10ff`,
                 notOwned: true,
-                multi: false,
-                addMulti: true
+                notOwnedCount: 0,
+                isUnPurchasable: true,
+                UnPurchasableCount: 0,
+                UnPurchasableColour: `#dc3545ff`
             },
-            rarity: {
-                common: true,
-                uncommon: true,
-                rare: true,
-                ultraRare: true,
-                legendary: true
+            subscriptions: {
+                gamePass: true,
+                gamePassCount: 0,
+                gamePassColour: `#ffb900ff`,
+                eaPlus: true,
+                eaPlusCount: 0,
+                eaPlusColour: `#ffb900ff`,
+                nonSubcription: true,
+                nonSubcriptionCount: 0
+            },
+            discounts: {
+                discounted: true,
+                discountedCount: 0,
+                discountedColour: `#ffb900ff`,
+                notDiscounted: true,
+                notDiscountedCount: 0,
+                discountScale: 0
             }
         }
     };
 
     addScript(GM_getResourceURL (`JSJQuery`));
-    addScript(GM_getResourceURL (`JSBootstrap`));
+    //addScript(GM_getResourceURL (`JSBootstrap`));
     //addScript(GM_getResourceURL (`JSSelect2`));
 
     //addStyle(GM_getResourceURL (`CSSSelect2`));
@@ -67,7 +88,7 @@
                 script.src = src;
 
                 script.onload = () => resolve({ success: true });
-                script.onerror = () => reject(new Error(`Script load error: ` + src));
+                script.onerror = () => reject(new Error(`Script load error: ${src}`));
 
                 document.head.appendChild(script);
                 window.injected.scripts.push(script);
@@ -126,35 +147,50 @@
     }
 
     function uiInjections() {
-        floatReqPoints();
+        floatButtons();
     }
 
-    function floatReqPoints() {
-        //var target = `.halo-5-req-points_points__1_U4l`;
-        var target = `.halo-5-req-points_points__S1lYb`;
+    function floatButtons() {
+        var buttonContainerTarget = `.xgp-reset-style .row .col-sm-4.col-5`;
+        var headingContainerTarget = `.offset-sm-4.offset-3`
 
-        if ((!window.injected.ui.floatReq)
-        && (doControlsExist(document.body, target))) {
-            var container = document.querySelector(target);
-            container.style.position = `fixed`;
-            container.style.top = `100px`;
-            container.style.right = `100px`;
-            container.style.zIndex = `10000`;
-            window.injected.ui.floatReq = true;
+        if ((!window.injected.ui.floatButtons)
+        && (doControlsExist(document.body, buttonContainerTarget))) {
+            var buttonContainer = document.querySelector(buttonContainerTarget);
+            buttonContainer.id = `ifc_ButtonContainer`;
+            buttonContainer.style.position = `fixed`;
+            buttonContainer.style.top = `100px`;
+            buttonContainer.style.right = `100px`;
+            buttonContainer.style.zIndex = `10000`;
+            window.injected.ui.floatButtons = true;
+
+            var headingContainer = document.querySelector(headingContainerTarget);
+            headingContainer.classList.remove(`offset-sm-4`);
+            headingContainer.classList.remove(`offset-3`);
         }
     }
 
     function addFilterControls() {
+        addFilterLabel();
         addFilterButton();
         addFilterContainer();
         addFilterContainerOwned();
-        addFilterContainerRarity();
+    }
+
+    function addFilterLabel() {
+        if (!window.injected.ui.lblFilter) {
+            var lblContainer = createLabel(`Filter`, `Viewing ${window.injected.filters.filteredCount} of ${window.injected.filters.totalCount} results`);
+            var buttonContainer = document.querySelector(`#ifc_ButtonContainer div`);
+            buttonContainer.insertBefore(lblContainer, buttonContainer.firstChild);
+            window.injected.ui.lblFilter = true;
+        }
     }
 
     function addFilterButton() {
         if (!window.injected.ui.btnFilter) {
-            var imgContainer = createImageLink(`btn_ifcFilter`, GM_getResourceURL (`IMGFilter`), `Filter`);
-            document.body.appendChild(imgContainer);
+            var imgContainer = createImageButton(`Filter`, GM_getResourceURL (`IMGFilter`), `Filter`, `svg`);
+            var buttonContainer = document.querySelector(`#ifc_ButtonContainer div`);
+            buttonContainer.appendChild(imgContainer);
             window.injected.ui.btnFilter = true;
         }
     }
@@ -162,106 +198,134 @@
     function addFilterContainer() {
         if ((!window.injected.ui.divFilter)
         && (!doControlsExist(document.body, `#injectedFilterControls`))) {
-            var mainDivContainer = document.createElement(`div`);
-            mainDivContainer.id = `injectedFilterControls`;
-            mainDivContainer.className = `filter-section`;
-            mainDivContainer.style.display = `none`;
+            var filterContainer = document.createElement(`div`);
+            filterContainer.id = `injectedFilterControls`;
+            filterContainer.classList.add(`filter-section`);
+            filterContainer.classList.add(`SortAndFilters-module__container___yA+Vp`);
+            filterContainer.style.display = `none`;
 
-            var articleContainer = document.createElement(`article`);
+            var filterListContainer = document.createElement(`div`);
+            filterListContainer.classList.add(`filter-list`);
+            filterListContainer.classList.add(`SortAndFilters-module__filterList___T81LH`);
 
-            var divContainer = document.createElement(`div`);
-            divContainer.className = `filter-dropdown`;
+            var filterListHeading = document.createElement(`h2`);
+            filterListHeading.classList.add(`filter-text-heading`);
+            filterListHeading.classList.add(`typography-module__spotLightSubtitlePortrait___RB7M0`);
+            filterListHeading.classList.add(`SortAndFilters-module__filtersText___8OwXG`);
 
-            articleContainer.appendChild(divContainer);
-            mainDivContainer.appendChild(articleContainer);
-            document.body.appendChild(mainDivContainer);
+            var filterListHeadingText = document.createTextNode(`Filters`);
+            filterListHeading.appendChild(filterListHeadingText);
+
+            var ulContainer = document.createElement(`ul`);
+            ulContainer.classList.add(`filter-groups`);
+            ulContainer.classList.add(`SortAndFilters-module__filterList___T81LH`);
+
+            filterListContainer.appendChild(filterListHeading);
+            filterListContainer.appendChild(ulContainer);
+
+            filterContainer.appendChild(filterListContainer);
+            document.body.appendChild(filterContainer);
             window.injected.ui.divFilter = true;
 
-            var imgContainer = document.querySelector(`#btn_ifcFilter`);
+            var imgContainer = document.querySelector(`#ifc_btn_Filter`);
             imgContainer.addEventListener(`click`, toggleFilterContainer);
         }
     }
 
     function addFilterContainerOwned() {
         if (window.injected.ui.divFilter) {
-            if (!doControlsExist(document.body, `#ifcOwned`)) {
-                var mainContainer = document.querySelector(`#injectedFilterControls .filter-dropdown`);
-                var divContainer = createFilterBlock(`ifcOwned`, `Owned`);
+            var containerName = `Owned`
+            if (!doControlsExist(document.body, `#ifc_group_${containerName}`)) {
+                var mainContainer = document.querySelector(`#injectedFilterControls .filter-groups`);
+                var divContainer = createFilterBlock(`${containerName}`, `Owned`);
                 mainContainer.appendChild(divContainer);
 
                 //Owned
-                var checkboxOwned = createCheckbox(`ifcOwned`, `Owned`, window.injected.filters.owned.owned, toggleOwned);
-                addFilterOption(document.getElementById(`ifcOwned`), checkboxOwned);
+                var checkboxOwned = createCheckbox(`${containerName}`, `Owned`, window.injected.filters.owned.isOwned, toggleOwned);
+                addFilterOption(document.getElementById(`ifc_group_menu_list_${containerName}`), checkboxOwned);
 
-                var checkboxNotOwned = createCheckbox(null, `Not Owned`, window.injected.filters.owned.notOwned, toggleNotOwned, null);
-                addFilterOption(document.getElementById(`ifcOwned`), checkboxNotOwned);
+                var checkboxNotOwned = createCheckbox(`NotOwned`, `Not Owned`, window.injected.filters.owned.notOwned, toggleNotOwned);
+                addFilterOption(document.getElementById(`ifc_group_menu_list_${containerName}`), checkboxNotOwned);
+
+                var checkboxUnPurchasable = createCheckbox(`UnPurchasable`, `Un-Purchasable`, window.injected.filters.owned.isUnPurchasable, toggleUnPurchasable);
+                addFilterOption(document.getElementById(`ifc_group_menu_list_${containerName}`), checkboxUnPurchasable);
             }
-
-            if ((window.injected.filters.owned.addMulti) && (doControlsExist(document, `.reqCard`)) && (!doControlsExist(document.body, `#cbx_ifcMulti`))) {
-                try {
-                    if (hasContainerCount(document.querySelector(`.reqCard`))) {
-                        var checkboxMulti = createCheckbox(`ifcMulti`, `> 1`, window.injected.filters.owned.multi, toggleMulti);
-                        addFilterOption(document.getElementById(`ifcOwned`), checkboxMulti);
-                    }
-                } catch {
-                    window.injected.filters.owned.addMulti = false;
-                }
-            }
-        }
-    }
-
-    function addFilterContainerRarity() {
-        if ((window.injected.ui.divFilter)
-        && (!doControlsExist(document.body, `#ifcRarity`))) {
-            var mainContainer = document.querySelector(`#injectedFilterControls .filter-dropdown`);
-            var divContainer = createFilterBlock(`ifcRarity`, `Rarity`);
-            mainContainer.appendChild(divContainer);
-
-            //Rarity
-            var checkboxCommon = createCheckbox(null, `Common`, window.injected.filters.rarity.common, toggleCommon);
-            addFilterOption(document.getElementById(`ifcRarity`), checkboxCommon);
-
-            var checkboxUncommon = createCheckbox(null, `Uncommon`, window.injected.filters.rarity.uncommon, toggleUncommon);
-            addFilterOption(document.getElementById(`ifcRarity`), checkboxUncommon);
-
-            var checkboxRare = createCheckbox(null, `Rare`, window.injected.filters.rarity.rare, toggleRare);
-            addFilterOption(document.getElementById(`ifcRarity`), checkboxRare);
-
-            var checkboxUltraRare = createCheckbox(null, `Ultra Rare`, window.injected.filters.rarity.ultraRare, toggleUltraRare);
-            addFilterOption(document.getElementById(`ifcRarity`), checkboxUltraRare);
-
-            var checkboxLegendary = createCheckbox(null, `Legendary`, window.injected.filters.rarity.legendary, toggleLegendary);
-            addFilterOption(document.getElementById(`ifcRarity`), checkboxLegendary);
         }
     }
 
     function createFilterBlock(id, text) {
-        var container = document.createElement(`div`);
-        if (id != null) {
-            container.id = id;
-        }
-
-        container.className = `filter-block`;
-
-        var pContainer = document.createElement(`p`);
-        container.className = `title`;
-
-        var spanContainer = document.createElement(`span`);
+        var groupContainer = document.createElement(`li`);
 
         if (id != null) {
-            var textContainer = document.createTextNode(text);
-            spanContainer.appendChild(textContainer);
+            groupContainer.id = `ifc_group_${id}`;
         }
 
-        pContainer.appendChild(spanContainer);
-        container.appendChild(pContainer);
+        groupContainer.classList.add(`filter-block`);
+        groupContainer.classList.add(`SortAndFilters-module__li___aV+Oo`);
 
-        var ulContainer = document.createElement(`ul`);
-        ulContainer.className = `filter-options`;
+        var groupMenuContainer = document.createElement(`div`);
 
-        container.appendChild(pContainer);
-        container.appendChild(ulContainer);
-        return container;
+        if (id != null) {
+            groupMenuContainer.id = `ifc_group_menu_${id}`;
+        }
+
+        groupMenuContainer.classList.add(`SelectionDropdown-module__container___XzkIx`);
+
+        var groupMenuButton = document.createElement(`button`);
+        groupMenuButton.classList.add(`filter-block-button`);
+        groupMenuButton.classList.add(`SelectionDropdown-module__titleContainer___YyoD0`);
+        groupMenuButton.setAttribute(`aria-expanded`, `false`);
+        groupMenuButton.setAttribute(`data-ifc-target`, `group_${id}`);
+
+        var groupMenuHeading = document.createElement(`span`);
+        groupMenuHeading.classList.add(`filter-text-heading-group`);
+        groupMenuHeading.classList.add(`typography-module__xdsSubTitle2___6d6Da`);
+        groupMenuHeading.classList.add(`SelectionDropdown-module__titleText___PN6s9`);
+        groupMenuHeading.setAttribute(`data-ifc-target`, `group_${id}`);
+
+        var groupMenuHeadingText = document.createTextNode(text);
+        groupMenuHeading.appendChild(groupMenuHeadingText);
+
+        var groupMenuButtonImageContainer = document.createElement(`div`);
+        groupMenuButtonImageContainer.classList.add(`SelectionDropdown-module__filterInfoContainer___7ktfT`);
+        groupMenuButtonImageContainer.setAttribute(`data-ifc-target`, `group_${id}`);
+
+        var imgContainer = createImageContainer(`group_${id}`, GM_getResourceURL (`IMGExpand`), `Expand`, `svg`);
+        imgContainer.setAttribute(`data-ifc-target`, `group_${id}`);
+
+        groupMenuButton.appendChild(groupMenuHeading);
+        groupMenuButton.appendChild(imgContainer);
+
+        var groupMenuListContainer = document.createElement(`div`);
+
+        if (id != null) {
+            groupMenuListContainer.id = `ifc_group_menu_list_${id}`;
+        }
+
+        groupMenuListContainer.classList.add(`filter-block-content`);
+        groupMenuListContainer.style.maxHeight = `20rem`;
+        groupMenuListContainer.style.overflowY = `auto`;
+        groupMenuListContainer.style.display = `none`;
+
+        var groupMenuListItemsContainer = document.createElement(`ul`);
+
+        if (id != null) {
+            groupMenuListItemsContainer.id = `ifc_group_menu_list_items_${id}`;
+        }
+
+        groupMenuListItemsContainer.classList.add(`filter-options`);
+        groupMenuListItemsContainer.classList.add(`Selections-module__options___I24e7`);
+        groupMenuListItemsContainer.setAttribute(`role`, `listbox`);
+
+        groupMenuListContainer.appendChild(groupMenuListItemsContainer);
+
+        groupMenuContainer.appendChild(groupMenuButton);
+        groupMenuContainer.appendChild(groupMenuListContainer);
+
+        groupContainer.appendChild(groupMenuContainer);
+        groupMenuContainer.addEventListener(`click`, toggleFilterMenuListContainer);
+
+        return groupContainer;
     }
 
     function addFilterOption(container, control) {
@@ -271,11 +335,24 @@
         optionsContainer.appendChild(liContainer);
     }
 
+    function createLabel(id, text) {
+        var labelContainer = document.createElement(`label`);
+        labelContainer.style.marginLeft = `5px`;
+        labelContainer.style.marginRight = `5px`;
+        labelContainer.innerHTML = text;
+
+        if (id != null) {
+            labelContainer.id = `ifc_lbl_${id}`;
+        }
+
+        return labelContainer;
+    }
+
     function createImageLink(id, src, text) {
         var aContainer = document.createElement(`a`);
 
         if (id != null) {
-            aContainer.id = id;
+            aContainer.id = `ifc_btn_${id}`;
         }
 
         var imgContainer = document.createElement(`img`);
@@ -285,6 +362,75 @@
 
         aContainer.appendChild(imgContainer);
         return aContainer;
+    }
+
+    function createImageButton(id, src, text, type) {
+        var buttonContainer = document.createElement(`button`);
+
+        if (id != null) {
+            buttonContainer.id = `ifc_btn_${id}`;
+        }
+
+        buttonContainer.classList.add(`WishlistPage-module__wishlistMenuButton___pmqaD`);
+        buttonContainer.classList.add(`Button-module__iconButtonBase___uzoKc`);
+        buttonContainer.classList.add(`Button-module__basicBorderRadius___TaX9J`);
+        buttonContainer.classList.add(`Button-module__sizeIconButtonMedium___WJrxo`);
+        buttonContainer.classList.add(`Button-module__buttonBase___olICK`);
+        buttonContainer.classList.add(`Button-module__textNoUnderline___kHdUB`);
+        buttonContainer.classList.add(`Button-module__typeSecondary___Cid02`);
+        buttonContainer.classList.add(`Button-module__overlayModeSolid___v6EcO`);
+        buttonContainer.title = text;
+
+        buttonContainer.setAttribute(`aria-label`, text);
+        buttonContainer.setAttribute(`aria-pressed`, `false`);
+
+        var imgContainer = createImageContainer(id, src, text, type);
+        buttonContainer.appendChild(imgContainer);
+        return buttonContainer;
+    }
+
+    function createImageContainer(id, src, text, type) {
+        var divContainer = document.createElement(`div`);
+
+        if (id != null) {
+            divContainer.id = `ifc_img_${id}`;
+        }
+
+        divContainer.setAttribute(`data-ifc-type`, type);
+
+        switch(type)
+        {
+            case `svg`:
+                getText(src).then(function(dataText) {
+                    divContainer = document.querySelector(`#ifc_img_${id}`);
+                    divContainer.innerHTML = dataText;
+                    var parrentNodeType = divContainer.parentElement.nodeName;
+                    var svgContainer = divContainer.querySelector(`svg`);
+                    svgContainer.classList.add(`Button-module__buttonIcon___540Jm`);
+                    svgContainer.classList.add(`Button-module__noMargin___5UbzU`);
+                    svgContainer.classList.add(`WishlistPage-module__icon___yWWwy`);
+                    svgContainer.classList.add(`Icon-module__icon___6ICyA`);
+                    svgContainer.classList.add(`Icon-module__xxSmall___vViZA`);
+                    svgContainer.setAttribute(`data-ifc-target`, `${id}`);
+                });
+                break;
+            default:
+            case `img`:
+                var imgContainer = document.createElement(type);
+                imgContainer.src = src;
+                imgContainer.alt = text;
+                imgContainer.title = text;
+                divContainer.appendChild(imgContainer);
+                break;
+        }
+
+        return divContainer;
+    }
+
+    async function getText(src) {
+        let dataObject = await fetch(src);
+        let dataText = await dataObject.text();
+        return dataText;
     }
 
     function createCheckbox(id, text, initial, onChange) {
@@ -299,8 +445,8 @@
         checkboxContainer.addEventListener(`change`, onChange);
 
         if (id != null) {
-            labelContainer.id = `lbl_` + id;
-            checkboxContainer.id = `cbx_` + id;
+            labelContainer.id = `ifc_lbl_${id}`;
+            checkboxContainer.id = `ifc_cbx_${id}`;
         }
 
         labelContainer.appendChild(checkboxContainer);
@@ -311,168 +457,151 @@
         return labelContainer;
     }
 
+    function removeUnwantedControls() {
+        document.querySelectorAll(`.hr.border-neutral-200`).forEach(element => element.remove());
+    }
+
     function toggleFilterContainer(event) {
         window.injected.ui.divFilterShow = !window.injected.ui.divFilterShow;
         var mainContainer = document.querySelector(`#injectedFilterControls`);
+        var buttonContainer = document.querySelector(`#ifc_btn_Filter`);
 
         if (!window.injected.ui.divFilterShow) {
             mainContainer.style.display = `none`;
+            buttonContainer.setAttribute(`aria-pressed`, `false`);
+            buttonContainer.classList.remove(`WishlistPage-module__activeWishlistMenuButton___3V2d8`);
         } else {
             mainContainer.style.display = null;
+            buttonContainer.setAttribute(`aria-pressed`, `true`);
+            buttonContainer.classList.add(`WishlistPage-module__activeWishlistMenuButton___3V2d8`);
+        }
+    }
+
+    function toggleFilterMenuListContainer(event) {
+        var target = event.target.getAttribute(`data-ifc-target`);
+        var groupContainer = document.querySelector(`#ifc_${target}`);
+        var groupMenuButton = groupContainer.querySelector(`.filter-block-button`);
+        var imgContainer = groupMenuButton.querySelector(`#ifc_img_${target}`);
+        var type = imgContainer.dataset.ifcType;
+        var groupMenuListContainer = groupContainer.querySelector(`.filter-block-content`);
+        var ariaExpanded = groupMenuButton.getAttribute(`aria-expanded`);
+
+        switch(type)
+        {
+            case `svg`:
+                if (ariaExpanded == `true`) {
+                    getText(GM_getResourceURL (`IMGExpand`)).then(function(dataText) {
+                        imgContainer = document.querySelector(`#ifc_img_${target}`);
+                        imgContainer.innerHTML = dataText;
+                        var svgContainer = imgContainer.querySelector(`svg`);
+                        svgContainer.classList.add(`Button-module__buttonIcon___540Jm`);
+                        svgContainer.classList.add(`Button-module__noMargin___5UbzU`);
+                        svgContainer.classList.add(`WishlistPage-module__icon___yWWwy`);
+                        svgContainer.classList.add(`Icon-module__icon___6ICyA`);
+                        svgContainer.classList.add(`Icon-module__xxSmall___vViZA`);
+                        svgContainer.setAttribute(`data-ifc-target`, `${target}`);
+                    });
+                } else {
+                    getText(GM_getResourceURL (`IMGCollapse`)).then(function(dataText) {
+                        imgContainer = document.querySelector(`#ifc_img_${target}`);
+                        imgContainer.innerHTML = dataText;
+                        var svgContainer = imgContainer.querySelector(`svg`);
+                        svgContainer.classList.add(`Button-module__buttonIcon___540Jm`);
+                        svgContainer.classList.add(`Button-module__noMargin___5UbzU`);
+                        svgContainer.classList.add(`WishlistPage-module__icon___yWWwy`);
+                        svgContainer.classList.add(`Icon-module__icon___6ICyA`);
+                        svgContainer.classList.add(`Icon-module__xxSmall___vViZA`);
+                        svgContainer.setAttribute(`data-ifc-target`, `${target}`);
+                    });
+                }
+                break;
+            default:
+            case `img`:
+                imgContainer = imgContainer.querySelector(`img`);
+
+                if (ariaExpanded == `true`) {
+                    imgContainer.setAttribute(`src`, GM_getResourceURL (`IMGExpand`));
+                    imgContainer.setAttribute(`alt`, `Expand`);
+                    imgContainer.setAttribute(`title`, `Expand`);
+                } else {
+                    imgContainer.setAttribute(`src`, GM_getResourceURL (`IMGCollapse`));
+                    imgContainer.setAttribute(`alt`, `Collapse`);
+                    imgContainer.setAttribute(`title`, `Collapse`);
+                }
+                break;
         }
 
-        onBodyChange();
+        if (ariaExpanded == `true`) {
+            groupMenuButton.setAttribute(`aria-expanded`, `false`);
+            groupMenuListContainer.style.display = `none`;
+        } else {
+            groupMenuButton.setAttribute(`aria-expanded`, `true`);
+            groupMenuListContainer.style.display = null;
+        }
     }
 
     function toggleOwned(event) {
-        window.injected.filters.owned.owned = event.target.checked;
-
-        if ((!window.injected.filters.owned.owned)
-        && (window.injected.filters.owned.multi)) {
-            window.injected.filters.owned.multi = event.target.checked;
-            document.getElementById(`cbx_ifcMulti`).checked = event.target.checked;
-        }
-
-        onBodyChange();
+        window.injected.filters.owned.isOwned = event.target.checked;
+        updateScreen();
     }
 
     function toggleNotOwned(event) {
         window.injected.filters.owned.notOwned = event.target.checked;
-        onBodyChange();
+        updateScreen();
     }
 
-    function toggleMulti(event) {
-        window.injected.filters.owned.multi = event.target.checked;
-
-        if ((window.injected.filters.owned.multi)
-        && (!window.injected.filters.owned.owned)) {
-            window.injected.filters.owned.owned = event.target.checked;
-            document.getElementById(`cbx_ifcOwned`).checked = event.target.checked;
-        }
-
-        onBodyChange();
+    function toggleUnPurchasable(event) {
+        window.injected.filters.owned.isUnPurchasable = event.target.checked;
+        updateScreen();
     }
 
-    function toggleCommon(event) {
-        window.injected.filters.rarity.common = event.target.checked;
-        onBodyChange();
-    }
-
-    function toggleUncommon(event) {
-        window.injected.filters.rarity.uncommon = event.target.checked;
-        onBodyChange();
-    }
-
-    function toggleRare(event) {
-        window.injected.filters.rarity.rare = event.target.checked;
-        onBodyChange();
-    }
-
-    function toggleUltraRare(event) {
-        window.injected.filters.rarity.ultraRare = event.target.checked;
-        onBodyChange();
-    }
-
-    function toggleLegendary(event) {
-        window.injected.filters.rarity.legendary = event.target.checked;
-        onBodyChange();
-    }
-
-    function isContainerLocked(container) {
-        return container.classList.contains(`locked`);
-    }
-
-    function hasContainerCount(container) {
-        return container.querySelector(`.count`) != null ? true : false;
-    }
-
-    function getContainerCount(container) {
-        if (hasContainerCount(container)) {
-            return container.querySelector(`.count`).innerText.substring(1);
-        } else {
-            return 0;
-        }
-    }
-
-    function getContainerRarity(container) {
-        return container.querySelector(`.rarity`).innerText.toUpperCase();
-    }
-
-    function isContainerOwned(container) {
+    function setContainerOwned(container) {
         var isOwned = true;
+        isOwned = (container.innerText.indexOf(`Owned`) !== -1 && (container.querySelector(`button`).innerText != `BUY` || container.querySelector(`button`).innerText != `BUY TO OWN`));
 
-        if (isContainerLocked(container)) {
-            isOwned = false;
+        if (isOwned && !container.classList.contains(`ifc-Owned`)) {
+            container.classList.add(`ifc-Owned`);
+            container.setAttribute(`data-ifc-owned`, true);
         } else {
-            if (hasContainerCount(container)) {
-                if (getContainerCount(container) == 0) {
-                    isOwned = false;
-                }
-            }
+            container.setAttribute(`data-ifc-owned`, false);
         }
 
         return isOwned;
     }
 
-    function isContainerMulti(container) {
-        var isMulti = false;
+    function setContainerUnPurchasable(container) {
+        var isUnPurchasable = true;
+        isUnPurchasable = (!container.classList.contains(`ifc-Owned`) && container.querySelector(`button`).innerText != `BUY` && container.querySelector(`button`).innerText != `BUY TO OWN`);
 
-        if (hasContainerCount(container)) {
-            if (getContainerCount(container) > 1) {
-                isMulti = true;
-            }
+        if (isUnPurchasable && !container.classList.contains(`ifc-UnPurchasable`)) {
+            container.classList.add(`ifc-UnPurchasable`);
+            container.setAttribute(`data-ifc-unPurchasable`, true);
+        } else {
+            container.setAttribute(`data-ifc-unPurchasable`, false);
         }
 
-        return isMulti;
+        return isUnPurchasable;
     }
 
     function validateOwned(container, showContainer) {
-        var isOwned = isContainerOwned(container);
-        var isNotOwned = !isContainerOwned(container);
+        var isOwned = setContainerOwned(container);
+        var isNotOwned = !isOwned;
+        var isUnPurchasable = setContainerUnPurchasable(container);
 
-        if ((!window.injected.filters.owned.owned && isOwned)
-        || (!window.injected.filters.owned.notOwned && isNotOwned)) {
+        if ((!showContainer) && (window.injected.filters.owned.isOwned && isOwned)) {
+            showContainer = true;
+        }
+
+        if ((!showContainer) && (window.injected.filters.owned.notOwned && isNotOwned)) {
+            showContainer = true;
+        }
+
+        if ((!showContainer) && (window.injected.filters.owned.isUnPurchasable && isUnPurchasable)) {
+            showContainer = true;
+        }
+
+        if ((showContainer) && (!window.injected.filters.owned.isUnPurchasable && isUnPurchasable)) {
             showContainer = false;
-        }
-
-        if (hasContainerCount(container)) {
-            var isMulti = isContainerMulti(container);
-
-            if (window.injected.filters.owned.multi && !isMulti) {
-                showContainer = false;
-            }
-        }
-
-        return showContainer;
-    }
-
-    function validateRarity(container, showContainer) {
-        switch(getContainerRarity(container)) {
-            case `COMMON`:
-                if (!window.injected.filters.rarity.common) {
-                    showContainer = false;
-                }
-                break;
-            case `UNCOMMON`:
-                if (!window.injected.filters.rarity.uncommon) {
-                    showContainer = false;
-                }
-                break;
-            case `RARE`:
-                if (!window.injected.filters.rarity.rare) {
-                    showContainer = false;
-                }
-                break;
-            case `ULTRARARE`:
-                if (!window.injected.filters.rarity.ultraRare) {
-                    showContainer = false;
-                }
-                break;
-            case `LEGENDARY`:
-                if (!window.injected.filters.rarity.legendary) {
-                    showContainer = false;
-                }
-                break;
         }
 
         return showContainer;
@@ -482,27 +611,62 @@
         var containers = document.getElementsByClassName(containerClassQuery);
 
         for (let container of containers) {
-            var showContainer = true;
-            showContainer = validateOwned(container, showContainer);
-            showContainer = validateRarity(container, showContainer);
+            var showContainer = false;
+
+            try {
+                showContainer = validateOwned(container, showContainer);
+            } catch (ex) {
+                console.log(`${ex}`);
+            }
 
             if (!showContainer) {
                 container.style.display = `none`;
+                container.classList.add(`ifc-Hide`);
+                container.setAttribute(`data-ifc-show`, false);
+
+                if (container.classList.contains(`ifc-Show`)) {
+                    container.classList.remove(`ifc-Show`);
+                }
             } else {
                 container.style.display = null;
+                container.classList.add(`ifc-Show`);
+                container.setAttribute(`data-ifc-show`, true);
+
+                if (container.classList.contains(`ifc-Hide`)) {
+                    container.classList.remove(`ifc-Hide`);
+                }
             }
         }
     }
 
-    function onBodyChange(mut) {
-        uiInjections();
+    function updateFilterCounts() {
+        window.injected.filters.totalCount = document.querySelectorAll('.my-2').length;
+        window.injected.filters.filteredCount = document.querySelectorAll('.my-2.ifc-Show').length;
+    }
 
-        if (doControlsExist(document, `.reqCard`)) {
+    function updateFilterLabels() {
+        updateFilterCounts();
+        var labelContainer = document.querySelector(`#ifc_lbl_Filter`);
+        labelContainer.innerHTML = `Viewing ${window.injected.filters.filteredCount} of ${window.injected.filters.totalCount} results`;
+    }
+
+    function updateScreen() {
+        toggleContainers(`my-2`);
+        updateFilterLabels();
+    }
+
+    function onBodyChange(mut) {
+        if (doControlsExist(document, `.my-2`)) {
+            uiInjections();
             addFilterControls();
-            toggleContainers(`reqCard`);
+            removeUnwantedControls();
+            window.injected.ui.complete = true;
+            updateScreen();
         }
+
+        mo.disconnect();
     }
 
     var mo = new MutationObserver(onBodyChange);
-    mo.observe(document.body, {childList: true, subtree: true});
+    mo.observe(document.querySelector(`#PageContent`), {childList: true, subtree: true});
 })();
