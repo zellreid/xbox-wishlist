@@ -28,11 +28,11 @@
     padding: 5px;
 }
 
-.theme-light .ifc-Owned {
+.ifc-Owned {
     background-color: #107c1059;
 }
 
-.theme-light .ifc-UnPurchasable {
+.ifc-UnPurchasable {
     background-color: #dc354559;
 }
 
