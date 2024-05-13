@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         XBOX Wishlist
 // @namespace    https://github.com/zellreid/xbox-wishlist
-// @version      1.0.24090.22
+// @version      1.0.24134.1
 // @description  A Tampermonkey userscript to add additional functionality to the XBOX Wishlist
 // @author       ZellReid
 // @homepage     https://github.com/zellreid/xbox-wishlist
@@ -43,27 +43,24 @@
             owned: {
                 isOwned: true,
                 ownedCount: 0,
-                ownedColour: `#107c10ff`,
                 notOwned: true,
                 notOwnedCount: 0,
                 isUnPurchasable: true,
-                UnPurchasableCount: 0,
-                UnPurchasableColour: `#dc3545ff`
+                UnPurchasableCount: 0
             },
             subscriptions: {
                 gamePass: true,
                 gamePassCount: 0,
-                gamePassColour: `#ffb900ff`,
                 eaPlus: true,
                 eaPlusCount: 0,
-                eaPlusColour: `#ffb900ff`,
+                ubisoftPlus: true,
+                ubisoftPlusCount: 0,
                 nonSubcription: true,
                 nonSubcriptionCount: 0
             },
             discounts: {
                 discounted: true,
                 discountedCount: 0,
-                discountedColour: `#ffb900ff`,
                 notDiscounted: true,
                 notDiscountedCount: 0,
                 discountScale: 0
