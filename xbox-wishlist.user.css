@@ -80,3 +80,20 @@
     border-radius: 10px;
     border-color: #757575ff;
 }
+
+.ProductCard-module__discountTag___OjGFy {
+    background-color: #ffd800;
+    border-radius: .25rem;
+    color: #000;
+    flex-shrink: 0;
+    font-size: .75rem;
+    height: 1.25rem;
+    text-align: center;
+    width: 2.1875rem;
+}
+
+.typography-module__xdsBody2___RNdGY {
+    font-family: Segoe UI;
+    font-size: .875rem;
+    line-height: 1.25rem;
+}
