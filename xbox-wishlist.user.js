@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         XBOX Wishlist
 // @namespace    https://github.com/zellreid/xbox-wishlist
-// @version      1.0.24339.6
+// @version      1.0.24339.7
 // @description  A Tampermonkey userscript to add additional functionality to the XBOX Wishlist
 // @author       ZellReid
 // @homepage     https://github.com/zellreid/xbox-wishlist
@@ -551,11 +551,35 @@
     }
 
     function setContainerData(container, id) {
-        container.dataset.ifcId = id;
-        container.dataset.ifcImage = container.querySelector(`.WishlistProductItem-module__imageContainer___lY7BQ a img`).src;
-        container.dataset.ifcName = container.querySelector(`.WishlistProductItem-module__productDetails___RquZp a`).innerText;
-        container.dataset.ifcUri = container.querySelector(`.WishlistProductItem-module__productDetails___RquZp a`).href;
-        container.dataset.ifcPublisher = container.querySelector(`.WishlistProductItem-module__productDetails___RquZp p`).innerText;
+        try {
+            container.dataset.ifcId = id;
+        } catch (ex) {
+            container.dataset.ifcId = `null`;
+        }
+
+        try {
+            container.dataset.ifcImage = container.querySelector(`.WishlistProductItem-module__imageContainer___lY7BQ a img`).src;
+        } catch (ex) {
+            container.dataset.ifcImage = `null`;
+        }
+
+        try {
+            container.dataset.ifcName = container.querySelector(`.WishlistProductItem-module__productDetails___RquZp a`).innerText;
+        } catch (ex) {
+            container.dataset.ifcName = `null`;
+        }
+
+        try {
+            container.dataset.ifcUri = container.querySelector(`.WishlistProductItem-module__productDetails___RquZp a`).href;
+        } catch (ex) {
+            container.dataset.ifcUri = `null`;
+        }
+
+        try {
+            container.dataset.ifcPublisher = container.querySelector(`.WishlistProductItem-module__productDetails___RquZp p`).innerText;
+        } catch (ex) {
+            container.dataset.ifcPublisher = `null`;
+        }
 
         var prices = container.querySelectorAll(`.WishlistProductItem-module__productDetails___RquZp div span`);
 
@@ -592,8 +616,12 @@
             container.dataset.ifcSubscription = `null`;
         }
 
-        var isOwned = true;
-        isOwned = (container.innerText.indexOf(`Owned`) !== -1 && (container.querySelector(`button`).innerText != `BUY` || container.querySelector(`button`).innerText != `BUY TO OWN`));
+        var isOwned = false;
+
+        try {
+            isOwned = (container.innerText.indexOf(`Owned`) !== -1 && (container.querySelector(`button`).innerText != `BUY` || container.querySelector(`button`).innerText != `BUY TO OWN`));
+        } catch (ex) {
+        }
 
         if (isOwned && !container.classList.contains(`ifc-Owned`)) {
             container.classList.add(`ifc-Owned`);
@@ -602,8 +630,12 @@
             container.dataset.ifcOwned = false;
         }
 
-        var isUnPurchasable = true;
-        isUnPurchasable = (!isOwned && container.dataset.ifcPrice == `null`);
+        var isUnPurchasable = false;
+
+        try {
+            isUnPurchasable = (!isOwned && container.dataset.ifcPrice == `null`);
+        } catch (ex) {
+        }
 
         if (isUnPurchasable && !container.classList.contains(`ifc-UnPurchasable`)) {
             container.classList.add(`ifc-UnPurchasable`);
