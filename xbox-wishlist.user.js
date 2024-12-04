@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         XBOX Wishlist
 // @namespace    https://github.com/zellreid/xbox-wishlist
-// @version      1.0.24134.1
+// @version      1.0.24339.6
 // @description  A Tampermonkey userscript to add additional functionality to the XBOX Wishlist
 // @author       ZellReid
 // @homepage     https://github.com/zellreid/xbox-wishlist
@@ -30,6 +30,9 @@
         scripts: [],
         styles: [],
         ui: {
+            contentSelector: `PageContent`,
+            itemsSelector: `WishlistProductItem-module__itemContainer___weUfG`,
+            buttonsSelector: `WishlistPage-module__menuContainer___MNCGP`,
             floatButtons: false,
             lblFilter: false,
             btnFilter: false,
@@ -148,8 +151,7 @@
     }
 
     function floatButtons() {
-        var buttonContainerTarget = `.xgp-reset-style .row .col-sm-4.col-5`;
-        var headingContainerTarget = `.offset-sm-4.offset-3`
+        var buttonContainerTarget = `.${window.injected.ui.buttonsSelector}`;
 
         if ((!window.injected.ui.floatButtons)
         && (doControlsExist(document.body, buttonContainerTarget))) {
@@ -158,12 +160,8 @@
             buttonContainer.style.position = `fixed`;
             buttonContainer.style.top = `100px`;
             buttonContainer.style.right = `100px`;
-            buttonContainer.style.zIndex = `10000`;
+            buttonContainer.style.zIndex = `998`;
             window.injected.ui.floatButtons = true;
-
-            var headingContainer = document.querySelector(headingContainerTarget);
-            headingContainer.classList.remove(`offset-sm-4`);
-            headingContainer.classList.remove(`offset-3`);
         }
     }
 
@@ -177,7 +175,7 @@
     function addFilterLabel() {
         if (!window.injected.ui.lblFilter) {
             var lblContainer = createLabel(`Filter`, `Viewing ${window.injected.filters.filteredCount} of ${window.injected.filters.totalCount} results`);
-            var buttonContainer = document.querySelector(`#ifc_ButtonContainer div`);
+            var buttonContainer = document.querySelector(`#ifc_ButtonContainer`);
             buttonContainer.insertBefore(lblContainer, buttonContainer.firstChild);
             window.injected.ui.lblFilter = true;
         }
@@ -186,7 +184,7 @@
     function addFilterButton() {
         if (!window.injected.ui.btnFilter) {
             var imgContainer = createImageButton(`Filter`, GM_getResourceURL (`IMGFilter`), `Filter`, `svg`);
-            var buttonContainer = document.querySelector(`#ifc_ButtonContainer div`);
+            var buttonContainer = document.querySelector(`#ifc_ButtonContainer`);
             buttonContainer.appendChild(imgContainer);
             window.injected.ui.btnFilter = true;
         }
@@ -552,38 +550,73 @@
         updateScreen();
     }
 
-    function setContainerOwned(container) {
+    function setContainerData(container, id) {
+        container.dataset.ifcId = id;
+        container.dataset.ifcImage = container.querySelector(`.WishlistProductItem-module__imageContainer___lY7BQ a img`).src;
+        container.dataset.ifcName = container.querySelector(`.WishlistProductItem-module__productDetails___RquZp a`).innerText;
+        container.dataset.ifcUri = container.querySelector(`.WishlistProductItem-module__productDetails___RquZp a`).href;
+        container.dataset.ifcPublisher = container.querySelector(`.WishlistProductItem-module__productDetails___RquZp p`).innerText;
+
+        var prices = container.querySelectorAll(`.WishlistProductItem-module__productDetails___RquZp div span`);
+
+        try {
+            container.dataset.ifcPriceBase = parseFloat(prices[0].innerText.replace(/[^0-9.,-]/g, ``).replace(`,`, `.`));
+        } catch (ex) {
+            container.dataset.ifcPriceBase = `null`;
+        }
+
+        try {
+            container.dataset.ifcPriceDiscount = parseFloat(prices[1].innerText.replace(/[^0-9.,-]/g, ``).replace(`,`, `.`));
+        } catch (ex) {
+            container.dataset.ifcPriceDiscount = `null`;
+        }
+
+        try {
+            container.dataset.ifcPrice = container.dataset.ifcPriceDiscount !== `null` ? container.dataset.ifcPriceDiscount : container.dataset.ifcPriceBase;
+        } catch (ex) {
+            container.dataset.ifcPrice = `null`;
+        }
+
+        if ((container.dataset.ifcPriceDiscount !== `null`) && (container.dataset.ifcPriceDiscount > 0)) {
+            container.dataset.ifcPriceDiscountAmount = container.dataset.ifcPriceBase - container.dataset.ifcPriceDiscount;
+            container.dataset.ifcPriceDiscountPercent = (container.dataset.ifcPriceDiscountAmount / container.dataset.ifcPriceBase) * 100;
+        } else {
+            container.dataset.ifcPriceDiscountAmount = 0;
+            container.dataset.ifcPriceDiscountPercent = 0;
+        }
+
+        try {
+            //ToDo: Fix the subsciption data
+            container.dataset.ifcSubscription = prices[2].innerText;
+        } catch (ex) {
+            container.dataset.ifcSubscription = `null`;
+        }
+
         var isOwned = true;
         isOwned = (container.innerText.indexOf(`Owned`) !== -1 && (container.querySelector(`button`).innerText != `BUY` || container.querySelector(`button`).innerText != `BUY TO OWN`));
 
         if (isOwned && !container.classList.contains(`ifc-Owned`)) {
             container.classList.add(`ifc-Owned`);
-            container.setAttribute(`data-ifc-owned`, true);
+            container.dataset.ifcOwned = true;
         } else {
-            container.setAttribute(`data-ifc-owned`, false);
+            container.dataset.ifcOwned = false;
         }
 
-        return isOwned;
-    }
-
-    function setContainerUnPurchasable(container) {
         var isUnPurchasable = true;
-        isUnPurchasable = (!container.classList.contains(`ifc-Owned`) && container.querySelector(`button`).innerText != `BUY` && container.querySelector(`button`).innerText != `BUY TO OWN`);
+        isUnPurchasable = (!isOwned && container.dataset.ifcPrice == `null`);
 
         if (isUnPurchasable && !container.classList.contains(`ifc-UnPurchasable`)) {
             container.classList.add(`ifc-UnPurchasable`);
-            container.setAttribute(`data-ifc-unPurchasable`, true);
+            container.dataset.ifcUnpurchasable = true;
         } else {
-            container.setAttribute(`data-ifc-unPurchasable`, false);
+            container.dataset.ifcUnpurchasable = false;
         }
-
-        return isUnPurchasable;
     }
 
     function validateOwned(container, showContainer) {
-        var isOwned = setContainerOwned(container);
+        var isOwned = container.dataset.ifcOwned;
         var isNotOwned = !isOwned;
-        var isUnPurchasable = setContainerUnPurchasable(container);
+        var isUnPurchasable = container.dataset.ifcUnpurchasable;
 
         if ((!showContainer) && (window.injected.filters.owned.isOwned && isOwned)) {
             showContainer = true;
@@ -606,12 +639,16 @@
 
     function toggleContainers(containerClassQuery) {
         var containers = document.getElementsByClassName(containerClassQuery);
+        var containersCount = containers.length;
 
         for (let container of containers) {
+            var id = containersCount;
+            setContainerData(container, id);
             var showContainer = false;
 
             try {
                 showContainer = validateOwned(container, showContainer);
+                containersCount--;
             } catch (ex) {
                 console.log(`${ex}`);
             }
@@ -619,7 +656,7 @@
             if (!showContainer) {
                 container.style.display = `none`;
                 container.classList.add(`ifc-Hide`);
-                container.setAttribute(`data-ifc-show`, false);
+                container.dataset.ifcShow = false;
 
                 if (container.classList.contains(`ifc-Show`)) {
                     container.classList.remove(`ifc-Show`);
@@ -627,7 +664,7 @@
             } else {
                 container.style.display = null;
                 container.classList.add(`ifc-Show`);
-                container.setAttribute(`data-ifc-show`, true);
+                container.dataset.ifcShow = true;
 
                 if (container.classList.contains(`ifc-Hide`)) {
                     container.classList.remove(`ifc-Hide`);
@@ -637,8 +674,8 @@
     }
 
     function updateFilterCounts() {
-        window.injected.filters.totalCount = document.querySelectorAll('.my-2').length;
-        window.injected.filters.filteredCount = document.querySelectorAll('.my-2.ifc-Show').length;
+        window.injected.filters.totalCount = document.querySelectorAll(`.${window.injected.ui.itemsSelector}`).length;
+        window.injected.filters.filteredCount = document.querySelectorAll(`.${window.injected.ui.itemsSelector}.ifc-Show`).length;
     }
 
     function updateFilterLabels() {
@@ -648,12 +685,12 @@
     }
 
     function updateScreen() {
-        toggleContainers(`my-2`);
+        toggleContainers(`${window.injected.ui.itemsSelector}`);
         updateFilterLabels();
     }
 
     function onBodyChange(mut) {
-        if (doControlsExist(document, `.my-2`)) {
+        if (doControlsExist(document, `.${window.injected.ui.itemsSelector}`)) {
             uiInjections();
             addFilterControls();
             removeUnwantedControls();
@@ -665,5 +702,5 @@
     }
 
     var mo = new MutationObserver(onBodyChange);
-    mo.observe(document.querySelector(`#PageContent`), {childList: true, subtree: true});
+    mo.observe(document.querySelector(`#${window.injected.ui.contentSelector}`), {childList: true, subtree: true});
 })();
