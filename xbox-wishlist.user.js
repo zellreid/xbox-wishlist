@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         XBOX Wishlist
 // @namespace    https://github.com/zellreid/xbox-wishlist
-// @version      1.0.25326.1
+// @version      1.0.25326.2
 // @description  A Tampermonkey userscript to add additional functionality to the XBOX Wishlist
 // @author       ZellReid
 // @homepage     https://github.com/zellreid/xbox-wishlist
@@ -84,6 +84,8 @@
     // ==================== STATE MANAGEMENT ====================
     const state = {
         info: GM_info,
+        scripts: [],
+        styles: [],
         svgCache: new Map(),
         elementCache: new Map(),
         ui: {
@@ -245,6 +247,9 @@
      * Check if resource already added
      */
     function isResourceAdded(resourceArray, url) {
+        if (!resourceArray || !Array.isArray(resourceArray)) {
+            return false;
+        }
         return resourceArray.some(resource => 
             resource.src === url || resource.href === url
         );
@@ -981,4 +986,5 @@
 
     const observer = new MutationObserver(onDOMReady);
     initialize();
+
 })();
