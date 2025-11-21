@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         XBOX Wishlist
 // @namespace    https://github.com/zellreid/xbox-wishlist
-// @version      1.0.25326.2
+// @version      1.0.25326.3
 // @description  A Tampermonkey userscript to add additional functionality to the XBOX Wishlist
 // @author       ZellReid
 // @homepage     https://github.com/zellreid/xbox-wishlist
@@ -782,6 +782,46 @@
     // ==================== ITEM FILTERING ====================
 
     /**
+     * Inject discount percentage badge into item card
+     */
+    function injectDiscountBadge(container, discountPercent) {
+        try {
+            // Check if badge already exists
+            const existingBadge = container.querySelector('.ifc-discount-badge');
+            if (existingBadge) {
+                // Update existing badge
+                existingBadge.textContent = `-${discountPercent}%`;
+                return;
+            }
+
+            // Find the product details section (where price info is)
+            const productDetails = safeQuerySelector(container, CONFIG.selectors.productDetails);
+            if (!productDetails) return;
+
+            // Create discount badge
+            const badge = document.createElement('span');
+            badge.className = 'ifc-discount-badge Price-module__discountTag___OjGFy typography-module__xdsBody2___RNdGY';
+            badge.textContent = `-${discountPercent}%`;
+            badge.setAttribute('aria-label', `${discountPercent}% discount`);
+            badge.style.marginLeft = '8px';
+            badge.style.display = 'inline-flex';
+            badge.style.alignItems = 'center';
+            badge.style.justifyContent = 'center';
+
+            // Find the price container and inject badge next to it
+            const priceContainer = productDetails.querySelector('div');
+            if (priceContainer) {
+                // Insert badge after the price display
+                priceContainer.style.display = 'flex';
+                priceContainer.style.alignItems = 'center';
+                priceContainer.appendChild(badge);
+            }
+        } catch (ex) {
+            console.error('Failed to inject discount badge:', ex);
+        }
+    }
+
+    /**
      * Extract container data from wishlist item
      */
     function setContainerData(container, id) {
@@ -805,16 +845,30 @@
         const priceBase = prices[0] ? parseFloat(prices[0].innerText.replace(/[^0-9.,-]/g, '').replace(',', '.')) : null;
         const priceDiscount = prices[1] ? parseFloat(prices[1].innerText.replace(/[^0-9.,-]/g, '').replace(',', '.')) : null;
         
-        setDataAttribute(container, 'ifcPriceBase', priceBase);
-        setDataAttribute(container, 'ifcPriceDiscount', priceDiscount);
-        setDataAttribute(container, 'ifcPrice', priceDiscount ?? priceBase);
+        // Round prices to 2 decimal places
+        const priceBaseRounded = priceBase ? Math.round(priceBase * 100) / 100 : null;
+        const priceDiscountRounded = priceDiscount ? Math.round(priceDiscount * 100) / 100 : null;
+        
+        setDataAttribute(container, 'ifcPriceBase', priceBaseRounded);
+        setDataAttribute(container, 'ifcPriceDiscount', priceDiscountRounded);
+        setDataAttribute(container, 'ifcPrice', priceDiscountRounded ?? priceBaseRounded);
 
         // Discount calculations
-        if (priceDiscount && priceDiscount > 0) {
-            const discountAmount = priceBase - priceDiscount;
-            const discountPercent = (discountAmount / priceBase) * 100;
-            setDataAttribute(container, 'ifcPriceDiscountAmount', discountAmount);
-            setDataAttribute(container, 'ifcPriceDiscountPercent', discountPercent);
+        if (priceDiscountRounded && priceDiscountRounded > 0 && priceBaseRounded) {
+            const discountAmount = priceBaseRounded - priceDiscountRounded;
+            const discountPercent = (discountAmount / priceBaseRounded) * 100;
+            
+            // Round discount amount to 2 decimals, percentage to integer
+            const discountAmountRounded = Math.round(discountAmount * 100) / 100;
+            const discountPercentRounded = Math.round(discountPercent);
+            
+            setDataAttribute(container, 'ifcPriceDiscountAmount', discountAmountRounded);
+            setDataAttribute(container, 'ifcPriceDiscountPercent', discountPercentRounded);
+            
+            // Inject discount badge if it has a value
+            if (discountPercentRounded > 0) {
+                injectDiscountBadge(container, discountPercentRounded);
+            }
         } else {
             setDataAttribute(container, 'ifcPriceDiscountAmount', 0);
             setDataAttribute(container, 'ifcPriceDiscountPercent', 0);
