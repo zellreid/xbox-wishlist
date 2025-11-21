@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         XBOX Wishlist
 // @namespace    https://github.com/zellreid/xbox-wishlist
-// @version      1.0.25325.2
+// @version      1.0.25325.4
 // @description  A Tampermonkey userscript to add additional functionality to the XBOX Wishlist
 // @author       ZellReid
 // @homepage     https://github.com/zellreid/xbox-wishlist
@@ -21,7 +21,7 @@
 // @resource     IMGCollapse https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/collapse.svg?ver=@version
 // @grant        GM_getResourceURL
 // @grant        GM_setValue
-// @grant        GM_setValue
+// @grant        GM_getValue
 // @downloadURL  https://github.com/zellreid/xbox-wishlist/raw/refs/heads/main/xbox-wishlist.user.js
 // @updateURL    https://github.com/zellreid/xbox-wishlist/raw/refs/heads/main/xbox-wishlist.user.js
 // ==/UserScript==
@@ -37,6 +37,25 @@
         },
         storage: {
             key: `ifc_xbox_wishlist`
+        },
+        ui: {
+            containers: {
+                buttons: {
+                    id: `ifc_div_buttons`,
+                    style: {
+                        position: `fixed`,
+                        top: `100px`,
+                        right: `100px`,
+                        zIndex: `998`
+                    }
+                },
+                filters: {
+                    id: `ifc_div_filters`,
+                    style: {
+                        display: `none`
+                    }
+                }
+            }
         }
     };
 
@@ -170,22 +189,35 @@
         return container.querySelector(controlQuery);
     }
 
+    function getControl(container, controlQuery) {
+        return container.querySelector(controlQuery);
+    }
+
     function uiInjections() {
         floatButtons();
     }
 
     function floatButtons() {
-        var buttonContainerTarget = `.${CONFIG.selectors.buttons}`;
+        // Early return if already processed
+        if (window.injected.ui.floatButtons) {
+            return;
+        }
 
-        if ((!window.injected.ui.floatButtons)
-        && (doControlsExist(document.body, buttonContainerTarget))) {
-            var buttonContainer = document.querySelector(buttonContainerTarget);
-            buttonContainer.id = `ifc_ButtonContainer`;
-            buttonContainer.style.position = `fixed`;
-            buttonContainer.style.top = `100px`;
-            buttonContainer.style.right = `100px`;
-            buttonContainer.style.zIndex = `998`;
+        try {
+            // Single DOM query - store result
+            const divButtons = getControl(document.body, `.${CONFIG.selectors.buttons}`);
+    
+            // Check if element exists
+            if (!divButtons) {
+                return;
+            }
+    
+            // Apply styles and ID
+            divButtons.id = CONFIG.ui.containers.buttons.id;
+            Object.assign(divButtons.style, CONFIG.ui.containers.buttons.style);
             window.injected.ui.floatButtons = true;
+        } catch (ex) {
+            console.error('Failed to float buttons:', ex);
         }
     }
 
@@ -197,57 +229,82 @@
     }
 
     function addFilterLabel() {
-        if (!window.injected.ui.lblFilter) {
-            var lblContainer = createLabel(`Filter`, `Viewing ${window.injected.filters.filteredCount} of ${window.injected.filters.totalCount} results`);
-            var buttonContainer = document.querySelector(`#ifc_ButtonContainer`);
-            buttonContainer.insertBefore(lblContainer, buttonContainer.firstChild);
+        // Early return if already processed
+        if (window.injected.ui.lblFilter) {
+            return;
+        }
+
+        try {
+            const lblFilter = createLabel(`Filter`, `Viewing ${window.injected.filters.filteredCount} of ${window.injected.filters.totalCount} results`);
+            divButtons.insertBefore(lblFilter, divButtons.firstChild);
             window.injected.ui.lblFilter = true;
+        } catch (ex) {
+            console.error('Failed to add filter label:', ex);
         }
     }
 
     function addFilterButton() {
-        if (!window.injected.ui.btnFilter) {
-            var imgContainer = createImageButton(`Filter`, GM_getResourceURL (`IMGFilter`), `Filter`, `svg`);
-            var buttonContainer = document.querySelector(`#ifc_ButtonContainer`);
-            buttonContainer.appendChild(imgContainer);
+        // Early return if already processed
+        if (window.injected.ui.btnFilter) {
+            return;
+        }
+
+        try {
+            const btnFilter = createImageButton(`Filter`, GM_getResourceURL (`IMGFilter`), `Filter`, `svg`);
+            divButtons.appendChild(btnFilter);
             window.injected.ui.btnFilter = true;
+        } catch (ex) {
+            console.error('Failed to add filter button:', ex);
         }
     }
 
     function addFilterContainer() {
-        if ((!window.injected.ui.divFilter)
-        && (!doControlsExist(document.body, `#injectedFilterControls`))) {
-            var filterContainer = document.createElement(`div`);
-            filterContainer.id = `injectedFilterControls`;
-            filterContainer.classList.add(`filter-section`);
-            filterContainer.classList.add(`SortAndFilters-module__container___yA+Vp`);
-            filterContainer.style.display = `none`;
+        // Early return if already processed
+        if (window.injected.ui.divFilter) {
+            return;
+        }
 
-            var filterListContainer = document.createElement(`div`);
-            filterListContainer.classList.add(`filter-list`);
-            filterListContainer.classList.add(`SortAndFilters-module__filterList___T81LH`);
+        try {
+            // Single DOM query - store result
+            const divFilters = getControl(document.body, `.${CONFIG.ui.containers.filters.id}`);
+    
+            // Check if element exists
+            if (divFilters) {
+                return;
+            }
 
-            var filterListHeading = document.createElement(`h2`);
-            filterListHeading.classList.add(`filter-text-heading`);
-            filterListHeading.classList.add(`typography-module__spotLightSubtitlePortrait___RB7M0`);
-            filterListHeading.classList.add(`SortAndFilters-module__filtersText___8OwXG`);
+            divFilters = document.createElement(`div`);
+            divFilters.id = CONFIG.ui.containers.filters.id;
+            divFilters.classList.add(`filter-section`);
+            divFilters.classList.add(`SortAndFilters-module__container___yA+Vp`);
+            Object.assign(divFilters.style, CONFIG.ui.containers.filters.style);
 
-            var filterListHeadingText = document.createTextNode(`Filters`);
-            filterListHeading.appendChild(filterListHeadingText);
+            const divFiltersList = document.createElement(`div`);
+            divFiltersList.classList.add(`filter-list`);
+            divFiltersList.classList.add(`SortAndFilters-module__filterList___T81LH`);
 
-            var ulContainer = document.createElement(`ul`);
-            ulContainer.classList.add(`filter-groups`);
-            ulContainer.classList.add(`SortAndFilters-module__filterList___T81LH`);
+            const filtersListHeading = document.createElement(`h2`);
+            filtersListHeading.classList.add(`filter-text-heading`);
+            filtersListHeading.classList.add(`typography-module__spotLightSubtitlePortrait___RB7M0`);
+            filtersListHeading.classList.add(`SortAndFilters-module__filtersText___8OwXG`);
 
-            filterListContainer.appendChild(filterListHeading);
-            filterListContainer.appendChild(ulContainer);
+            const filtersListHeadingText = document.createTextNode(`Filters`);
+            filtersListHeading.appendChild(filtersListHeadingText);
 
-            filterContainer.appendChild(filterListContainer);
-            document.body.appendChild(filterContainer);
+            var filtersList = document.createElement(`ul`);
+            filtersList.classList.add(`filter-groups`);
+            filtersList.classList.add(`SortAndFilters-module__filterList___T81LH`);
+
+            divFiltersList.appendChild(filtersListHeading);
+            divFiltersList.appendChild(filtersList);
+
+            divFilters.appendChild(divFiltersList);
+            document.body.appendChild(divFilters);
+
+            btnFilter.addEventListener(`click`, toggleFilterContainer);
             window.injected.ui.divFilter = true;
-
-            var imgContainer = document.querySelector(`#ifc_btn_Filter`);
-            imgContainer.addEventListener(`click`, toggleFilterContainer);
+        } catch (ex) {
+            console.error('Failed to add filter container:', ex);
         }
     }
 
