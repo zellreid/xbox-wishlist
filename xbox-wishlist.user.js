@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         XBOX Wishlist
 // @namespace    https://github.com/zellreid/xbox-wishlist
-// @version      1.0.25326.4
+// @version      1.1.25326.5
 // @description  A Tampermonkey userscript to add additional functionality to the XBOX Wishlist
 // @author       ZellReid
 // @homepage     https://github.com/zellreid/xbox-wishlist
@@ -106,6 +106,10 @@
                 notOwnedCount: 0,
                 isUnPurchasable: true,
                 unPurchasableCount: 0
+            },
+            publishers: {
+                list: new Map(), // Map<publisherName, {enabled: boolean, count: number}>
+                allEnabled: true
             },
             subscriptions: {
                 gamePass: true,
@@ -632,6 +636,124 @@
     }
 
     /**
+     * Collect unique publishers from all wishlist items
+     */
+    function collectPublishers() {
+        const publishers = new Map();
+        const containers = document.getElementsByClassName(CONFIG.selectors.items);
+        
+        Array.from(containers).forEach(container => {
+            const publisher = container.dataset.ifcPublisher;
+            
+            // Only add valid, non-null publishers (case-sensitive)
+            if (publisher && publisher !== 'null' && publisher.trim() !== '') {
+                const publisherName = publisher.trim();
+                
+                if (!publishers.has(publisherName)) {
+                    publishers.set(publisherName, {
+                        enabled: state.filters.publishers.list.get(publisherName)?.enabled ?? true,
+                        count: 0
+                    });
+                }
+                
+                const publisherData = publishers.get(publisherName);
+                publisherData.count++;
+            }
+        });
+        
+        // Sort publishers alphabetically (case-sensitive)
+        const sortedPublishers = new Map(
+            Array.from(publishers.entries()).sort((a, b) => a[0].localeCompare(b[0]))
+        );
+        
+        state.filters.publishers.list = sortedPublishers;
+        return sortedPublishers;
+    }
+
+    /**
+     * Add publisher filter group
+     */
+    function addFilterContainerPublishers() {
+        if (!state.ui.divFilter) return;
+
+        const groupName = 'Publishers';
+        
+        try {
+            // Check if already exists
+            if (getElement(`#ifc_group_${groupName}`, false)) {
+                // Update existing checkboxes
+                updatePublisherCheckboxes();
+                return;
+            }
+
+            const filterGroups = getElement(`#${CONFIG.ids.filterContainer} ${CONFIG.selectors.filterGroups}`);
+            if (!filterGroups) return;
+
+            const filterBlock = createFilterBlock(groupName, 'Publishers');
+            filterGroups.appendChild(filterBlock);
+
+            // Populate with publisher checkboxes
+            updatePublisherCheckboxes();
+        } catch (ex) {
+            console.error('Failed to add publishers filter:', ex);
+        }
+    }
+
+    /**
+     * Update publisher checkboxes dynamically
+     */
+    function updatePublisherCheckboxes() {
+        const listContainer = getElement(`#ifc_group_menu_list_Publishers`);
+        if (!listContainer) return;
+
+        const optionsContainer = listContainer.querySelector('.filter-options');
+        if (!optionsContainer) return;
+
+        // Clear existing checkboxes
+        optionsContainer.innerHTML = '';
+
+        // Collect current publishers
+        const publishers = collectPublishers();
+
+        // Add checkbox for each unique publisher
+        publishers.forEach((data, publisherName) => {
+            const checkboxId = `Publisher_${publisherName.replace(/[^a-zA-Z0-9]/g, '_')}`;
+            const checkbox = createCheckbox(
+                checkboxId,
+                `${publisherName} (${data.count})`,
+                data.enabled,
+                (event) => togglePublisher(publisherName, event.target.checked)
+            );
+            addFilterOption(listContainer, checkbox);
+        });
+
+        // If no publishers found, show message
+        if (publishers.size === 0) {
+            const li = document.createElement('li');
+            li.style.padding = '8px';
+            li.style.fontSize = '0.75rem';
+            li.style.color = '#999';
+            li.textContent = 'No publishers found';
+            optionsContainer.appendChild(li);
+        }
+    }
+
+    /**
+     * Toggle publisher filter
+     */
+    function togglePublisher(publisherName, enabled) {
+        try {
+            const publisherData = state.filters.publishers.list.get(publisherName);
+            if (publisherData) {
+                publisherData.enabled = enabled;
+            }
+            updateScreen();
+        } catch (ex) {
+            console.error(`Failed to toggle publisher ${publisherName}:`, ex);
+        }
+    }
+
+    /**
      * Add owned filter group
      */
     function addFilterContainerOwned() {
@@ -678,6 +800,7 @@
             addFilterButton();
             addFilterContainer();
             addFilterContainerOwned();
+            addFilterContainerPublishers();
         } catch (ex) {
             console.error('Failed to add filter controls:', ex);
         }
@@ -908,13 +1031,25 @@
     function shouldShowContainer(container) {
         const isOwned = container.dataset.ifcOwned === 'true';
         const isUnPurchasable = container.dataset.ifcUnpurchasable === 'true';
+        const publisher = container.dataset.ifcPublisher;
 
         // Check owned filters
-        if (state.filters.owned.isOwned && isOwned) return true;
-        if (state.filters.owned.notOwned && !isOwned && !isUnPurchasable) return true;
-        if (state.filters.owned.isUnPurchasable && isUnPurchasable) return true;
+        if (!state.filters.owned.isOwned && isOwned) return false;
+        if (!state.filters.owned.notOwned && !isOwned && !isUnPurchasable) return false;
+        if (!state.filters.owned.isUnPurchasable && isUnPurchasable) return false;
 
-        return false;
+        // Check publisher filter (case-sensitive)
+        if (publisher && publisher !== 'null' && publisher.trim() !== '') {
+            const publisherName = publisher.trim();
+            const publisherData = state.filters.publishers.list.get(publisherName);
+            
+            // If publisher exists in filter list and is disabled, hide item
+            if (publisherData && !publisherData.enabled) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /**
@@ -923,9 +1058,17 @@
     function toggleContainers() {
         const containers = document.getElementsByClassName(CONFIG.selectors.items);
         
+        // First pass: collect data from all containers
         Array.from(containers).forEach((container, index) => {
             setContainerData(container, containers.length - index);
-            
+        });
+
+        // Update publisher filter list based on current items
+        collectPublishers();
+        updatePublisherCheckboxes();
+
+        // Second pass: apply filters
+        Array.from(containers).forEach((container) => {
             try {
                 const shouldShow = shouldShowContainer(container);
                 
