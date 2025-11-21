@@ -81,11 +81,11 @@
     border-color: #757575ff;
 }
 
-/* Discount Badge Styling */
+/* Discount Badge Styling - Using Xbox's original yellow style */
 .ifc-discount-badge {
-    /*background-color: #107c10 !important;*/
+    background-color: #ffd800 !important;  /* Xbox's original yellow */
     border-radius: .25rem;
-    color: #ffffff !important;
+    color: #000 !important;  /* Black text for contrast on yellow */
     flex-shrink: 0;
     font-size: .75rem;
     font-weight: 600;
@@ -100,8 +100,8 @@
 }
 
 .theme-dark .ifc-discount-badge {
-    background-color: #0e7a0e !important;
-    color: #ffffff !important;
+    background-color: #ffd800 !important;  /* Same yellow in dark mode */
+    color: #000 !important;  /* Black text maintains contrast */
 }
 
 /* Xbox's original discount tag styling (keeping for reference) */
