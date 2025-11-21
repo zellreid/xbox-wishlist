@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         XBOX Wishlist
 // @namespace    https://github.com/zellreid/xbox-wishlist
-// @version      1.0.25325.4
+// @version      1.0.25326.1
 // @description  A Tampermonkey userscript to add additional functionality to the XBOX Wishlist
 // @author       ZellReid
 // @homepage     https://github.com/zellreid/xbox-wishlist
@@ -29,40 +29,63 @@
 (function() {
     'use strict';
 
+    // ==================== CONFIGURATION ====================
     const CONFIG = {
         selectors: {
-            content: `PageContent`,
-            items: `WishlistProductItem-module__itemContainer___weUfG`,
-            buttons: `WishlistPage-module__menuContainer___MNCGP`
+            content: 'PageContent',
+            items: 'WishlistProductItem-module__itemContainer___weUfG',
+            buttons: 'WishlistPage-module__menuContainer___MNCGP',
+            imageContainer: '.WishlistProductItem-module__imageContainer___lY7BQ a img',
+            productDetails: '.WishlistProductItem-module__productDetails___RquZp',
+            productLink: '.WishlistProductItem-module__productDetails___RquZp a',
+            productPublisher: '.WishlistProductItem-module__productDetails___RquZp p',
+            productPrices: '.WishlistProductItem-module__productDetails___RquZp div span',
+            filterGroups: '.filter-groups'
+        },
+        ids: {
+            buttonContainer: 'ifc_ButtonContainer',
+            filterContainer: 'injectedFilterControls',
+            filterLabel: 'ifc_lbl_Filter',
+            filterButton: 'ifc_btn_Filter'
+        },
+        classes: {
+            button: [
+                'WishlistPage-module__wishlistMenuButton___pmqaD',
+                'Button-module__iconButtonBase___uzoKc',
+                'Button-module__basicBorderRadius___TaX9J',
+                'Button-module__sizeIconButtonMedium___WJrxo',
+                'Button-module__buttonBase___olICK',
+                'Button-module__textNoUnderline___kHdUB',
+                'Button-module__typeSecondary___Cid02',
+                'Button-module__overlayModeSolid___v6EcO'
+            ],
+            svgIcon: [
+                'Button-module__buttonIcon___540Jm',
+                'Button-module__noMargin___5UbzU',
+                'WishlistPage-module__icon___yWWwy',
+                'Icon-module__icon___6ICyA',
+                'Icon-module__xxSmall___vViZA'
+            ],
+            activeButton: 'WishlistPage-module__activeWishlistMenuButton___3V2d8'
         },
         storage: {
-            key: `ifc_xbox_wishlist`
+            key: 'ifc_xbox_wishlist'
         },
         ui: {
-            containers: {
-                buttons: {
-                    id: `ifc_div_buttons`,
-                    style: {
-                        position: `fixed`,
-                        top: `100px`,
-                        right: `100px`,
-                        zIndex: `998`
-                    }
-                },
-                filters: {
-                    id: `ifc_div_filters`,
-                    style: {
-                        display: `none`
-                    }
-                }
+            buttonContainer: {
+                position: 'fixed',
+                top: '100px',
+                right: '100px',
+                zIndex: '998'
             }
         }
     };
 
-    window.injected = {
+    // ==================== STATE MANAGEMENT ====================
+    const state = {
         info: GM_info,
-        scripts: [],
-        styles: [],
+        svgCache: new Map(),
+        elementCache: new Map(),
         ui: {
             floatButtons: false,
             lblFilter: false,
@@ -80,7 +103,7 @@
                 notOwned: true,
                 notOwnedCount: 0,
                 isUnPurchasable: true,
-                UnPurchasableCount: 0
+                unPurchasableCount: 0
             },
             subscriptions: {
                 gamePass: true,
@@ -102,721 +125,860 @@
         }
     };
 
-    addScript(GM_getResourceURL (`JSJQuery`));
-    //addScript(GM_getResourceURL (`JSBootstrap`));
-    //addScript(GM_getResourceURL (`JSSelect2`));
+    // Make state available globally for backward compatibility
+    window.injected = state;
 
-    //addStyle(GM_getResourceURL (`CSSSelect2`));
-    addStyle(GM_getResourceURL (`CSSFilter`));
+    // ==================== UTILITY FUNCTIONS ====================
 
-    function addScript(src){
-        return new Promise(function (resolve, reject) {
-            var loadScript = !isScriptAdded(src);
-
-            if (loadScript) {
-                let script = document.createElement(`script`);
-                script.type = `text/javascript`;
-                script.src = src;
-
-                script.onload = () => resolve({ success: true });
-                script.onerror = () => reject(new Error(`Script load error: ${src}`));
-
-                document.head.appendChild(script);
-                window.injected.scripts.push(script);
-            } else {
-                resolve({ success: true });
-            }
-        });
+    /**
+     * Get or cache a DOM element
+     */
+    function getElement(selector, useCache = true) {
+        if (!selector) return null;
+        
+        if (useCache && state.elementCache.has(selector)) {
+            return state.elementCache.get(selector);
+        }
+        
+        const element = document.querySelector(selector);
+        
+        if (element && useCache) {
+            state.elementCache.set(selector, element);
+        }
+        
+        return element;
     }
 
-    function isScriptAdded(src) {
-        var added = false;
-
-        window.injected.scripts.forEach(
-            function (script) {
-                if (script.src === src) {
-                    added = true;
-                }
-            });
-
-        return added;
-    };
-
-    function addStyle(href){
-        return new Promise(function (resolve, reject) {
-            var loadStyle = !isStyleAdded(href);
-
-            if (loadStyle) {
-                let style = document.createElement(`link`);
-                style.rel = `stylesheet`;
-                style.type = `text/css`;
-                style.href = href;
-                document.head.appendChild(style);
-                window.injected.styles.push(style);
-                resolve({ success: true });
-            } else {
-                resolve({ success: true });
-            }
-        });
+    /**
+     * Clear element cache
+     */
+    function clearElementCache() {
+        state.elementCache.clear();
     }
 
-    function isStyleAdded(href) {
-        var added = false;
-
-        window.injected.styles.forEach(
-            function (style) {
-                if (style.href === href) {
-                    added = true;
-                }
-            });
-
-        return added;
-    };
-
-    // Persist filter state
-    function saveFilterState() {
-        GM_setValue(CONFIG.storage.key, JSON.stringify(window.injected.filters));
+    /**
+     * Add multiple classes to an element
+     */
+    function addClasses(element, classes) {
+        if (!element || !classes) return;
+        element.classList.add(...classes);
     }
-    
-    function loadFilterState() {
-        const saved = GM_getValue(CONFIG.storage.key);
-        if (saved) {
-            window.injected.filters = JSON.parse(saved);
+
+    /**
+     * Apply multiple styles to an element
+     */
+    function applyStyles(element, styles) {
+        if (!element || !styles) return;
+        Object.assign(element.style, styles);
+    }
+
+    /**
+     * Safe data attribute setter
+     */
+    function setDataAttribute(element, key, value) {
+        try {
+            element.dataset[key] = value ?? null;
+        } catch (ex) {
+            console.error(`Failed to set data attribute ${key}:`, ex);
+            element.dataset[key] = null;
         }
     }
 
-    function doControlsExist(container, controlQuery) {
-        return container.querySelector(controlQuery);
+    /**
+     * Safe querySelector with default
+     */
+    function safeQuerySelector(container, selector, defaultValue = null) {
+        try {
+            return container.querySelector(selector) ?? defaultValue;
+        } catch (ex) {
+            console.error(`Query selector failed for ${selector}:`, ex);
+            return defaultValue;
+        }
     }
 
-    function getControl(container, controlQuery) {
-        return container.querySelector(controlQuery);
+    // ==================== RESOURCE MANAGEMENT ====================
+
+    /**
+     * Add external script to page
+     */
+    async function addScript(src) {
+        if (!src || isResourceAdded(state.scripts, src)) {
+            return { success: true };
+        }
+
+        return new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.type = 'text/javascript';
+            script.src = src;
+            script.onload = () => {
+                state.scripts.push(script);
+                resolve({ success: true });
+            };
+            script.onerror = () => reject(new Error(`Script load error: ${src}`));
+            document.head.appendChild(script);
+        });
     }
 
-    function uiInjections() {
-        floatButtons();
+    /**
+     * Add external stylesheet to page
+     */
+    async function addStyle(href) {
+        if (!href || isResourceAdded(state.styles, href)) {
+            return { success: true };
+        }
+
+        return new Promise((resolve, reject) => {
+            const style = document.createElement('link');
+            style.rel = 'stylesheet';
+            style.type = 'text/css';
+            style.href = href;
+            style.onload = () => {
+                state.styles.push(style);
+                resolve({ success: true });
+            };
+            style.onerror = () => reject(new Error(`Style load error: ${href}`));
+            document.head.appendChild(style);
+        });
     }
 
-    function floatButtons() {
-        // Early return if already processed
-        if (window.injected.ui.floatButtons) {
-            return;
+    /**
+     * Check if resource already added
+     */
+    function isResourceAdded(resourceArray, url) {
+        return resourceArray.some(resource => 
+            resource.src === url || resource.href === url
+        );
+    }
+
+    /**
+     * Fetch and cache SVG content
+     */
+    async function getSVG(src) {
+        if (state.svgCache.has(src)) {
+            return state.svgCache.get(src);
         }
 
         try {
-            // Single DOM query - store result
-            const divButtons = getControl(document.body, `.${CONFIG.selectors.buttons}`);
-    
-            // Check if element exists
-            if (!divButtons) {
-                return;
+            const response = await fetch(src);
+            const text = await response.text();
+            state.svgCache.set(src, text);
+            return text;
+        } catch (ex) {
+            console.error(`Failed to fetch SVG from ${src}:`, ex);
+            return null;
+        }
+    }
+
+    // ==================== STATE PERSISTENCE ====================
+
+    /**
+     * Save filter state to storage
+     */
+    function saveFilterState() {
+        try {
+            GM_setValue(CONFIG.storage.key, JSON.stringify(state.filters));
+        } catch (ex) {
+            console.error('Failed to save filter state:', ex);
+        }
+    }
+
+    /**
+     * Load filter state from storage
+     */
+    function loadFilterState() {
+        try {
+            const saved = GM_getValue(CONFIG.storage.key);
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                // Validate structure before applying
+                if (parsed && typeof parsed === 'object') {
+                    state.filters = { ...state.filters, ...parsed };
+                }
             }
-    
-            // Apply styles and ID
-            divButtons.id = CONFIG.ui.containers.buttons.id;
-            Object.assign(divButtons.style, CONFIG.ui.containers.buttons.style);
-            window.injected.ui.floatButtons = true;
+        } catch (ex) {
+            console.error('Failed to load filter state:', ex);
+        }
+    }
+
+    // ==================== UI CREATION HELPERS ====================
+
+    /**
+     * Create label element
+     */
+    function createLabel(id, text) {
+        const label = document.createElement('label');
+        applyStyles(label, {
+            marginLeft: '5px',
+            marginRight: '5px'
+        });
+        label.textContent = text; // Use textContent instead of innerHTML for safety
+        
+        if (id) {
+            label.id = `ifc_lbl_${id}`;
+        }
+        
+        return label;
+    }
+
+    /**
+     * Create checkbox element
+     */
+    function createCheckbox(id, text, initial, onChange) {
+        const label = document.createElement('label');
+        applyStyles(label, {
+            marginLeft: '5px',
+            marginRight: '5px'
+        });
+
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.checked = initial;
+        applyStyles(checkbox, { marginRight: '3px' });
+        
+        if (onChange) {
+            checkbox.addEventListener('change', onChange);
+        }
+
+        if (id) {
+            label.id = `ifc_lbl_${id}`;
+            checkbox.id = `ifc_cbx_${id}`;
+        }
+
+        label.appendChild(checkbox);
+        label.appendChild(document.createTextNode(text));
+
+        return label;
+    }
+
+    /**
+     * Create image button element
+     */
+    function createImageButton(id, src, text, type) {
+        const button = document.createElement('button');
+        
+        if (id) {
+            button.id = `ifc_btn_${id}`;
+        }
+
+        addClasses(button, CONFIG.classes.button);
+        button.title = text;
+        button.setAttribute('aria-label', text);
+        button.setAttribute('aria-pressed', 'false');
+
+        const imgContainer = createImageContainer(id, src, text, type);
+        button.appendChild(imgContainer);
+        
+        return button;
+    }
+
+    /**
+     * Create image container (SVG or IMG)
+     */
+    function createImageContainer(id, src, text, type) {
+        const container = document.createElement('div');
+        
+        if (id) {
+            container.id = `ifc_img_${id}`;
+        }
+        
+        container.setAttribute('data-ifc-type', type);
+
+        if (type === 'svg') {
+            loadSVGIntoContainer(container, src, id);
+        } else {
+            const img = document.createElement('img');
+            img.src = src;
+            img.alt = text;
+            img.title = text;
+            container.appendChild(img);
+        }
+
+        return container;
+    }
+
+    /**
+     * Load SVG content into container
+     */
+    async function loadSVGIntoContainer(container, src, targetId) {
+        try {
+            const svgText = await getSVG(src);
+            if (!svgText) return;
+
+            container.innerHTML = svgText;
+            const svg = container.querySelector('svg');
+            
+            if (svg) {
+                addClasses(svg, CONFIG.classes.svgIcon);
+                svg.setAttribute('data-ifc-target', targetId);
+            }
+        } catch (ex) {
+            console.error(`Failed to load SVG into container:`, ex);
+        }
+    }
+
+    /**
+     * Update SVG icon (for expand/collapse toggle)
+     */
+    async function updateSVGIcon(containerId, resourceKey, targetId) {
+        try {
+            const svgText = await getSVG(GM_getResourceURL(resourceKey));
+            if (!svgText) return;
+
+            const container = getElement(`#ifc_img_${containerId}`, false);
+            if (!container) return;
+
+            container.innerHTML = svgText;
+            const svg = container.querySelector('svg');
+            
+            if (svg) {
+                addClasses(svg, CONFIG.classes.svgIcon);
+                svg.setAttribute('data-ifc-target', targetId);
+            }
+        } catch (ex) {
+            console.error('Failed to update SVG icon:', ex);
+        }
+    }
+
+    // ==================== FILTER UI CREATION ====================
+
+    /**
+     * Float the buttons container
+     */
+    function floatButtons() {
+        if (state.ui.floatButtons) return;
+
+        try {
+            const buttonContainer = getElement(`.${CONFIG.selectors.buttons}`, false);
+            if (!buttonContainer) return;
+
+            buttonContainer.id = CONFIG.ids.buttonContainer;
+            applyStyles(buttonContainer, CONFIG.ui.buttonContainer);
+            state.ui.floatButtons = true;
         } catch (ex) {
             console.error('Failed to float buttons:', ex);
         }
     }
 
-    function addFilterControls() {
-        addFilterLabel();
-        addFilterButton();
-        addFilterContainer();
-        addFilterContainerOwned();
-    }
-
+    /**
+     * Add filter label
+     */
     function addFilterLabel() {
-        // Early return if already processed
-        if (window.injected.ui.lblFilter) {
-            return;
-        }
+        if (state.ui.lblFilter) return;
 
         try {
-            const lblFilter = createLabel(`Filter`, `Viewing ${window.injected.filters.filteredCount} of ${window.injected.filters.totalCount} results`);
-            divButtons.insertBefore(lblFilter, divButtons.firstChild);
-            window.injected.ui.lblFilter = true;
+            const buttonContainer = getElement(`#${CONFIG.ids.buttonContainer}`);
+            if (!buttonContainer) return;
+
+            const label = createLabel(
+                'Filter',
+                `Viewing ${state.filters.filteredCount} of ${state.filters.totalCount} results`
+            );
+            
+            buttonContainer.insertBefore(label, buttonContainer.firstChild);
+            state.ui.lblFilter = true;
         } catch (ex) {
             console.error('Failed to add filter label:', ex);
         }
     }
 
+    /**
+     * Add filter button
+     */
     function addFilterButton() {
-        // Early return if already processed
-        if (window.injected.ui.btnFilter) {
-            return;
-        }
+        if (state.ui.btnFilter) return;
 
         try {
-            const btnFilter = createImageButton(`Filter`, GM_getResourceURL (`IMGFilter`), `Filter`, `svg`);
-            divButtons.appendChild(btnFilter);
-            window.injected.ui.btnFilter = true;
+            const buttonContainer = getElement(`#${CONFIG.ids.buttonContainer}`);
+            if (!buttonContainer) return;
+
+            const button = createImageButton(
+                'Filter',
+                GM_getResourceURL('IMGFilter'),
+                'Filter',
+                'svg'
+            );
+            
+            buttonContainer.appendChild(button);
+            state.ui.btnFilter = true;
         } catch (ex) {
             console.error('Failed to add filter button:', ex);
         }
     }
 
+    /**
+     * Create main filter container
+     */
     function addFilterContainer() {
-        // Early return if already processed
-        if (window.injected.ui.divFilter) {
-            return;
-        }
+        if (state.ui.divFilter) return;
 
         try {
-            // Single DOM query - store result
-            const divFilters = getControl(document.body, `.${CONFIG.ui.containers.filters.id}`);
-    
-            // Check if element exists
-            if (divFilters) {
-                return;
+            // Check if already exists
+            if (getElement(`#${CONFIG.ids.filterContainer}`, false)) return;
+
+            const filterContainer = document.createElement('div');
+            filterContainer.id = CONFIG.ids.filterContainer;
+            filterContainer.classList.add('filter-section', 'SortAndFilters-module__container___yA+Vp');
+            filterContainer.style.display = 'none';
+
+            const filterList = document.createElement('div');
+            filterList.classList.add('filter-list', 'SortAndFilters-module__filterList___T81LH');
+
+            const heading = document.createElement('h2');
+            heading.classList.add(
+                'filter-text-heading',
+                'typography-module__spotLightSubtitlePortrait___RB7M0',
+                'SortAndFilters-module__filtersText___8OwXG'
+            );
+            heading.textContent = 'Filters';
+
+            const filterGroups = document.createElement('ul');
+            filterGroups.classList.add('filter-groups', 'SortAndFilters-module__filterList___T81LH');
+
+            filterList.appendChild(heading);
+            filterList.appendChild(filterGroups);
+            filterContainer.appendChild(filterList);
+            document.body.appendChild(filterContainer);
+
+            // Add event listener to filter button
+            const filterButton = getElement(`#${CONFIG.ids.filterButton}`);
+            if (filterButton) {
+                filterButton.addEventListener('click', toggleFilterContainer);
             }
 
-            divFilters = document.createElement(`div`);
-            divFilters.id = CONFIG.ui.containers.filters.id;
-            divFilters.classList.add(`filter-section`);
-            divFilters.classList.add(`SortAndFilters-module__container___yA+Vp`);
-            Object.assign(divFilters.style, CONFIG.ui.containers.filters.style);
-
-            const divFiltersList = document.createElement(`div`);
-            divFiltersList.classList.add(`filter-list`);
-            divFiltersList.classList.add(`SortAndFilters-module__filterList___T81LH`);
-
-            const filtersListHeading = document.createElement(`h2`);
-            filtersListHeading.classList.add(`filter-text-heading`);
-            filtersListHeading.classList.add(`typography-module__spotLightSubtitlePortrait___RB7M0`);
-            filtersListHeading.classList.add(`SortAndFilters-module__filtersText___8OwXG`);
-
-            const filtersListHeadingText = document.createTextNode(`Filters`);
-            filtersListHeading.appendChild(filtersListHeadingText);
-
-            var filtersList = document.createElement(`ul`);
-            filtersList.classList.add(`filter-groups`);
-            filtersList.classList.add(`SortAndFilters-module__filterList___T81LH`);
-
-            divFiltersList.appendChild(filtersListHeading);
-            divFiltersList.appendChild(filtersList);
-
-            divFilters.appendChild(divFiltersList);
-            document.body.appendChild(divFilters);
-
-            btnFilter.addEventListener(`click`, toggleFilterContainer);
-            window.injected.ui.divFilter = true;
+            state.ui.divFilter = true;
         } catch (ex) {
             console.error('Failed to add filter container:', ex);
         }
     }
 
-    function addFilterContainerOwned() {
-        if (window.injected.ui.divFilter) {
-            var containerName = `Owned`
-            if (!doControlsExist(document.body, `#ifc_group_${containerName}`)) {
-                var mainContainer = document.querySelector(`#injectedFilterControls .filter-groups`);
-                var divContainer = createFilterBlock(`${containerName}`, `Owned`);
-                mainContainer.appendChild(divContainer);
+    /**
+     * Create filter block structure
+     */
+    function createFilterBlock(id = null, text = '') {
+        const groupContainer = document.createElement('li');
+        if (id) groupContainer.id = `ifc_group_${id}`;
+        groupContainer.classList.add('filter-block', 'SortAndFilters-module__li___aV+Oo');
 
-                //Owned
-                var checkboxOwned = createCheckbox(`${containerName}`, `Owned`, window.injected.filters.owned.isOwned, toggleOwned);
-                addFilterOption(document.getElementById(`ifc_group_menu_list_${containerName}`), checkboxOwned);
+        const menuContainer = document.createElement('div');
+        if (id) menuContainer.id = `ifc_group_menu_${id}`;
+        menuContainer.classList.add('SelectionDropdown-module__container___XzkIx');
 
-                var checkboxNotOwned = createCheckbox(`NotOwned`, `Not Owned`, window.injected.filters.owned.notOwned, toggleNotOwned);
-                addFilterOption(document.getElementById(`ifc_group_menu_list_${containerName}`), checkboxNotOwned);
+        const menuButton = document.createElement('button');
+        menuButton.classList.add('filter-block-button', 'SelectionDropdown-module__titleContainer___YyoD0');
+        menuButton.setAttribute('aria-expanded', 'false');
+        menuButton.setAttribute('data-ifc-target', `group_${id}`);
 
-                var checkboxUnPurchasable = createCheckbox(`UnPurchasable`, `Un-Purchasable`, window.injected.filters.owned.isUnPurchasable, toggleUnPurchasable);
-                addFilterOption(document.getElementById(`ifc_group_menu_list_${containerName}`), checkboxUnPurchasable);
-            }
-        }
-    }
+        const heading = document.createElement('span');
+        heading.classList.add(
+            'filter-text-heading-group',
+            'typography-module__xdsSubTitle2___6d6Da',
+            'SelectionDropdown-module__titleText___PN6s9'
+        );
+        heading.setAttribute('data-ifc-target', `group_${id}`);
+        heading.textContent = text;
 
-    function createFilterBlock(id, text) {
-        var groupContainer = document.createElement(`li`);
+        const imgContainer = createImageContainer(
+            `group_${id}`,
+            GM_getResourceURL('IMGExpand'),
+            'Expand',
+            'svg'
+        );
+        imgContainer.setAttribute('data-ifc-target', `group_${id}`);
 
-        if (id !== null) {
-            groupContainer.id = `ifc_group_${id}`;
-        }
+        menuButton.appendChild(heading);
+        menuButton.appendChild(imgContainer);
 
-        groupContainer.classList.add(`filter-block`);
-        groupContainer.classList.add(`SortAndFilters-module__li___aV+Oo`);
+        const listContainer = document.createElement('div');
+        if (id) listContainer.id = `ifc_group_menu_list_${id}`;
+        listContainer.classList.add('filter-block-content');
+        applyStyles(listContainer, {
+            maxHeight: '20rem',
+            overflowY: 'auto',
+            display: 'none'
+        });
 
-        var groupMenuContainer = document.createElement(`div`);
+        const itemsContainer = document.createElement('ul');
+        if (id) itemsContainer.id = `ifc_group_menu_list_items_${id}`;
+        itemsContainer.classList.add('filter-options', 'Selections-module__options___I24e7');
+        itemsContainer.setAttribute('role', 'listbox');
 
-        if (id !== null) {
-            groupMenuContainer.id = `ifc_group_menu_${id}`;
-        }
+        listContainer.appendChild(itemsContainer);
+        menuContainer.appendChild(menuButton);
+        menuContainer.appendChild(listContainer);
+        groupContainer.appendChild(menuContainer);
 
-        groupMenuContainer.classList.add(`SelectionDropdown-module__container___XzkIx`);
-
-        var groupMenuButton = document.createElement(`button`);
-        groupMenuButton.classList.add(`filter-block-button`);
-        groupMenuButton.classList.add(`SelectionDropdown-module__titleContainer___YyoD0`);
-        groupMenuButton.setAttribute(`aria-expanded`, `false`);
-        groupMenuButton.setAttribute(`data-ifc-target`, `group_${id}`);
-
-        var groupMenuHeading = document.createElement(`span`);
-        groupMenuHeading.classList.add(`filter-text-heading-group`);
-        groupMenuHeading.classList.add(`typography-module__xdsSubTitle2___6d6Da`);
-        groupMenuHeading.classList.add(`SelectionDropdown-module__titleText___PN6s9`);
-        groupMenuHeading.setAttribute(`data-ifc-target`, `group_${id}`);
-
-        var groupMenuHeadingText = document.createTextNode(text);
-        groupMenuHeading.appendChild(groupMenuHeadingText);
-
-        var groupMenuButtonImageContainer = document.createElement(`div`);
-        groupMenuButtonImageContainer.classList.add(`SelectionDropdown-module__filterInfoContainer___7ktfT`);
-        groupMenuButtonImageContainer.setAttribute(`data-ifc-target`, `group_${id}`);
-
-        var imgContainer = createImageContainer(`group_${id}`, GM_getResourceURL (`IMGExpand`), `Expand`, `svg`);
-        imgContainer.setAttribute(`data-ifc-target`, `group_${id}`);
-
-        groupMenuButton.appendChild(groupMenuHeading);
-        groupMenuButton.appendChild(imgContainer);
-
-        var groupMenuListContainer = document.createElement(`div`);
-
-        if (id !== null) {
-            groupMenuListContainer.id = `ifc_group_menu_list_${id}`;
-        }
-
-        groupMenuListContainer.classList.add(`filter-block-content`);
-        groupMenuListContainer.style.maxHeight = `20rem`;
-        groupMenuListContainer.style.overflowY = `auto`;
-        groupMenuListContainer.style.display = `none`;
-
-        var groupMenuListItemsContainer = document.createElement(`ul`);
-
-        if (id !== null) {
-            groupMenuListItemsContainer.id = `ifc_group_menu_list_items_${id}`;
-        }
-
-        groupMenuListItemsContainer.classList.add(`filter-options`);
-        groupMenuListItemsContainer.classList.add(`Selections-module__options___I24e7`);
-        groupMenuListItemsContainer.setAttribute(`role`, `listbox`);
-
-        groupMenuListContainer.appendChild(groupMenuListItemsContainer);
-
-        groupMenuContainer.appendChild(groupMenuButton);
-        groupMenuContainer.appendChild(groupMenuListContainer);
-
-        groupContainer.appendChild(groupMenuContainer);
-        groupMenuContainer.addEventListener(`click`, toggleFilterMenuListContainer);
+        menuContainer.addEventListener('click', toggleFilterMenuListContainer);
 
         return groupContainer;
     }
 
+    /**
+     * Add filter option to container
+     */
     function addFilterOption(container, control) {
-        var optionsContainer = container.querySelector(`.filter-options`);
-        var liContainer = document.createElement(`li`);
-        liContainer.appendChild(control);
-        optionsContainer.appendChild(liContainer);
+        if (!container || !control) return;
+
+        const optionsContainer = safeQuerySelector(container, '.filter-options');
+        if (!optionsContainer) return;
+
+        const li = document.createElement('li');
+        li.appendChild(control);
+        optionsContainer.appendChild(li);
     }
 
-    function createLabel(id, text) {
-        var labelContainer = document.createElement(`label`);
-        labelContainer.style.marginLeft = `5px`;
-        labelContainer.style.marginRight = `5px`;
-        labelContainer.innerHTML = text;
+    /**
+     * Add owned filter group
+     */
+    function addFilterContainerOwned() {
+        if (!state.ui.divFilter) return;
 
-        if (id !== null) {
-            labelContainer.id = `ifc_lbl_${id}`;
-        }
-
-        return labelContainer;
-    }
-
-    function createImageLink(id, src, text) {
-        var aContainer = document.createElement(`a`);
-
-        if (id !== null) {
-            aContainer.id = `ifc_btn_${id}`;
-        }
-
-        var imgContainer = document.createElement(`img`);
-        imgContainer.src = src;
-        imgContainer.alt = text;
-        imgContainer.title = text;
-
-        aContainer.appendChild(imgContainer);
-        return aContainer;
-    }
-
-    function createImageButton(id, src, text, type) {
-        var buttonContainer = document.createElement(`button`);
-
-        if (id !== null) {
-            buttonContainer.id = `ifc_btn_${id}`;
-        }
-
-        buttonContainer.classList.add(`WishlistPage-module__wishlistMenuButton___pmqaD`);
-        buttonContainer.classList.add(`Button-module__iconButtonBase___uzoKc`);
-        buttonContainer.classList.add(`Button-module__basicBorderRadius___TaX9J`);
-        buttonContainer.classList.add(`Button-module__sizeIconButtonMedium___WJrxo`);
-        buttonContainer.classList.add(`Button-module__buttonBase___olICK`);
-        buttonContainer.classList.add(`Button-module__textNoUnderline___kHdUB`);
-        buttonContainer.classList.add(`Button-module__typeSecondary___Cid02`);
-        buttonContainer.classList.add(`Button-module__overlayModeSolid___v6EcO`);
-        buttonContainer.title = text;
-
-        buttonContainer.setAttribute(`aria-label`, text);
-        buttonContainer.setAttribute(`aria-pressed`, `false`);
-
-        var imgContainer = createImageContainer(id, src, text, type);
-        buttonContainer.appendChild(imgContainer);
-        return buttonContainer;
-    }
-
-    function createImageContainer(id, src, text, type) {
-        var divContainer = document.createElement(`div`);
-
-        if (id !== null) {
-            divContainer.id = `ifc_img_${id}`;
-        }
-
-        divContainer.setAttribute(`data-ifc-type`, type);
-
-        switch(type)
-        {
-            case `svg`:
-                getText(src).then(function(dataText) {
-                    divContainer = document.querySelector(`#ifc_img_${id}`);
-                    divContainer.innerHTML = dataText;
-                    var parentNodeType = divContainer.parentElement.nodeName;
-                    var svgContainer = divContainer.querySelector(`svg`);
-                    svgContainer.classList.add(`Button-module__buttonIcon___540Jm`);
-                    svgContainer.classList.add(`Button-module__noMargin___5UbzU`);
-                    svgContainer.classList.add(`WishlistPage-module__icon___yWWwy`);
-                    svgContainer.classList.add(`Icon-module__icon___6ICyA`);
-                    svgContainer.classList.add(`Icon-module__xxSmall___vViZA`);
-                    svgContainer.setAttribute(`data-ifc-target`, `${id}`);
-                });
-                break;
-            default:
-            case `img`:
-                var imgContainer = document.createElement(type);
-                imgContainer.src = src;
-                imgContainer.alt = text;
-                imgContainer.title = text;
-                divContainer.appendChild(imgContainer);
-                break;
-        }
-
-        return divContainer;
-    }
-
-    async function getText(src) {
-        let dataObject = await fetch(src);
-        let dataText = await dataObject.text();
-        return dataText;
-    }
-
-    function createCheckbox(id, text, initial, onChange) {
-        var labelContainer = document.createElement(`label`);
-        labelContainer.style.marginLeft = `5px`;
-        labelContainer.style.marginRight = `5px`;
-
-        var checkboxContainer = document.createElement(`input`);
-        checkboxContainer.type = `checkbox`;
-        checkboxContainer.checked = initial;
-        checkboxContainer.style.marginRight = `3px`;
-        checkboxContainer.addEventListener(`change`, onChange);
-
-        if (id !== null) {
-            labelContainer.id = `ifc_lbl_${id}`;
-            checkboxContainer.id = `ifc_cbx_${id}`;
-        }
-
-        labelContainer.appendChild(checkboxContainer);
-
-        var textContainer = document.createTextNode(text);
-        labelContainer.appendChild(textContainer);
-
-        return labelContainer;
-    }
-
-    function removeUnwantedControls() {
-        document.querySelectorAll(`.hr.border-neutral-200`).forEach(element => element.remove());
-    }
-
-    function toggleFilterContainer(event) {
-        window.injected.ui.divFilterShow = !window.injected.ui.divFilterShow;
-        var mainContainer = document.querySelector(`#injectedFilterControls`);
-        var buttonContainer = document.querySelector(`#ifc_btn_Filter`);
-
-        if (!window.injected.ui.divFilterShow) {
-            mainContainer.style.display = `none`;
-            buttonContainer.setAttribute(`aria-pressed`, `false`);
-            buttonContainer.classList.remove(`WishlistPage-module__activeWishlistMenuButton___3V2d8`);
-        } else {
-            mainContainer.style.display = null;
-            buttonContainer.setAttribute(`aria-pressed`, `true`);
-            buttonContainer.classList.add(`WishlistPage-module__activeWishlistMenuButton___3V2d8`);
-        }
-    }
-
-    function toggleFilterMenuListContainer(event) {
-        var target = event.target.getAttribute(`data-ifc-target`);
-        var groupContainer = document.querySelector(`#ifc_${target}`);
-        var groupMenuButton = groupContainer.querySelector(`.filter-block-button`);
-        var imgContainer = groupMenuButton.querySelector(`#ifc_img_${target}`);
-        var type = imgContainer.dataset.ifcType;
-        var groupMenuListContainer = groupContainer.querySelector(`.filter-block-content`);
-        var ariaExpanded = groupMenuButton.getAttribute(`aria-expanded`);
-
-        switch(type)
-        {
-            case `svg`:
-                if (ariaExpanded === `true`) {
-                    getText(GM_getResourceURL (`IMGExpand`)).then(function(dataText) {
-                        imgContainer = document.querySelector(`#ifc_img_${target}`);
-                        imgContainer.innerHTML = dataText;
-                        var svgContainer = imgContainer.querySelector(`svg`);
-                        svgContainer.classList.add(`Button-module__buttonIcon___540Jm`);
-                        svgContainer.classList.add(`Button-module__noMargin___5UbzU`);
-                        svgContainer.classList.add(`WishlistPage-module__icon___yWWwy`);
-                        svgContainer.classList.add(`Icon-module__icon___6ICyA`);
-                        svgContainer.classList.add(`Icon-module__xxSmall___vViZA`);
-                        svgContainer.setAttribute(`data-ifc-target`, `${target}`);
-                    });
-                } else {
-                    getText(GM_getResourceURL (`IMGCollapse`)).then(function(dataText) {
-                        imgContainer = document.querySelector(`#ifc_img_${target}`);
-                        imgContainer.innerHTML = dataText;
-                        var svgContainer = imgContainer.querySelector(`svg`);
-                        svgContainer.classList.add(`Button-module__buttonIcon___540Jm`);
-                        svgContainer.classList.add(`Button-module__noMargin___5UbzU`);
-                        svgContainer.classList.add(`WishlistPage-module__icon___yWWwy`);
-                        svgContainer.classList.add(`Icon-module__icon___6ICyA`);
-                        svgContainer.classList.add(`Icon-module__xxSmall___vViZA`);
-                        svgContainer.setAttribute(`data-ifc-target`, `${target}`);
-                    });
-                }
-                break;
-            default:
-            case `img`:
-                imgContainer = imgContainer.querySelector(`img`);
-
-                if (ariaExpanded === `true`) {
-                    imgContainer.setAttribute(`src`, GM_getResourceURL (`IMGExpand`));
-                    imgContainer.setAttribute(`alt`, `Expand`);
-                    imgContainer.setAttribute(`title`, `Expand`);
-                } else {
-                    imgContainer.setAttribute(`src`, GM_getResourceURL (`IMGCollapse`));
-                    imgContainer.setAttribute(`alt`, `Collapse`);
-                    imgContainer.setAttribute(`title`, `Collapse`);
-                }
-                break;
-        }
-
-        if (ariaExpanded === `true`) {
-            groupMenuButton.setAttribute(`aria-expanded`, `false`);
-            groupMenuListContainer.style.display = `none`;
-        } else {
-            groupMenuButton.setAttribute(`aria-expanded`, `true`);
-            groupMenuListContainer.style.display = null;
-        }
-    }
-
-    function toggleOwned(event) {
-        window.injected.filters.owned.isOwned = event.target.checked;
-        updateScreen();
-    }
-
-    function toggleNotOwned(event) {
-        window.injected.filters.owned.notOwned = event.target.checked;
-        updateScreen();
-    }
-
-    function toggleUnPurchasable(event) {
-        window.injected.filters.owned.isUnPurchasable = event.target.checked;
-        updateScreen();
-    }
-
-    function setContainerData(container, id) {
+        const groupName = 'Owned';
+        
         try {
-            container.dataset.ifcId = id;
+            if (getElement(`#ifc_group_${groupName}`, false)) return;
+
+            const filterGroups = getElement(`#${CONFIG.ids.filterContainer} ${CONFIG.selectors.filterGroups}`);
+            if (!filterGroups) return;
+
+            const filterBlock = createFilterBlock(groupName, 'Owned');
+            filterGroups.appendChild(filterBlock);
+
+            const listContainer = getElement(`#ifc_group_menu_list_${groupName}`);
+            if (!listContainer) return;
+
+            // Add checkboxes
+            addFilterOption(
+                listContainer,
+                createCheckbox(groupName, 'Owned', state.filters.owned.isOwned, toggleOwned)
+            );
+            addFilterOption(
+                listContainer,
+                createCheckbox('NotOwned', 'Not Owned', state.filters.owned.notOwned, toggleNotOwned)
+            );
+            addFilterOption(
+                listContainer,
+                createCheckbox('UnPurchasable', 'Un-Purchasable', state.filters.owned.isUnPurchasable, toggleUnPurchasable)
+            );
         } catch (ex) {
-            container.dataset.ifcId = `null`;
-        }
-
-        try {
-            container.dataset.ifcImage = container.querySelector(`.WishlistProductItem-module__imageContainer___lY7BQ a img`).src;
-        } catch (ex) {
-            container.dataset.ifcImage = `null`;
-        }
-
-        try {
-            container.dataset.ifcName = container.querySelector(`.WishlistProductItem-module__productDetails___RquZp a`).innerText;
-        } catch (ex) {
-            container.dataset.ifcName = `null`;
-        }
-
-        try {
-            container.dataset.ifcUri = container.querySelector(`.WishlistProductItem-module__productDetails___RquZp a`).href;
-        } catch (ex) {
-            container.dataset.ifcUri = `null`;
-        }
-
-        try {
-            container.dataset.ifcPublisher = container.querySelector(`.WishlistProductItem-module__productDetails___RquZp p`).innerText;
-        } catch (ex) {
-            container.dataset.ifcPublisher = `null`;
-        }
-
-        var prices = container.querySelectorAll(`.WishlistProductItem-module__productDetails___RquZp div span`);
-
-        try {
-            container.dataset.ifcPriceBase = parseFloat(prices[0].innerText.replace(/[^0-9.,-]/g, ``).replace(`,`, `.`));
-        } catch (ex) {
-            container.dataset.ifcPriceBase = `null`;
-        }
-
-        try {
-            container.dataset.ifcPriceDiscount = parseFloat(prices[1].innerText.replace(/[^0-9.,-]/g, ``).replace(`,`, `.`));
-        } catch (ex) {
-            container.dataset.ifcPriceDiscount = `null`;
-        }
-
-        try {
-            container.dataset.ifcPrice = container.dataset.ifcPriceDiscount !== `null` ? container.dataset.ifcPriceDiscount : container.dataset.ifcPriceBase;
-        } catch (ex) {
-            container.dataset.ifcPrice = `null`;
-        }
-
-        if ((container.dataset.ifcPriceDiscount !== `null`) && (container.dataset.ifcPriceDiscount > 0)) {
-            container.dataset.ifcPriceDiscountAmount = container.dataset.ifcPriceBase - container.dataset.ifcPriceDiscount;
-            container.dataset.ifcPriceDiscountPercent = (container.dataset.ifcPriceDiscountAmount / container.dataset.ifcPriceBase) * 100;
-        } else {
-            container.dataset.ifcPriceDiscountAmount = 0;
-            container.dataset.ifcPriceDiscountPercent = 0;
-        }
-
-        try {
-            //ToDo: Fix the subscription data
-            container.dataset.ifcSubscription = prices[2].innerText;
-        } catch (ex) {
-            container.dataset.ifcSubscription = `null`;
-        }
-
-        var isOwned = false;
-
-        try {
-            isOwned = (container.innerText.indexOf(`Owned`) !== -1 && (container.querySelector(`button`).innerText !== `BUY` || container.querySelector(`button`).innerText !== `BUY TO OWN`));
-        } catch (ex) {
-        }
-
-        if (isOwned && !container.classList.contains(`ifc-Owned`)) {
-            container.classList.add(`ifc-Owned`);
-            container.dataset.ifcOwned = true;
-        } else {
-            container.dataset.ifcOwned = false;
-        }
-
-        var isUnPurchasable = false;
-
-        try {
-            isUnPurchasable = (!isOwned && container.dataset.ifcPrice === `null`);
-        } catch (ex) {
-        }
-
-        if (isUnPurchasable && !container.classList.contains(`ifc-UnPurchasable`)) {
-            container.classList.add(`ifc-UnPurchasable`);
-            container.dataset.ifcUnpurchasable = true;
-        } else {
-            container.dataset.ifcUnpurchasable = false;
+            console.error('Failed to add owned filter:', ex);
         }
     }
 
-    function validateOwned(container, showContainer) {
-        var isOwned = container.dataset.ifcOwned;
-        var isNotOwned = !isOwned;
-        var isUnPurchasable = container.dataset.ifcUnpurchasable;
-
-        if ((!showContainer) && (window.injected.filters.owned.isOwned && isOwned)) {
-            showContainer = true;
+    /**
+     * Add all filter controls
+     */
+    function addFilterControls() {
+        try {
+            addFilterLabel();
+            addFilterButton();
+            addFilterContainer();
+            addFilterContainerOwned();
+        } catch (ex) {
+            console.error('Failed to add filter controls:', ex);
         }
-
-        if ((!showContainer) && (window.injected.filters.owned.notOwned && isNotOwned)) {
-            showContainer = true;
-        }
-
-        if ((!showContainer) && (window.injected.filters.owned.isUnPurchasable && isUnPurchasable)) {
-            showContainer = true;
-        }
-
-        if ((showContainer) && (!window.injected.filters.owned.isUnPurchasable && isUnPurchasable)) {
-            showContainer = false;
-        }
-
-        return showContainer;
     }
 
-    function toggleContainers(containerClassQuery) {
-        var containers = document.getElementsByClassName(containerClassQuery);
-        var containersCount = containers.length;
+    // ==================== FILTER TOGGLE HANDLERS ====================
 
-        for (let container of containers) {
-            var id = containersCount;
-            setContainerData(container, id);
-            var showContainer = false;
+    /**
+     * Toggle filter container visibility
+     */
+    function toggleFilterContainer() {
+        try {
+            state.ui.divFilterShow = !state.ui.divFilterShow;
+            
+            const filterContainer = getElement(`#${CONFIG.ids.filterContainer}`);
+            const filterButton = getElement(`#${CONFIG.ids.filterButton}`);
+            
+            if (!filterContainer || !filterButton) return;
 
-            try {
-                showContainer = validateOwned(container, showContainer);
-                containersCount--;
-            } catch (ex) {
-                console.log(`${ex}`);
-            }
-
-            if (!showContainer) {
-                container.style.display = `none`;
-                container.classList.add(`ifc-Hide`);
-                container.dataset.ifcShow = false;
-
-                if (container.classList.contains(`ifc-Show`)) {
-                    container.classList.remove(`ifc-Show`);
-                }
+            if (state.ui.divFilterShow) {
+                filterContainer.style.display = null;
+                filterButton.setAttribute('aria-pressed', 'true');
+                filterButton.classList.add(CONFIG.classes.activeButton);
             } else {
-                container.style.display = null;
-                container.classList.add(`ifc-Show`);
-                container.dataset.ifcShow = true;
-
-                if (container.classList.contains(`ifc-Hide`)) {
-                    container.classList.remove(`ifc-Hide`);
-                }
+                filterContainer.style.display = 'none';
+                filterButton.setAttribute('aria-pressed', 'false');
+                filterButton.classList.remove(CONFIG.classes.activeButton);
             }
+        } catch (ex) {
+            console.error('Failed to toggle filter container:', ex);
         }
     }
 
-    function updateFilterCounts() {
-        window.injected.filters.totalCount = document.querySelectorAll(`.${CONFIG.selectors.items}`).length;
-        window.injected.filters.filteredCount = document.querySelectorAll(`.${CONFIG.selectors.items}.ifc-Show`).length;
+    /**
+     * Toggle filter menu list
+     */
+    async function toggleFilterMenuListContainer(event) {
+        try {
+            const target = event.target.getAttribute('data-ifc-target');
+            if (!target) return;
+
+            const groupContainer = getElement(`#ifc_${target}`, false);
+            if (!groupContainer) return;
+
+            const menuButton = groupContainer.querySelector('.filter-block-button');
+            const imgContainer = groupContainer.querySelector(`#ifc_img_${target}`);
+            const listContainer = groupContainer.querySelector('.filter-block-content');
+            
+            if (!menuButton || !imgContainer || !listContainer) return;
+
+            const isExpanded = menuButton.getAttribute('aria-expanded') === 'true';
+            const type = imgContainer.dataset.ifcType;
+
+            if (type === 'svg') {
+                const resourceKey = isExpanded ? 'IMGExpand' : 'IMGCollapse';
+                await updateSVGIcon(target, resourceKey, target);
+            } else {
+                const img = imgContainer.querySelector('img');
+                if (img) {
+                    if (isExpanded) {
+                        img.src = GM_getResourceURL('IMGExpand');
+                        img.alt = img.title = 'Expand';
+                    } else {
+                        img.src = GM_getResourceURL('IMGCollapse');
+                        img.alt = img.title = 'Collapse';
+                    }
+                }
+            }
+
+            menuButton.setAttribute('aria-expanded', (!isExpanded).toString());
+            listContainer.style.display = isExpanded ? 'none' : null;
+        } catch (ex) {
+            console.error('Failed to toggle filter menu:', ex);
+        }
     }
 
+    /**
+     * Generic filter toggle handler
+     */
+    function createToggleHandler(filterPath) {
+        return (event) => {
+            try {
+                const keys = filterPath.split('.');
+                let obj = state.filters;
+                
+                for (let i = 0; i < keys.length - 1; i++) {
+                    obj = obj[keys[i]];
+                }
+                
+                obj[keys[keys.length - 1]] = event.target.checked;
+                updateScreen();
+            } catch (ex) {
+                console.error(`Failed to toggle filter ${filterPath}:`, ex);
+            }
+        };
+    }
+
+    const toggleOwned = createToggleHandler('owned.isOwned');
+    const toggleNotOwned = createToggleHandler('owned.notOwned');
+    const toggleUnPurchasable = createToggleHandler('owned.isUnPurchasable');
+
+    // ==================== ITEM FILTERING ====================
+
+    /**
+     * Extract container data from wishlist item
+     */
+    function setContainerData(container, id) {
+        setDataAttribute(container, 'ifcId', id);
+
+        // Image
+        const img = safeQuerySelector(container, CONFIG.selectors.imageContainer);
+        setDataAttribute(container, 'ifcImage', img?.src);
+
+        // Product details
+        const link = safeQuerySelector(container, CONFIG.selectors.productLink);
+        setDataAttribute(container, 'ifcName', link?.innerText);
+        setDataAttribute(container, 'ifcUri', link?.href);
+
+        const publisher = safeQuerySelector(container, CONFIG.selectors.productPublisher);
+        setDataAttribute(container, 'ifcPublisher', publisher?.innerText);
+
+        // Prices
+        const prices = container.querySelectorAll(CONFIG.selectors.productPrices);
+        
+        const priceBase = prices[0] ? parseFloat(prices[0].innerText.replace(/[^0-9.,-]/g, '').replace(',', '.')) : null;
+        const priceDiscount = prices[1] ? parseFloat(prices[1].innerText.replace(/[^0-9.,-]/g, '').replace(',', '.')) : null;
+        
+        setDataAttribute(container, 'ifcPriceBase', priceBase);
+        setDataAttribute(container, 'ifcPriceDiscount', priceDiscount);
+        setDataAttribute(container, 'ifcPrice', priceDiscount ?? priceBase);
+
+        // Discount calculations
+        if (priceDiscount && priceDiscount > 0) {
+            const discountAmount = priceBase - priceDiscount;
+            const discountPercent = (discountAmount / priceBase) * 100;
+            setDataAttribute(container, 'ifcPriceDiscountAmount', discountAmount);
+            setDataAttribute(container, 'ifcPriceDiscountPercent', discountPercent);
+        } else {
+            setDataAttribute(container, 'ifcPriceDiscountAmount', 0);
+            setDataAttribute(container, 'ifcPriceDiscountPercent', 0);
+        }
+
+        // Subscription
+        setDataAttribute(container, 'ifcSubscription', prices[2]?.innerText);
+
+        // Ownership status
+        const button = safeQuerySelector(container, 'button');
+        const buttonText = button?.innerText;
+        const hasOwnedText = container.innerText.indexOf('Owned') !== -1;
+        const isBuyButton = buttonText === 'BUY' || buttonText === 'BUY TO OWN';
+        const isOwned = hasOwnedText && !isBuyButton;
+
+        if (isOwned) {
+            container.classList.add('ifc-Owned');
+            setDataAttribute(container, 'ifcOwned', true);
+        } else {
+            setDataAttribute(container, 'ifcOwned', false);
+        }
+
+        // Purchasability status
+        const isUnPurchasable = !isOwned && container.dataset.ifcPrice === 'null';
+        
+        if (isUnPurchasable) {
+            container.classList.add('ifc-UnPurchasable');
+            setDataAttribute(container, 'ifcUnpurchasable', true);
+        } else {
+            setDataAttribute(container, 'ifcUnpurchasable', false);
+        }
+    }
+
+    /**
+     * Validate if container should be shown based on filters
+     */
+    function shouldShowContainer(container) {
+        const isOwned = container.dataset.ifcOwned === 'true';
+        const isUnPurchasable = container.dataset.ifcUnpurchasable === 'true';
+
+        // Check owned filters
+        if (state.filters.owned.isOwned && isOwned) return true;
+        if (state.filters.owned.notOwned && !isOwned && !isUnPurchasable) return true;
+        if (state.filters.owned.isUnPurchasable && isUnPurchasable) return true;
+
+        return false;
+    }
+
+    /**
+     * Toggle visibility of wishlist containers
+     */
+    function toggleContainers() {
+        const containers = document.getElementsByClassName(CONFIG.selectors.items);
+        
+        Array.from(containers).forEach((container, index) => {
+            setContainerData(container, containers.length - index);
+            
+            try {
+                const shouldShow = shouldShowContainer(container);
+                
+                if (shouldShow) {
+                    container.style.display = null;
+                    container.classList.add('ifc-Show');
+                    container.classList.remove('ifc-Hide');
+                    setDataAttribute(container, 'ifcShow', true);
+                } else {
+                    container.style.display = 'none';
+                    container.classList.add('ifc-Hide');
+                    container.classList.remove('ifc-Show');
+                    setDataAttribute(container, 'ifcShow', false);
+                }
+            } catch (ex) {
+                console.error('Failed to toggle container:', ex);
+            }
+        });
+    }
+
+    /**
+     * Update filter counts
+     */
+    function updateFilterCounts() {
+        const selector = `.${CONFIG.selectors.items}`;
+        state.filters.totalCount = document.querySelectorAll(selector).length;
+        state.filters.filteredCount = document.querySelectorAll(`${selector}.ifc-Show`).length;
+    }
+
+    /**
+     * Update filter labels with current counts
+     */
     function updateFilterLabels() {
         updateFilterCounts();
-        var labelContainer = document.querySelector(`#ifc_lbl_Filter`);
-        labelContainer.innerHTML = `Viewing ${window.injected.filters.filteredCount} of ${window.injected.filters.totalCount} results`;
+        
+        const label = getElement(`#${CONFIG.ids.filterLabel}`);
+        if (label) {
+            label.textContent = `Viewing ${state.filters.filteredCount} of ${state.filters.totalCount} results`;
+        }
     }
 
+    /**
+     * Update entire screen (filter + labels + save)
+     */
     function updateScreen() {
-        toggleContainers(`${CONFIG.selectors.items}`);
-        updateFilterLabels();
-        saveFilterState();
+        try {
+            toggleContainers();
+            updateFilterLabels();
+            saveFilterState();
+        } catch (ex) {
+            console.error('Failed to update screen:', ex);
+        }
     }
 
-    function onBodyChange(mut) {
-        if (doControlsExist(document, `.${CONFIG.selectors.items}`)) {
-            uiInjections();
+    // ==================== CLEANUP ====================
+
+    /**
+     * Remove unwanted UI elements
+     */
+    function removeUnwantedControls() {
+        try {
+            document.querySelectorAll('.hr.border-neutral-200').forEach(el => el.remove());
+        } catch (ex) {
+            console.error('Failed to remove unwanted controls:', ex);
+        }
+    }
+
+    // ==================== INITIALIZATION ====================
+
+    /**
+     * Handle DOM changes and initialize UI
+     */
+    function onDOMReady() {
+        if (!getElement(`.${CONFIG.selectors.items}`, false)) return;
+
+        try {
+            floatButtons();
             addFilterControls();
             removeUnwantedControls();
-            window.injected.ui.complete = true;
+            state.ui.complete = true;
             updateScreen();
+        } catch (ex) {
+            console.error('Failed to initialize UI:', ex);
         }
 
-        mo.disconnect();
+        observer.disconnect();
     }
 
-    loadFilterState();
+    /**
+     * Initialize the script
+     */
+    async function initialize() {
+        try {
+            // Load resources
+            await addScript(GM_getResourceURL('JSJQuery'));
+            await addStyle(GM_getResourceURL('CSSFilter'));
 
-    var mo = new MutationObserver(onBodyChange);
-    mo.observe(document.querySelector(`#${CONFIG.selectors.content}`), {childList: true, subtree: true});
+            // Load saved filter state
+            loadFilterState();
+
+            // Start observing DOM
+            const contentElement = getElement(`#${CONFIG.selectors.content}`, false);
+            if (contentElement) {
+                observer.observe(contentElement, { childList: true, subtree: true });
+            }
+        } catch (ex) {
+            console.error('Failed to initialize script:', ex);
+        }
+    }
+
+    // ==================== START ====================
+
+    const observer = new MutationObserver(onDOMReady);
+    initialize();
 })();
