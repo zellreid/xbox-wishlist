@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         XBOX Wishlist
 // @namespace    https://github.com/zellreid/xbox-wishlist
-// @version      1.0.25325.1
+// @version      1.0.25325.2
 // @description  A Tampermonkey userscript to add additional functionality to the XBOX Wishlist
 // @author       ZellReid
 // @homepage     https://github.com/zellreid/xbox-wishlist
@@ -20,12 +20,14 @@
 // @resource     IMGExpand https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/expand.svg?ver=@version
 // @resource     IMGCollapse https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/collapse.svg?ver=@version
 // @grant        GM_getResourceURL
-// @downloadURL  https://github.com/zellreid/xbox-wishlist/edit/main/xbox-wishlist.user.js
-// @updateURL    https://github.com/zellreid/xbox-wishlist/edit/main/xbox-wishlist.user.js
+// @grant        GM_setValue
+// @grant        GM_setValue
+// @downloadURL  https://github.com/zellreid/xbox-wishlist/raw/refs/heads/main/xbox-wishlist.user.js
+// @updateURL    https://github.com/zellreid/xbox-wishlist/raw/refs/heads/main/xbox-wishlist.user.js
 // ==/UserScript==
 
 (function() {
-    `use strict`;
+    'use strict';
 
     const CONFIG = {
         selectors: {
@@ -273,7 +275,7 @@
     function createFilterBlock(id, text) {
         var groupContainer = document.createElement(`li`);
 
-        if (id != null) {
+        if (id !== null) {
             groupContainer.id = `ifc_group_${id}`;
         }
 
@@ -282,7 +284,7 @@
 
         var groupMenuContainer = document.createElement(`div`);
 
-        if (id != null) {
+        if (id !== null) {
             groupMenuContainer.id = `ifc_group_menu_${id}`;
         }
 
@@ -315,7 +317,7 @@
 
         var groupMenuListContainer = document.createElement(`div`);
 
-        if (id != null) {
+        if (id !== null) {
             groupMenuListContainer.id = `ifc_group_menu_list_${id}`;
         }
 
@@ -326,7 +328,7 @@
 
         var groupMenuListItemsContainer = document.createElement(`ul`);
 
-        if (id != null) {
+        if (id !== null) {
             groupMenuListItemsContainer.id = `ifc_group_menu_list_items_${id}`;
         }
 
@@ -358,7 +360,7 @@
         labelContainer.style.marginRight = `5px`;
         labelContainer.innerHTML = text;
 
-        if (id != null) {
+        if (id !== null) {
             labelContainer.id = `ifc_lbl_${id}`;
         }
 
@@ -368,7 +370,7 @@
     function createImageLink(id, src, text) {
         var aContainer = document.createElement(`a`);
 
-        if (id != null) {
+        if (id !== null) {
             aContainer.id = `ifc_btn_${id}`;
         }
 
@@ -384,7 +386,7 @@
     function createImageButton(id, src, text, type) {
         var buttonContainer = document.createElement(`button`);
 
-        if (id != null) {
+        if (id !== null) {
             buttonContainer.id = `ifc_btn_${id}`;
         }
 
@@ -409,7 +411,7 @@
     function createImageContainer(id, src, text, type) {
         var divContainer = document.createElement(`div`);
 
-        if (id != null) {
+        if (id !== null) {
             divContainer.id = `ifc_img_${id}`;
         }
 
@@ -461,7 +463,7 @@
         checkboxContainer.style.marginRight = `3px`;
         checkboxContainer.addEventListener(`change`, onChange);
 
-        if (id != null) {
+        if (id !== null) {
             labelContainer.id = `ifc_lbl_${id}`;
             checkboxContainer.id = `ifc_cbx_${id}`;
         }
@@ -641,7 +643,7 @@
         var isOwned = false;
 
         try {
-            isOwned = (container.innerText.indexOf(`Owned`) !== -1 && (container.querySelector(`button`).innerText != `BUY` || container.querySelector(`button`).innerText != `BUY TO OWN`));
+            isOwned = (container.innerText.indexOf(`Owned`) !== -1 && (container.querySelector(`button`).innerText !== `BUY` || container.querySelector(`button`).innerText !== `BUY TO OWN`));
         } catch (ex) {
         }
 
@@ -741,6 +743,7 @@
     function updateScreen() {
         toggleContainers(`${CONFIG.selectors.items}`);
         updateFilterLabels();
+        saveFilterState();
     }
 
     function onBodyChange(mut) {
@@ -754,6 +757,8 @@
 
         mo.disconnect();
     }
+
+    loadFilterState();
 
     var mo = new MutationObserver(onBodyChange);
     mo.observe(document.querySelector(`#${CONFIG.selectors.content}`), {childList: true, subtree: true});
