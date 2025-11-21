@@ -83,7 +83,7 @@
 
 /* Discount Badge Styling */
 .ifc-discount-badge {
-    background-color: #107c10 !important;
+    /*background-color: #107c10 !important;*/
     border-radius: .25rem;
     color: #ffffff !important;
     flex-shrink: 0;
