@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         XBOX Wishlist
 // @namespace    https://github.com/zellreid/xbox-wishlist
-// @version      1.0.24339.7
+// @version      1.0.25325.1
 // @description  A Tampermonkey userscript to add additional functionality to the XBOX Wishlist
 // @author       ZellReid
 // @homepage     https://github.com/zellreid/xbox-wishlist
@@ -25,20 +25,28 @@
 (function() {
     `use strict`;
 
+    const CONFIG = {
+        selectors: {
+            content: `PageContent`,
+            items: `WishlistProductItem-module__itemContainer___weUfG`,
+            buttons: `WishlistPage-module__menuContainer___MNCGP`
+        },
+        storage: {
+            key: `ifc_xbox_wishlist`
+        }
+    };
+
     window.injected = {
         info: GM_info,
         scripts: [],
         styles: [],
         ui: {
-            contentSelector: `PageContent`,
-            itemsSelector: `WishlistProductItem-module__itemContainer___weUfG`,
-            buttonsSelector: `WishlistPage-module__menuContainer___MNCGP`,
             floatButtons: false,
             lblFilter: false,
             btnFilter: false,
             divFilter: false,
             divFilterShow: false,
-            complete: false,
+            complete: false
         },
         filters: {
             totalCount: 0,
@@ -58,8 +66,8 @@
                 eaPlusCount: 0,
                 ubisoftPlus: true,
                 ubisoftPlusCount: 0,
-                nonSubcription: true,
-                nonSubcriptionCount: 0
+                nonSubscription: true,
+                nonSubscriptionCount: 0
             },
             discounts: {
                 discounted: true,
@@ -103,7 +111,7 @@
 
         window.injected.scripts.forEach(
             function (script) {
-                if (script.src == src) {
+                if (script.src === src) {
                     added = true;
                 }
             });
@@ -134,13 +142,25 @@
 
         window.injected.styles.forEach(
             function (style) {
-                if (style.href == href) {
+                if (style.href === href) {
                     added = true;
                 }
             });
 
         return added;
     };
+
+    // Persist filter state
+    function saveFilterState() {
+        GM_setValue(CONFIG.storage.key, JSON.stringify(window.injected.filters));
+    }
+    
+    function loadFilterState() {
+        const saved = GM_getValue(CONFIG.storage.key);
+        if (saved) {
+            window.injected.filters = JSON.parse(saved);
+        }
+    }
 
     function doControlsExist(container, controlQuery) {
         return container.querySelector(controlQuery);
@@ -151,7 +171,7 @@
     }
 
     function floatButtons() {
-        var buttonContainerTarget = `.${window.injected.ui.buttonsSelector}`;
+        var buttonContainerTarget = `.${CONFIG.selectors.buttons}`;
 
         if ((!window.injected.ui.floatButtons)
         && (doControlsExist(document.body, buttonContainerTarget))) {
@@ -399,7 +419,7 @@
                 getText(src).then(function(dataText) {
                     divContainer = document.querySelector(`#ifc_img_${id}`);
                     divContainer.innerHTML = dataText;
-                    var parrentNodeType = divContainer.parentElement.nodeName;
+                    var parentNodeType = divContainer.parentElement.nodeName;
                     var svgContainer = divContainer.querySelector(`svg`);
                     svgContainer.classList.add(`Button-module__buttonIcon___540Jm`);
                     svgContainer.classList.add(`Button-module__noMargin___5UbzU`);
@@ -484,7 +504,7 @@
         switch(type)
         {
             case `svg`:
-                if (ariaExpanded == `true`) {
+                if (ariaExpanded === `true`) {
                     getText(GM_getResourceURL (`IMGExpand`)).then(function(dataText) {
                         imgContainer = document.querySelector(`#ifc_img_${target}`);
                         imgContainer.innerHTML = dataText;
@@ -514,7 +534,7 @@
             case `img`:
                 imgContainer = imgContainer.querySelector(`img`);
 
-                if (ariaExpanded == `true`) {
+                if (ariaExpanded === `true`) {
                     imgContainer.setAttribute(`src`, GM_getResourceURL (`IMGExpand`));
                     imgContainer.setAttribute(`alt`, `Expand`);
                     imgContainer.setAttribute(`title`, `Expand`);
@@ -526,7 +546,7 @@
                 break;
         }
 
-        if (ariaExpanded == `true`) {
+        if (ariaExpanded === `true`) {
             groupMenuButton.setAttribute(`aria-expanded`, `false`);
             groupMenuListContainer.style.display = `none`;
         } else {
@@ -610,7 +630,7 @@
         }
 
         try {
-            //ToDo: Fix the subsciption data
+            //ToDo: Fix the subscription data
             container.dataset.ifcSubscription = prices[2].innerText;
         } catch (ex) {
             container.dataset.ifcSubscription = `null`;
@@ -633,7 +653,7 @@
         var isUnPurchasable = false;
 
         try {
-            isUnPurchasable = (!isOwned && container.dataset.ifcPrice == `null`);
+            isUnPurchasable = (!isOwned && container.dataset.ifcPrice === `null`);
         } catch (ex) {
         }
 
@@ -706,8 +726,8 @@
     }
 
     function updateFilterCounts() {
-        window.injected.filters.totalCount = document.querySelectorAll(`.${window.injected.ui.itemsSelector}`).length;
-        window.injected.filters.filteredCount = document.querySelectorAll(`.${window.injected.ui.itemsSelector}.ifc-Show`).length;
+        window.injected.filters.totalCount = document.querySelectorAll(`.${CONFIG.selectors.items}`).length;
+        window.injected.filters.filteredCount = document.querySelectorAll(`.${CONFIG.selectors.items}.ifc-Show`).length;
     }
 
     function updateFilterLabels() {
@@ -717,12 +737,12 @@
     }
 
     function updateScreen() {
-        toggleContainers(`${window.injected.ui.itemsSelector}`);
+        toggleContainers(`${CONFIG.selectors.items}`);
         updateFilterLabels();
     }
 
     function onBodyChange(mut) {
-        if (doControlsExist(document, `.${window.injected.ui.itemsSelector}`)) {
+        if (doControlsExist(document, `.${CONFIG.selectors.items}`)) {
             uiInjections();
             addFilterControls();
             removeUnwantedControls();
@@ -734,5 +754,5 @@
     }
 
     var mo = new MutationObserver(onBodyChange);
-    mo.observe(document.querySelector(`#${window.injected.ui.contentSelector}`), {childList: true, subtree: true});
+    mo.observe(document.querySelector(`#${CONFIG.selectors.content}`), {childList: true, subtree: true});
 })();
