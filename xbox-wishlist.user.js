@@ -20,6 +20,8 @@
 // @resource     IMGExpand https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/expand.svg?ver=@version
 // @resource     IMGCollapse https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/collapse.svg?ver=@version
 // @grant        GM_getResourceURL
+// @downloadURL  https://github.com/zellreid/xbox-wishlist/edit/main/xbox-wishlist.user.js
+// @updateURL    https://github.com/zellreid/xbox-wishlist/edit/main/xbox-wishlist.user.js
 // ==/UserScript==
 
 (function() {
