@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         XBOX Wishlist
 // @namespace    https://github.com/zellreid/xbox-wishlist
-// @version      1.0.25326.3
+// @version      1.0.25326.4
 // @description  A Tampermonkey userscript to add additional functionality to the XBOX Wishlist
 // @author       ZellReid
 // @homepage     https://github.com/zellreid/xbox-wishlist
