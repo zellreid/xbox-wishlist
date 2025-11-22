@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         XBOX Wishlist
 // @namespace    https://github.com/zellreid/xbox-wishlist
-// @version      1.2.25326.3
-// @description  Advanced filtering suite with Select2, tag display, inverted logic, and range sliders (bug fix: slider initialization)
+// @version      1.2.25326.4
+// @description  Advanced filtering suite with Select2, tag display, inverted logic, and range sliders
 // @author       ZellReid
 // @homepage     https://github.com/zellreid/xbox-wishlist
 // @supportURL   https://github.com/zellreid/xbox-wishlist/issues
