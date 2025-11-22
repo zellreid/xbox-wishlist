@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         XBOX Wishlist
 // @namespace    https://github.com/zellreid/xbox-wishlist
-// @version      1.1.25326.5
-// @description  A Tampermonkey userscript to add additional functionality to the XBOX Wishlist
+// @version      1.2.25327.1
+// @description  Advanced filtering suite with Select2, tag display, inverted logic, and range sliders
 // @author       ZellReid
 // @homepage     https://github.com/zellreid/xbox-wishlist
 // @supportURL   https://github.com/zellreid/xbox-wishlist/issues
@@ -10,15 +10,14 @@
 // @match        https://www.xbox.com/*/wishlist
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=xbox.com
 // @run-at       document-body
-// @resource     JSJQuery https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js?ver=@version
-// @resource     JSBootstrap https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.1.3/js/bootstrap.min.js?ver=@version
-// @resource     JSSelect2 https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js?ver=@version
-// @resource     CSSSelect2 https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css?ver=@version
-// @resource     CSSFilter https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/xbox-wishlist.user.css?ver=@version
-// @resource     IMGFilter https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/filter.svg?ver=@version
-// @resource     IMGSort https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/sort.svg?ver=@version
-// @resource     IMGExpand https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/expand.svg?ver=@version
-// @resource     IMGCollapse https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/collapse.svg?ver=@version
+// @resource     JSJQuery https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js
+// @resource     JSSelect2 https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js
+// @resource     CSSSelect2 https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css
+// @resource     CSSFilter https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/xbox-wishlist.user.css
+// @resource     IMGFilter https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/filter.svg
+// @resource     IMGSort https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/sort.svg
+// @resource     IMGExpand https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/expand.svg
+// @resource     IMGCollapse https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/collapse.svg
 // @grant        GM_getResourceURL
 // @grant        GM_setValue
 // @grant        GM_getValue
@@ -46,7 +45,12 @@
             buttonContainer: 'ifc_ButtonContainer',
             filterContainer: 'injectedFilterControls',
             filterLabel: 'ifc_lbl_Filter',
-            filterButton: 'ifc_btn_Filter'
+            filterButton: 'ifc_btn_Filter',
+            tagContainer: 'ifc_tag_container',
+            ownedSelect: 'ifc_select_owned',
+            publishersSelect: 'ifc_select_publishers',
+            priceSlider: 'ifc_slider_price',
+            discountSlider: 'ifc_slider_discount'
         },
         classes: {
             button: [
@@ -94,39 +98,35 @@
             btnFilter: false,
             divFilter: false,
             divFilterShow: false,
+            tagContainer: false,
+            select2Ready: false,
             complete: false
         },
         filters: {
             totalCount: 0,
             filteredCount: 0,
+            activeTags: [], // Active filter tags
             owned: {
-                isOwned: true,
-                ownedCount: 0,
-                notOwned: true,
-                notOwnedCount: 0,
-                isUnPurchasable: true,
-                unPurchasableCount: 0
+                selected: [], // Inverted: empty = show all
+                options: ['Owned', 'Not Owned', 'Un-Purchasable']
             },
             publishers: {
-                list: new Map(), // Map<publisherName, {enabled: boolean, count: number}>
-                allEnabled: true
+                selected: [], // Inverted: empty = show all
+                list: new Map() // Map<publisherName, count>
             },
-            subscriptions: {
-                gamePass: true,
-                gamePassCount: 0,
-                eaPlus: true,
-                eaPlusCount: 0,
-                ubisoftPlus: true,
-                ubisoftPlusCount: 0,
-                nonSubscription: true,
-                nonSubscriptionCount: 0
+            priceRange: {
+                min: 0,
+                max: 1000,
+                currentMin: 0,
+                currentMax: 1000,
+                enabled: false
             },
-            discounts: {
-                discounted: true,
-                discountedCount: 0,
-                notDiscounted: true,
-                notDiscountedCount: 0,
-                discountScale: 0
+            discountRange: {
+                min: 0,
+                max: 100,
+                currentMin: 0,
+                currentMax: 100,
+                enabled: false
             }
         }
     };
@@ -200,6 +200,20 @@
             console.error(`Query selector failed for ${selector}:`, ex);
             return defaultValue;
         }
+    }
+
+    /**
+     * Format currency
+     */
+    function formatCurrency(value) {
+        return `R ${value.toFixed(2)}`;
+    }
+
+    /**
+     * Format percentage
+     */
+    function formatPercentage(value) {
+        return `${Math.round(value)}%`;
     }
 
     // ==================== RESOURCE MANAGEMENT ====================
@@ -285,7 +299,16 @@
      */
     function saveFilterState() {
         try {
-            GM_setValue(CONFIG.storage.key, JSON.stringify(state.filters));
+            // Convert Map to array for JSON serialization
+            const publishersArray = Array.from(state.filters.publishers.list.entries());
+            const saveData = {
+                ...state.filters,
+                publishers: {
+                    selected: state.filters.publishers.selected,
+                    list: publishersArray
+                }
+            };
+            GM_setValue(CONFIG.storage.key, JSON.stringify(saveData));
         } catch (ex) {
             console.error('Failed to save filter state:', ex);
         }
@@ -299,14 +322,181 @@
             const saved = GM_getValue(CONFIG.storage.key);
             if (saved) {
                 const parsed = JSON.parse(saved);
-                // Validate structure before applying
                 if (parsed && typeof parsed === 'object') {
+                    // Restore publishers Map from array
+                    if (parsed.publishers && Array.isArray(parsed.publishers.list)) {
+                        parsed.publishers.list = new Map(parsed.publishers.list);
+                    }
                     state.filters = { ...state.filters, ...parsed };
                 }
             }
         } catch (ex) {
             console.error('Failed to load filter state:', ex);
         }
+    }
+
+    // ==================== TAG MANAGEMENT ====================
+
+    /**
+     * Update active filter tags
+     */
+    function updateActiveTags() {
+        const tags = [];
+
+        // Owned filters (inverted: show selected items)
+        if (state.filters.owned.selected.length > 0) {
+            state.filters.owned.selected.forEach(item => {
+                tags.push({ type: 'owned', value: item, label: item });
+            });
+        }
+
+        // Publisher filters (inverted: show selected items)
+        if (state.filters.publishers.selected.length > 0) {
+            state.filters.publishers.selected.forEach(pub => {
+                const count = state.filters.publishers.list.get(pub) || 0;
+                tags.push({ type: 'publisher', value: pub, label: `${pub} (${count})` });
+            });
+        }
+
+        // Price range filter
+        if (state.filters.priceRange.enabled) {
+            const { currentMin, currentMax } = state.filters.priceRange;
+            tags.push({
+                type: 'price',
+                value: 'price',
+                label: `Price: ${formatCurrency(currentMin)} - ${formatCurrency(currentMax)}`
+            });
+        }
+
+        // Discount range filter
+        if (state.filters.discountRange.enabled) {
+            const { currentMin, currentMax } = state.filters.discountRange;
+            tags.push({
+                type: 'discount',
+                value: 'discount',
+                label: `Discount: ${formatPercentage(currentMin)} - ${formatPercentage(currentMax)}`
+            });
+        }
+
+        state.filters.activeTags = tags;
+        renderTags();
+    }
+
+    /**
+     * Render tag display
+     */
+    function renderTags() {
+        const tagContainer = getElement(`#${CONFIG.ids.tagContainer}`);
+        if (!tagContainer) return;
+
+        // Clear existing tags
+        tagContainer.innerHTML = '';
+
+        if (state.filters.activeTags.length === 0) {
+            tagContainer.style.display = 'none';
+            return;
+        }
+
+        tagContainer.style.display = 'flex';
+
+        state.filters.activeTags.forEach(tag => {
+            const tagElement = document.createElement('span');
+            tagElement.className = 'ifc-filter-tag';
+            tagElement.textContent = tag.label;
+
+            const removeBtn = document.createElement('button');
+            removeBtn.className = 'ifc-tag-remove';
+            removeBtn.textContent = '×';
+            removeBtn.setAttribute('aria-label', `Remove ${tag.label}`);
+            removeBtn.onclick = () => removeTag(tag);
+
+            tagElement.appendChild(removeBtn);
+            tagContainer.appendChild(tagElement);
+        });
+    }
+
+    /**
+     * Remove a filter tag
+     */
+    function removeTag(tag) {
+        switch (tag.type) {
+            case 'owned':
+                state.filters.owned.selected = state.filters.owned.selected.filter(v => v !== tag.value);
+                updateSelect2(CONFIG.ids.ownedSelect, state.filters.owned.selected);
+                break;
+            case 'publisher':
+                state.filters.publishers.selected = state.filters.publishers.selected.filter(v => v !== tag.value);
+                updateSelect2(CONFIG.ids.publishersSelect, state.filters.publishers.selected);
+                break;
+            case 'price':
+                state.filters.priceRange.enabled = false;
+                resetPriceSlider();
+                break;
+            case 'discount':
+                state.filters.discountRange.enabled = false;
+                resetDiscountSlider();
+                break;
+        }
+        updateScreen();
+    }
+
+    /**
+     * Update Select2 value programmatically
+     */
+    function updateSelect2(elementId, values) {
+        if (typeof jQuery === 'undefined' || typeof jQuery.fn.select2 === 'undefined') return;
+        
+        const element = $(`#${elementId}`);
+        if (element.length) {
+            element.val(values).trigger('change.select2');
+        }
+    }
+
+    // ==================== SELECT2 INITIALIZATION ====================
+
+    /**
+     * Initialize Select2 on an element
+     */
+    function initSelect2(elementId, options = {}) {
+        if (typeof jQuery === 'undefined' || typeof jQuery.fn.select2 === 'undefined') {
+            console.error('Select2 not available');
+            return;
+        }
+
+        const $element = $(`#${elementId}`);
+        if (!$element.length) return;
+
+        const defaultOptions = {
+            theme: 'xbox',
+            width: '100%',
+            placeholder: 'Select filters...',
+            allowClear: false,
+            closeOnSelect: false,
+            ...options
+        };
+
+        $element.select2(defaultOptions);
+    }
+
+    /**
+     * Wait for jQuery and Select2 to be ready
+     */
+    async function waitForSelect2() {
+        return new Promise((resolve) => {
+            const checkInterval = setInterval(() => {
+                if (typeof jQuery !== 'undefined' && typeof jQuery.fn.select2 !== 'undefined') {
+                    clearInterval(checkInterval);
+                    state.ui.select2Ready = true;
+                    resolve();
+                }
+            }, 100);
+            
+            // Timeout after 5 seconds
+            setTimeout(() => {
+                clearInterval(checkInterval);
+                resolve();
+            }, 5000);
+        });
     }
 
     // ==================== UI CREATION HELPERS ====================
@@ -320,7 +510,7 @@
             marginLeft: '5px',
             marginRight: '5px'
         });
-        label.textContent = text; // Use textContent instead of innerHTML for safety
+        label.textContent = text;
         
         if (id) {
             label.id = `ifc_lbl_${id}`;
@@ -330,33 +520,104 @@
     }
 
     /**
-     * Create checkbox element
+     * Create Select2 multi-select
      */
-    function createCheckbox(id, text, initial, onChange) {
-        const label = document.createElement('label');
-        applyStyles(label, {
-            marginLeft: '5px',
-            marginRight: '5px'
+    function createSelect2Multi(id, options, selected = []) {
+        const select = document.createElement('select');
+        select.id = id;
+        select.multiple = true;
+        select.className = 'ifc-select2-multi';
+
+        options.forEach(option => {
+            const opt = document.createElement('option');
+            opt.value = option.value;
+            opt.textContent = option.label;
+            if (selected.includes(option.value)) {
+                opt.selected = true;
+            }
+            select.appendChild(opt);
         });
 
-        const checkbox = document.createElement('input');
-        checkbox.type = 'checkbox';
-        checkbox.checked = initial;
-        applyStyles(checkbox, { marginRight: '3px' });
-        
-        if (onChange) {
-            checkbox.addEventListener('change', onChange);
-        }
+        return select;
+    }
 
-        if (id) {
-            label.id = `ifc_lbl_${id}`;
-            checkbox.id = `ifc_cbx_${id}`;
-        }
+    /**
+     * Create range slider
+     */
+    function createRangeSlider(id, min, max, currentMin, currentMax, onChange) {
+        const container = document.createElement('div');
+        container.className = 'ifc-slider-container';
+        container.id = `${id}_container`;
 
-        label.appendChild(checkbox);
-        label.appendChild(document.createTextNode(text));
+        // Label
+        const label = document.createElement('div');
+        label.className = 'ifc-slider-label';
+        label.id = `${id}_label`;
+        container.appendChild(label);
 
-        return label;
+        // Slider track
+        const track = document.createElement('div');
+        track.className = 'ifc-slider-track';
+
+        const range = document.createElement('div');
+        range.className = 'ifc-slider-range';
+        range.id = `${id}_range`;
+        track.appendChild(range);
+
+        // Min slider
+        const minSlider = document.createElement('input');
+        minSlider.type = 'range';
+        minSlider.className = 'ifc-slider ifc-slider-min';
+        minSlider.id = `${id}_min`;
+        minSlider.min = min;
+        minSlider.max = max;
+        minSlider.value = currentMin;
+        minSlider.step = (max - min) / 100;
+
+        // Max slider
+        const maxSlider = document.createElement('input');
+        maxSlider.type = 'range';
+        maxSlider.className = 'ifc-slider ifc-slider-max';
+        maxSlider.id = `${id}_max`;
+        maxSlider.min = min;
+        maxSlider.max = max;
+        maxSlider.value = currentMax;
+        maxSlider.step = (max - min) / 100;
+
+        track.appendChild(minSlider);
+        track.appendChild(maxSlider);
+        container.appendChild(track);
+
+        // Update function
+        const updateSlider = () => {
+            let minVal = parseFloat(minSlider.value);
+            let maxVal = parseFloat(maxSlider.value);
+
+            // Ensure min doesn't exceed max
+            if (minVal > maxVal - (max - min) * 0.01) {
+                minVal = maxVal - (max - min) * 0.01;
+                minSlider.value = minVal;
+            }
+
+            // Update range display
+            const minPercent = ((minVal - min) / (max - min)) * 100;
+            const maxPercent = ((maxVal - min) / (max - min)) * 100;
+            range.style.left = `${minPercent}%`;
+            range.style.width = `${maxPercent - minPercent}%`;
+
+            // Call change handler
+            if (onChange) {
+                onChange(minVal, maxVal);
+            }
+        };
+
+        minSlider.addEventListener('input', updateSlider);
+        maxSlider.addEventListener('input', updateSlider);
+
+        // Initial update
+        updateSlider();
+
+        return container;
     }
 
     /**
@@ -521,7 +782,6 @@
         if (state.ui.divFilter) return;
 
         try {
-            // Check if already exists
             if (getElement(`#${CONFIG.ids.filterContainer}`, false)) return;
 
             const filterContainer = document.createElement('div');
@@ -540,34 +800,58 @@
             );
             heading.textContent = 'Filters';
 
+            // Tag container
+            const tagContainer = document.createElement('div');
+            tagContainer.id = CONFIG.ids.tagContainer;
+            tagContainer.className = 'ifc-tag-container';
+            tagContainer.style.display = 'none';
+
             const filterGroups = document.createElement('ul');
             filterGroups.classList.add('filter-groups', 'SortAndFilters-module__filterList___T81LH');
 
             filterList.appendChild(heading);
+            filterList.appendChild(tagContainer);
             filterList.appendChild(filterGroups);
             filterContainer.appendChild(filterList);
             document.body.appendChild(filterContainer);
 
-            // Add event listener to filter button
             const filterButton = getElement(`#${CONFIG.ids.filterButton}`);
             if (filterButton) {
                 filterButton.addEventListener('click', toggleFilterContainer);
             }
 
             state.ui.divFilter = true;
+            state.ui.tagContainer = true;
         } catch (ex) {
             console.error('Failed to add filter container:', ex);
         }
     }
 
     /**
-     * Create filter block structure
+     * Create filter block structure (for sliders)
      */
-    function createFilterBlock(id = null, text = '') {
+    function createFilterBlock(id = null, text = '', collapsible = true) {
         const groupContainer = document.createElement('li');
         if (id) groupContainer.id = `ifc_group_${id}`;
         groupContainer.classList.add('filter-block', 'SortAndFilters-module__li___aV+Oo');
 
+        if (!collapsible) {
+            // Non-collapsible: just add content directly
+            const contentContainer = document.createElement('div');
+            contentContainer.className = 'ifc-filter-block-static';
+            if (id) contentContainer.id = `ifc_group_content_${id}`;
+            
+            const heading = document.createElement('h3');
+            heading.className = 'ifc-filter-static-heading';
+            heading.textContent = text;
+            
+            contentContainer.appendChild(heading);
+            groupContainer.appendChild(contentContainer);
+            
+            return groupContainer;
+        }
+
+        // Collapsible version (existing code)
         const menuContainer = document.createElement('div');
         if (id) menuContainer.id = `ifc_group_menu_${id}`;
         menuContainer.classList.add('SelectionDropdown-module__container___XzkIx');
@@ -606,10 +890,9 @@
             display: 'none'
         });
 
-        const itemsContainer = document.createElement('ul');
+        const itemsContainer = document.createElement('div');
         if (id) itemsContainer.id = `ifc_group_menu_list_items_${id}`;
         itemsContainer.classList.add('filter-options', 'Selections-module__options___I24e7');
-        itemsContainer.setAttribute('role', 'listbox');
 
         listContainer.appendChild(itemsContainer);
         menuContainer.appendChild(menuButton);
@@ -622,141 +905,9 @@
     }
 
     /**
-     * Add filter option to container
+     * Add owned filter group with Select2
      */
-    function addFilterOption(container, control) {
-        if (!container || !control) return;
-
-        const optionsContainer = safeQuerySelector(container, '.filter-options');
-        if (!optionsContainer) return;
-
-        const li = document.createElement('li');
-        li.appendChild(control);
-        optionsContainer.appendChild(li);
-    }
-
-    /**
-     * Collect unique publishers from all wishlist items
-     */
-    function collectPublishers() {
-        const publishers = new Map();
-        const containers = document.getElementsByClassName(CONFIG.selectors.items);
-        
-        Array.from(containers).forEach(container => {
-            const publisher = container.dataset.ifcPublisher;
-            
-            // Only add valid, non-null publishers (case-sensitive)
-            if (publisher && publisher !== 'null' && publisher.trim() !== '') {
-                const publisherName = publisher.trim();
-                
-                if (!publishers.has(publisherName)) {
-                    publishers.set(publisherName, {
-                        enabled: state.filters.publishers.list.get(publisherName)?.enabled ?? true,
-                        count: 0
-                    });
-                }
-                
-                const publisherData = publishers.get(publisherName);
-                publisherData.count++;
-            }
-        });
-        
-        // Sort publishers alphabetically (case-sensitive)
-        const sortedPublishers = new Map(
-            Array.from(publishers.entries()).sort((a, b) => a[0].localeCompare(b[0]))
-        );
-        
-        state.filters.publishers.list = sortedPublishers;
-        return sortedPublishers;
-    }
-
-    /**
-     * Add publisher filter group
-     */
-    function addFilterContainerPublishers() {
-        if (!state.ui.divFilter) return;
-
-        const groupName = 'Publishers';
-        
-        try {
-            // Check if already exists
-            if (getElement(`#ifc_group_${groupName}`, false)) {
-                // Update existing checkboxes
-                updatePublisherCheckboxes();
-                return;
-            }
-
-            const filterGroups = getElement(`#${CONFIG.ids.filterContainer} ${CONFIG.selectors.filterGroups}`);
-            if (!filterGroups) return;
-
-            const filterBlock = createFilterBlock(groupName, 'Publishers');
-            filterGroups.appendChild(filterBlock);
-
-            // Populate with publisher checkboxes
-            updatePublisherCheckboxes();
-        } catch (ex) {
-            console.error('Failed to add publishers filter:', ex);
-        }
-    }
-
-    /**
-     * Update publisher checkboxes dynamically
-     */
-    function updatePublisherCheckboxes() {
-        const listContainer = getElement(`#ifc_group_menu_list_Publishers`);
-        if (!listContainer) return;
-
-        const optionsContainer = listContainer.querySelector('.filter-options');
-        if (!optionsContainer) return;
-
-        // Clear existing checkboxes
-        optionsContainer.innerHTML = '';
-
-        // Collect current publishers
-        const publishers = collectPublishers();
-
-        // Add checkbox for each unique publisher
-        publishers.forEach((data, publisherName) => {
-            const checkboxId = `Publisher_${publisherName.replace(/[^a-zA-Z0-9]/g, '_')}`;
-            const checkbox = createCheckbox(
-                checkboxId,
-                `${publisherName} (${data.count})`,
-                data.enabled,
-                (event) => togglePublisher(publisherName, event.target.checked)
-            );
-            addFilterOption(listContainer, checkbox);
-        });
-
-        // If no publishers found, show message
-        if (publishers.size === 0) {
-            const li = document.createElement('li');
-            li.style.padding = '8px';
-            li.style.fontSize = '0.75rem';
-            li.style.color = '#999';
-            li.textContent = 'No publishers found';
-            optionsContainer.appendChild(li);
-        }
-    }
-
-    /**
-     * Toggle publisher filter
-     */
-    function togglePublisher(publisherName, enabled) {
-        try {
-            const publisherData = state.filters.publishers.list.get(publisherName);
-            if (publisherData) {
-                publisherData.enabled = enabled;
-            }
-            updateScreen();
-        } catch (ex) {
-            console.error(`Failed to toggle publisher ${publisherName}:`, ex);
-        }
-    }
-
-    /**
-     * Add owned filter group
-     */
-    function addFilterContainerOwned() {
+    async function addFilterContainerOwned() {
         if (!state.ui.divFilter) return;
 
         const groupName = 'Owned';
@@ -767,40 +918,419 @@
             const filterGroups = getElement(`#${CONFIG.ids.filterContainer} ${CONFIG.selectors.filterGroups}`);
             if (!filterGroups) return;
 
-            const filterBlock = createFilterBlock(groupName, 'Owned');
+            const filterBlock = createFilterBlock(groupName, 'Owned', false);
+            const contentContainer = filterBlock.querySelector('.ifc-filter-block-static');
+            
+            if (contentContainer) {
+                const options = state.filters.owned.options.map(opt => ({ value: opt, label: opt }));
+                const select = createSelect2Multi(CONFIG.ids.ownedSelect, options, state.filters.owned.selected);
+                contentContainer.appendChild(select);
+            }
+
             filterGroups.appendChild(filterBlock);
 
-            const listContainer = getElement(`#ifc_group_menu_list_${groupName}`);
-            if (!listContainer) return;
-
-            // Add checkboxes
-            addFilterOption(
-                listContainer,
-                createCheckbox(groupName, 'Owned', state.filters.owned.isOwned, toggleOwned)
-            );
-            addFilterOption(
-                listContainer,
-                createCheckbox('NotOwned', 'Not Owned', state.filters.owned.notOwned, toggleNotOwned)
-            );
-            addFilterOption(
-                listContainer,
-                createCheckbox('UnPurchasable', 'Un-Purchasable', state.filters.owned.isUnPurchasable, toggleUnPurchasable)
-            );
+            // Initialize Select2 after DOM insertion
+            if (state.ui.select2Ready) {
+                initSelect2(CONFIG.ids.ownedSelect);
+                
+                // Attach change handler
+                $(`#${CONFIG.ids.ownedSelect}`).on('change', function() {
+                    state.filters.owned.selected = $(this).val() || [];
+                    updateScreen();
+                });
+            }
         } catch (ex) {
             console.error('Failed to add owned filter:', ex);
         }
     }
 
     /**
+     * Collect unique publishers
+     */
+    function collectPublishers() {
+        const publishers = new Map();
+        const containers = document.getElementsByClassName(CONFIG.selectors.items);
+        
+        Array.from(containers).forEach(container => {
+            const publisher = container.dataset.ifcPublisher;
+            
+            if (publisher && publisher !== 'null' && publisher.trim() !== '') {
+                const publisherName = publisher.trim();
+                publishers.set(publisherName, (publishers.get(publisherName) || 0) + 1);
+            }
+        });
+        
+        // Sort alphabetically
+        const sortedPublishers = new Map(
+            Array.from(publishers.entries()).sort((a, b) => a[0].localeCompare(b[0]))
+        );
+        
+        state.filters.publishers.list = sortedPublishers;
+        return sortedPublishers;
+    }
+
+    /**
+     * Add publishers filter group with Select2
+     */
+    async function addFilterContainerPublishers() {
+        if (!state.ui.divFilter) return;
+
+        const groupName = 'Publishers';
+        
+        try {
+            const existing = getElement(`#ifc_group_${groupName}`, false);
+            if (existing) {
+                // Update existing
+                updatePublishersSelect();
+                return;
+            }
+
+            const filterGroups = getElement(`#${CONFIG.ids.filterContainer} ${CONFIG.selectors.filterGroups}`);
+            if (!filterGroups) return;
+
+            const filterBlock = createFilterBlock(groupName, 'Publishers', false);
+            const contentContainer = filterBlock.querySelector('.ifc-filter-block-static');
+            
+            if (contentContainer) {
+                const select = createSelect2Multi(CONFIG.ids.publishersSelect, [], state.filters.publishers.selected);
+                contentContainer.appendChild(select);
+            }
+
+            filterGroups.appendChild(filterBlock);
+
+            // Populate and initialize
+            updatePublishersSelect();
+        } catch (ex) {
+            console.error('Failed to add publishers filter:', ex);
+        }
+    }
+
+    /**
+     * Update publishers Select2
+     */
+    function updatePublishersSelect() {
+        if (!state.ui.select2Ready) return;
+
+        const publishers = collectPublishers();
+        const $select = $(`#${CONFIG.ids.publishersSelect}`);
+        
+        if (!$select.length) return;
+
+        // Destroy existing Select2 if any
+        if ($select.data('select2')) {
+            $select.select2('destroy');
+        }
+
+        // Clear and repopulate
+        $select.empty();
+        
+        publishers.forEach((count, name) => {
+            const option = new Option(`${name} (${count})`, name, false, state.filters.publishers.selected.includes(name));
+            $select.append(option);
+        });
+
+        // Reinitialize
+        initSelect2(CONFIG.ids.publishersSelect);
+        
+        // Attach change handler
+        $select.off('change').on('change', function() {
+            state.filters.publishers.selected = $(this).val() || [];
+            updateScreen();
+        });
+    }
+
+    /**
+     * Calculate price range from items
+     */
+    function calculatePriceRange() {
+        const containers = document.getElementsByClassName(CONFIG.selectors.items);
+        let min = Infinity;
+        let max = 0;
+
+        Array.from(containers).forEach(container => {
+            const price = parseFloat(container.dataset.ifcPrice);
+            if (!isNaN(price) && price > 0) {
+                min = Math.min(min, price);
+                max = Math.max(max, price);
+            }
+        });
+
+        if (min === Infinity) min = 0;
+        
+        // Round to nice numbers
+        min = Math.floor(min / 10) * 10;
+        max = Math.ceil(max / 10) * 10;
+
+        return { min, max };
+    }
+
+    /**
+     * Calculate discount range from items
+     */
+    function calculateDiscountRange() {
+        const containers = document.getElementsByClassName(CONFIG.selectors.items);
+        let min = 100;
+        let max = 0;
+
+        Array.from(containers).forEach(container => {
+            const discount = parseInt(container.dataset.ifcPriceDiscountPercent);
+            if (!isNaN(discount) && discount > 0) {
+                min = Math.min(min, discount);
+                max = Math.max(max, discount);
+            }
+        });
+
+        if (min === 100) min = 0;
+        
+        // Round to nice numbers
+        min = Math.floor(min / 5) * 5;
+        max = Math.ceil(max / 5) * 5;
+
+        return { min, max };
+    }
+
+    /**
+     * Add price range slider
+     */
+    function addPriceRangeFilter() {
+        if (!state.ui.divFilter) return;
+
+        const groupName = 'PriceRange';
+        
+        try {
+            if (getElement(`#ifc_group_${groupName}`, false)) {
+                // Update existing
+                updatePriceSlider();
+                return;
+            }
+
+            const filterGroups = getElement(`#${CONFIG.ids.filterContainer} ${CONFIG.selectors.filterGroups}`);
+            if (!filterGroups) return;
+
+            const { min, max } = calculatePriceRange();
+            state.filters.priceRange = { min, max, currentMin: min, currentMax: max, enabled: false };
+
+            const filterBlock = createFilterBlock(groupName, 'Price Range', false);
+            const contentContainer = filterBlock.querySelector('.ifc-filter-block-static');
+            
+            if (contentContainer) {
+                const slider = createRangeSlider(
+                    CONFIG.ids.priceSlider,
+                    min,
+                    max,
+                    min,
+                    max,
+                    (minVal, maxVal) => {
+                        state.filters.priceRange.currentMin = minVal;
+                        state.filters.priceRange.currentMax = maxVal;
+                        state.filters.priceRange.enabled = true;
+                        
+                        // Update label
+                        const label = getElement(`#${CONFIG.ids.priceSlider}_label`);
+                        if (label) {
+                            label.textContent = `${formatCurrency(minVal)} - ${formatCurrency(maxVal)}`;
+                        }
+                        
+                        updateScreen();
+                    }
+                );
+                contentContainer.appendChild(slider);
+                
+                // Set initial label
+                const label = slider.querySelector('.ifc-slider-label');
+                if (label) {
+                    label.textContent = `${formatCurrency(min)} - ${formatCurrency(max)}`;
+                }
+            }
+
+            filterGroups.appendChild(filterBlock);
+        } catch (ex) {
+            console.error('Failed to add price range filter:', ex);
+        }
+    }
+
+    /**
+     * Update price slider
+     */
+    function updatePriceSlider() {
+        const { min, max } = calculatePriceRange();
+        
+        // Update state if changed
+        if (state.filters.priceRange.min !== min || state.filters.priceRange.max !== max) {
+            state.filters.priceRange = {
+                ...state.filters.priceRange,
+                min,
+                max,
+                currentMin: Math.max(state.filters.priceRange.currentMin, min),
+                currentMax: Math.min(state.filters.priceRange.currentMax, max)
+            };
+            
+            // Update slider elements
+            const minSlider = getElement(`#${CONFIG.ids.priceSlider}_min`);
+            const maxSlider = getElement(`#${CONFIG.ids.priceSlider}_max`);
+            
+            if (minSlider && maxSlider) {
+                minSlider.min = min;
+                minSlider.max = max;
+                maxSlider.min = min;
+                maxSlider.max = max;
+                
+                minSlider.value = state.filters.priceRange.currentMin;
+                maxSlider.value = state.filters.priceRange.currentMax;
+                
+                // Trigger update
+                minSlider.dispatchEvent(new Event('input'));
+            }
+        }
+    }
+
+    /**
+     * Reset price slider
+     */
+    function resetPriceSlider() {
+        const { min, max } = state.filters.priceRange;
+        state.filters.priceRange.currentMin = min;
+        state.filters.priceRange.currentMax = max;
+        state.filters.priceRange.enabled = false;
+        
+        const minSlider = getElement(`#${CONFIG.ids.priceSlider}_min`);
+        const maxSlider = getElement(`#${CONFIG.ids.priceSlider}_max`);
+        
+        if (minSlider && maxSlider) {
+            minSlider.value = min;
+            maxSlider.value = max;
+            minSlider.dispatchEvent(new Event('input'));
+        }
+    }
+
+    /**
+     * Add discount range slider
+     */
+    function addDiscountRangeFilter() {
+        if (!state.ui.divFilter) return;
+
+        const groupName = 'DiscountRange';
+        
+        try {
+            if (getElement(`#ifc_group_${groupName}`, false)) {
+                // Update existing
+                updateDiscountSlider();
+                return;
+            }
+
+            const filterGroups = getElement(`#${CONFIG.ids.filterContainer} ${CONFIG.selectors.filterGroups}`);
+            if (!filterGroups) return;
+
+            const { min, max } = calculateDiscountRange();
+            state.filters.discountRange = { min, max, currentMin: min, currentMax: max, enabled: false };
+
+            const filterBlock = createFilterBlock(groupName, 'Discount Range', false);
+            const contentContainer = filterBlock.querySelector('.ifc-filter-block-static');
+            
+            if (contentContainer) {
+                const slider = createRangeSlider(
+                    CONFIG.ids.discountSlider,
+                    min,
+                    max,
+                    min,
+                    max,
+                    (minVal, maxVal) => {
+                        state.filters.discountRange.currentMin = minVal;
+                        state.filters.discountRange.currentMax = maxVal;
+                        state.filters.discountRange.enabled = true;
+                        
+                        // Update label
+                        const label = getElement(`#${CONFIG.ids.discountSlider}_label`);
+                        if (label) {
+                            label.textContent = `${formatPercentage(minVal)} - ${formatPercentage(maxVal)}`;
+                        }
+                        
+                        updateScreen();
+                    }
+                );
+                contentContainer.appendChild(slider);
+                
+                // Set initial label
+                const label = slider.querySelector('.ifc-slider-label');
+                if (label) {
+                    label.textContent = `${formatPercentage(min)} - ${formatPercentage(max)}`;
+                }
+            }
+
+            filterGroups.appendChild(filterBlock);
+        } catch (ex) {
+            console.error('Failed to add discount range filter:', ex);
+        }
+    }
+
+    /**
+     * Update discount slider
+     */
+    function updateDiscountSlider() {
+        const { min, max } = calculateDiscountRange();
+        
+        if (state.filters.discountRange.min !== min || state.filters.discountRange.max !== max) {
+            state.filters.discountRange = {
+                ...state.filters.discountRange,
+                min,
+                max,
+                currentMin: Math.max(state.filters.discountRange.currentMin, min),
+                currentMax: Math.min(state.filters.discountRange.currentMax, max)
+            };
+            
+            const minSlider = getElement(`#${CONFIG.ids.discountSlider}_min`);
+            const maxSlider = getElement(`#${CONFIG.ids.discountSlider}_max`);
+            
+            if (minSlider && maxSlider) {
+                minSlider.min = min;
+                minSlider.max = max;
+                maxSlider.min = min;
+                maxSlider.max = max;
+                
+                minSlider.value = state.filters.discountRange.currentMin;
+                maxSlider.value = state.filters.discountRange.currentMax;
+                
+                minSlider.dispatchEvent(new Event('input'));
+            }
+        }
+    }
+
+    /**
+     * Reset discount slider
+     */
+    function resetDiscountSlider() {
+        const { min, max } = state.filters.discountRange;
+        state.filters.discountRange.currentMin = min;
+        state.filters.discountRange.currentMax = max;
+        state.filters.discountRange.enabled = false;
+        
+        const minSlider = getElement(`#${CONFIG.ids.discountSlider}_min`);
+        const maxSlider = getElement(`#${CONFIG.ids.discountSlider}_max`);
+        
+        if (minSlider && maxSlider) {
+            minSlider.value = min;
+            maxSlider.value = max;
+            minSlider.dispatchEvent(new Event('input'));
+        }
+    }
+
+    /**
      * Add all filter controls
      */
-    function addFilterControls() {
+    async function addFilterControls() {
         try {
             addFilterLabel();
             addFilterButton();
             addFilterContainer();
-            addFilterContainerOwned();
-            addFilterContainerPublishers();
+            
+            // Wait for Select2 to be ready
+            await waitForSelect2();
+            
+            // Add all filter groups
+            await addFilterContainerOwned();
+            await addFilterContainerPublishers();
+            addPriceRangeFilter();
+            addDiscountRangeFilter();
         } catch (ex) {
             console.error('Failed to add filter controls:', ex);
         }
@@ -857,17 +1387,6 @@
             if (type === 'svg') {
                 const resourceKey = isExpanded ? 'IMGExpand' : 'IMGCollapse';
                 await updateSVGIcon(target, resourceKey, target);
-            } else {
-                const img = imgContainer.querySelector('img');
-                if (img) {
-                    if (isExpanded) {
-                        img.src = GM_getResourceURL('IMGExpand');
-                        img.alt = img.title = 'Expand';
-                    } else {
-                        img.src = GM_getResourceURL('IMGCollapse');
-                        img.alt = img.title = 'Collapse';
-                    }
-                }
             }
 
             menuButton.setAttribute('aria-expanded', (!isExpanded).toString());
@@ -877,31 +1396,6 @@
         }
     }
 
-    /**
-     * Generic filter toggle handler
-     */
-    function createToggleHandler(filterPath) {
-        return (event) => {
-            try {
-                const keys = filterPath.split('.');
-                let obj = state.filters;
-                
-                for (let i = 0; i < keys.length - 1; i++) {
-                    obj = obj[keys[i]];
-                }
-                
-                obj[keys[keys.length - 1]] = event.target.checked;
-                updateScreen();
-            } catch (ex) {
-                console.error(`Failed to toggle filter ${filterPath}:`, ex);
-            }
-        };
-    }
-
-    const toggleOwned = createToggleHandler('owned.isOwned');
-    const toggleNotOwned = createToggleHandler('owned.notOwned');
-    const toggleUnPurchasable = createToggleHandler('owned.isUnPurchasable');
-
     // ==================== ITEM FILTERING ====================
 
     /**
@@ -909,19 +1403,15 @@
      */
     function injectDiscountBadge(container, discountPercent) {
         try {
-            // Check if badge already exists
             const existingBadge = container.querySelector('.ifc-discount-badge');
             if (existingBadge) {
-                // Update existing badge
                 existingBadge.textContent = `-${discountPercent}%`;
                 return;
             }
 
-            // Find the product details section (where price info is)
             const productDetails = safeQuerySelector(container, CONFIG.selectors.productDetails);
             if (!productDetails) return;
 
-            // Create discount badge
             const badge = document.createElement('span');
             badge.className = 'ifc-discount-badge Price-module__discountTag___OjGFy typography-module__xdsBody2___RNdGY';
             badge.textContent = `-${discountPercent}%`;
@@ -931,10 +1421,8 @@
             badge.style.alignItems = 'center';
             badge.style.justifyContent = 'center';
 
-            // Find the price container and inject badge next to it
             const priceContainer = productDetails.querySelector('div');
             if (priceContainer) {
-                // Insert badge after the price display
                 priceContainer.style.display = 'flex';
                 priceContainer.style.alignItems = 'center';
                 priceContainer.appendChild(badge);
@@ -950,11 +1438,9 @@
     function setContainerData(container, id) {
         setDataAttribute(container, 'ifcId', id);
 
-        // Image
         const img = safeQuerySelector(container, CONFIG.selectors.imageContainer);
         setDataAttribute(container, 'ifcImage', img?.src);
 
-        // Product details
         const link = safeQuerySelector(container, CONFIG.selectors.productLink);
         setDataAttribute(container, 'ifcName', link?.innerText);
         setDataAttribute(container, 'ifcUri', link?.href);
@@ -962,13 +1448,11 @@
         const publisher = safeQuerySelector(container, CONFIG.selectors.productPublisher);
         setDataAttribute(container, 'ifcPublisher', publisher?.innerText);
 
-        // Prices
         const prices = container.querySelectorAll(CONFIG.selectors.productPrices);
         
         const priceBase = prices[0] ? parseFloat(prices[0].innerText.replace(/[^0-9.,-]/g, '').replace(',', '.')) : null;
         const priceDiscount = prices[1] ? parseFloat(prices[1].innerText.replace(/[^0-9.,-]/g, '').replace(',', '.')) : null;
         
-        // Round prices to 2 decimal places
         const priceBaseRounded = priceBase ? Math.round(priceBase * 100) / 100 : null;
         const priceDiscountRounded = priceDiscount ? Math.round(priceDiscount * 100) / 100 : null;
         
@@ -976,19 +1460,16 @@
         setDataAttribute(container, 'ifcPriceDiscount', priceDiscountRounded);
         setDataAttribute(container, 'ifcPrice', priceDiscountRounded ?? priceBaseRounded);
 
-        // Discount calculations
         if (priceDiscountRounded && priceDiscountRounded > 0 && priceBaseRounded) {
             const discountAmount = priceBaseRounded - priceDiscountRounded;
             const discountPercent = (discountAmount / priceBaseRounded) * 100;
             
-            // Round discount amount to 2 decimals, percentage to integer
             const discountAmountRounded = Math.round(discountAmount * 100) / 100;
             const discountPercentRounded = Math.round(discountPercent);
             
             setDataAttribute(container, 'ifcPriceDiscountAmount', discountAmountRounded);
             setDataAttribute(container, 'ifcPriceDiscountPercent', discountPercentRounded);
             
-            // Inject discount badge if it has a value
             if (discountPercentRounded > 0) {
                 injectDiscountBadge(container, discountPercentRounded);
             }
@@ -997,10 +1478,8 @@
             setDataAttribute(container, 'ifcPriceDiscountPercent', 0);
         }
 
-        // Subscription
         setDataAttribute(container, 'ifcSubscription', prices[2]?.innerText);
 
-        // Ownership status
         const button = safeQuerySelector(container, 'button');
         const buttonText = button?.innerText;
         const hasOwnedText = container.innerText.indexOf('Owned') !== -1;
@@ -1014,7 +1493,6 @@
             setDataAttribute(container, 'ifcOwned', false);
         }
 
-        // Purchasability status
         const isUnPurchasable = !isOwned && container.dataset.ifcPrice === 'null';
         
         if (isUnPurchasable) {
@@ -1026,25 +1504,49 @@
     }
 
     /**
-     * Validate if container should be shown based on filters
+     * Validate if container should be shown based on filters (INVERTED LOGIC)
      */
     function shouldShowContainer(container) {
         const isOwned = container.dataset.ifcOwned === 'true';
         const isUnPurchasable = container.dataset.ifcUnpurchasable === 'true';
         const publisher = container.dataset.ifcPublisher;
+        const price = parseFloat(container.dataset.ifcPrice);
+        const discount = parseInt(container.dataset.ifcPriceDiscountPercent);
 
-        // Check owned filters
-        if (!state.filters.owned.isOwned && isOwned) return false;
-        if (!state.filters.owned.notOwned && !isOwned && !isUnPurchasable) return false;
-        if (!state.filters.owned.isUnPurchasable && isUnPurchasable) return false;
-
-        // Check publisher filter (case-sensitive)
-        if (publisher && publisher !== 'null' && publisher.trim() !== '') {
-            const publisherName = publisher.trim();
-            const publisherData = state.filters.publishers.list.get(publisherName);
+        // INVERTED LOGIC: Owned filter (empty = show all, selections = filter TO those)
+        if (state.filters.owned.selected.length > 0) {
+            let matchesOwned = false;
             
-            // If publisher exists in filter list and is disabled, hide item
-            if (publisherData && !publisherData.enabled) {
+            if (state.filters.owned.selected.includes('Owned') && isOwned) matchesOwned = true;
+            if (state.filters.owned.selected.includes('Not Owned') && !isOwned && !isUnPurchasable) matchesOwned = true;
+            if (state.filters.owned.selected.includes('Un-Purchasable') && isUnPurchasable) matchesOwned = true;
+            
+            if (!matchesOwned) return false;
+        }
+
+        // INVERTED LOGIC: Publisher filter (empty = show all, selections = filter TO those)
+        if (state.filters.publishers.selected.length > 0) {
+            if (publisher && publisher !== 'null' && publisher.trim() !== '') {
+                const publisherName = publisher.trim();
+                if (!state.filters.publishers.selected.includes(publisherName)) {
+                    return false;
+                }
+            } else {
+                // No publisher data, hide if filter is active
+                return false;
+            }
+        }
+
+        // Price range filter
+        if (state.filters.priceRange.enabled && !isNaN(price) && price > 0) {
+            if (price < state.filters.priceRange.currentMin || price > state.filters.priceRange.currentMax) {
+                return false;
+            }
+        }
+
+        // Discount range filter
+        if (state.filters.discountRange.enabled && !isNaN(discount) && discount > 0) {
+            if (discount < state.filters.discountRange.currentMin || discount > state.filters.discountRange.currentMax) {
                 return false;
             }
         }
@@ -1058,14 +1560,16 @@
     function toggleContainers() {
         const containers = document.getElementsByClassName(CONFIG.selectors.items);
         
-        // First pass: collect data from all containers
+        // First pass: collect data
         Array.from(containers).forEach((container, index) => {
             setContainerData(container, containers.length - index);
         });
 
-        // Update publisher filter list based on current items
+        // Update dynamic filters
         collectPublishers();
-        updatePublisherCheckboxes();
+        updatePublishersSelect();
+        updatePriceSlider();
+        updateDiscountSlider();
 
         // Second pass: apply filters
         Array.from(containers).forEach((container) => {
@@ -1111,12 +1615,13 @@
     }
 
     /**
-     * Update entire screen (filter + labels + save)
+     * Update entire screen
      */
     function updateScreen() {
         try {
             toggleContainers();
             updateFilterLabels();
+            updateActiveTags();
             saveFilterState();
         } catch (ex) {
             console.error('Failed to update screen:', ex);
@@ -1141,12 +1646,12 @@
     /**
      * Handle DOM changes and initialize UI
      */
-    function onDOMReady() {
+    async function onDOMReady() {
         if (!getElement(`.${CONFIG.selectors.items}`, false)) return;
 
         try {
             floatButtons();
-            addFilterControls();
+            await addFilterControls();
             removeUnwantedControls();
             state.ui.complete = true;
             updateScreen();
@@ -1164,6 +1669,8 @@
         try {
             // Load resources
             await addScript(GM_getResourceURL('JSJQuery'));
+            await addScript(GM_getResourceURL('JSSelect2'));
+            await addStyle(GM_getResourceURL('CSSSelect2'));
             await addStyle(GM_getResourceURL('CSSFilter'));
 
             // Load saved filter state
