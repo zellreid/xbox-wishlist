@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         XBOX Wishlist
 // @namespace    https://github.com/zellreid/xbox-wishlist
-// @version      1.2.25327.1
-// @description  Advanced filtering suite with Select2, tag display, inverted logic, and range sliders
+// @version      1.2.25326.2
+// @description  Advanced filtering suite with Select2, tag display, inverted logic, and range sliders (bug fix: state initialization)
 // @author       ZellReid
 // @homepage     https://github.com/zellreid/xbox-wishlist
 // @supportURL   https://github.com/zellreid/xbox-wishlist/issues
@@ -323,15 +323,54 @@
             if (saved) {
                 const parsed = JSON.parse(saved);
                 if (parsed && typeof parsed === 'object') {
-                    // Restore publishers Map from array
-                    if (parsed.publishers && Array.isArray(parsed.publishers.list)) {
-                        parsed.publishers.list = new Map(parsed.publishers.list);
+                    // Safely merge owned filters
+                    if (parsed.owned) {
+                        state.filters.owned.selected = Array.isArray(parsed.owned.selected) 
+                            ? parsed.owned.selected 
+                            : [];
+                        if (Array.isArray(parsed.owned.options)) {
+                            state.filters.owned.options = parsed.owned.options;
+                        }
                     }
-                    state.filters = { ...state.filters, ...parsed };
+
+                    // Safely merge publishers filters
+                    if (parsed.publishers) {
+                        state.filters.publishers.selected = Array.isArray(parsed.publishers.selected) 
+                            ? parsed.publishers.selected 
+                            : [];
+                        // Restore publishers Map from array
+                        if (Array.isArray(parsed.publishers.list)) {
+                            state.filters.publishers.list = new Map(parsed.publishers.list);
+                        }
+                    }
+
+                    // Safely merge price range
+                    if (parsed.priceRange && typeof parsed.priceRange === 'object') {
+                        state.filters.priceRange = { ...state.filters.priceRange, ...parsed.priceRange };
+                    }
+
+                    // Safely merge discount range
+                    if (parsed.discountRange && typeof parsed.discountRange === 'object') {
+                        state.filters.discountRange = { ...state.filters.discountRange, ...parsed.discountRange };
+                    }
+
+                    // Merge other top-level properties
+                    if (typeof parsed.totalCount === 'number') {
+                        state.filters.totalCount = parsed.totalCount;
+                    }
+                    if (typeof parsed.filteredCount === 'number') {
+                        state.filters.filteredCount = parsed.filteredCount;
+                    }
+                    if (Array.isArray(parsed.activeTags)) {
+                        state.filters.activeTags = parsed.activeTags;
+                    }
                 }
             }
         } catch (ex) {
             console.error('Failed to load filter state:', ex);
+            // Ensure state is valid even if loading fails
+            state.filters.owned.selected = state.filters.owned.selected || [];
+            state.filters.publishers.selected = state.filters.publishers.selected || [];
         }
     }
 
@@ -918,6 +957,14 @@
             const filterGroups = getElement(`#${CONFIG.ids.filterContainer} ${CONFIG.selectors.filterGroups}`);
             if (!filterGroups) return;
 
+            // Ensure state is initialized
+            if (!state.filters.owned.selected) {
+                state.filters.owned.selected = [];
+            }
+            if (!Array.isArray(state.filters.owned.options)) {
+                state.filters.owned.options = ['Owned', 'Not Owned', 'Un-Purchasable'];
+            }
+
             const filterBlock = createFilterBlock(groupName, 'Owned', false);
             const contentContainer = filterBlock.querySelector('.ifc-filter-block-static');
             
@@ -1010,6 +1057,11 @@
      */
     function updatePublishersSelect() {
         if (!state.ui.select2Ready) return;
+
+        // Ensure state is initialized
+        if (!Array.isArray(state.filters.publishers.selected)) {
+            state.filters.publishers.selected = [];
+        }
 
         const publishers = collectPublishers();
         const $select = $(`#${CONFIG.ids.publishersSelect}`);
