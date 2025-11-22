@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         XBOX Wishlist
 // @namespace    https://github.com/zellreid/xbox-wishlist
-// @version      1.2.25326.5
-// @description  Advanced filtering suite with Select2, tag display, inverted logic, and range sliders
+// @version      1.3.25326.1
+// @description  Advanced filtering and sorting suite with multi-level sort (up to 3 criteria)
 // @author       ZellReid
 // @homepage     https://github.com/zellreid/xbox-wishlist
 // @supportURL   https://github.com/zellreid/xbox-wishlist/issues
@@ -44,8 +44,10 @@
         ids: {
             buttonContainer: 'ifc_ButtonContainer',
             filterContainer: 'injectedFilterControls',
+            sortContainer: 'injectedSortControls',
             filterLabel: 'ifc_lbl_Filter',
             filterButton: 'ifc_btn_Filter',
+            sortButton: 'ifc_btn_Sort',
             tagContainer: 'ifc_tag_container',
             ownedSelect: 'ifc_select_owned',
             publishersSelect: 'ifc_select_publishers',
@@ -96,8 +98,11 @@
             floatButtons: false,
             lblFilter: false,
             btnFilter: false,
+            btnSort: false,
             divFilter: false,
+            divSort: false,
             divFilterShow: false,
+            divSortShow: false,
             tagContainer: false,
             select2Ready: false,
             complete: false
@@ -128,6 +133,19 @@
                 currentMax: 100,
                 enabled: false
             }
+        },
+        sort: {
+            criteria: [
+                { field: 'ifcId', order: 'desc', label: 'Default' }
+            ],
+            fields: [
+                { value: 'ifcId', label: 'Default' },
+                { value: 'ifcName', label: 'Name' },
+                { value: 'ifcPublisher', label: 'Publisher' },
+                { value: 'ifcPrice', label: 'Price' },
+                { value: 'ifcPriceDiscountPercent', label: 'Discount %' },
+                { value: 'ifcPriceDiscountAmount', label: 'Discount Amount' }
+            ]
         }
     };
 
@@ -830,6 +848,30 @@
     }
 
     /**
+     * Add sort button
+     */
+    function addSortButton() {
+        if (state.ui.btnSort) return;
+
+        try {
+            const buttonContainer = getElement(`#${CONFIG.ids.buttonContainer}`);
+            if (!buttonContainer) return;
+
+            const button = createImageButton(
+                'Sort',
+                GM_getResourceURL('IMGSort'),
+                'Sort',
+                'svg'
+            );
+            
+            buttonContainer.appendChild(button);
+            state.ui.btnSort = true;
+        } catch (ex) {
+            console.error('Failed to add sort button:', ex);
+        }
+    }
+
+    /**
      * Create main filter container
      */
     function addFilterContainer() {
@@ -1404,7 +1446,9 @@
         try {
             addFilterLabel();
             addFilterButton();
+            addSortButton();
             addFilterContainer();
+            addSortContainer();
             
             // Wait for Select2 to be ready
             await waitForSelect2();
@@ -1433,6 +1477,11 @@
             
             if (!filterContainer || !filterButton) return;
 
+            // Close sort if open
+            if (state.ui.divSortShow) {
+                toggleSortContainer();
+            }
+
             if (state.ui.divFilterShow) {
                 filterContainer.style.display = null;
                 filterButton.setAttribute('aria-pressed', 'true');
@@ -1444,6 +1493,272 @@
             }
         } catch (ex) {
             console.error('Failed to toggle filter container:', ex);
+        }
+    }
+
+    // ==================== SORT CONTAINER ====================
+
+    /**
+     * Create sort container
+     */
+    function addSortContainer() {
+        if (state.ui.divSort) return;
+
+        try {
+            if (getElement(`#${CONFIG.ids.sortContainer}`, false)) return;
+
+            const sortContainer = document.createElement('div');
+            sortContainer.id = CONFIG.ids.sortContainer;
+            sortContainer.classList.add('filter-section', 'SortAndFilters-module__container___yA+Vp');
+            sortContainer.style.display = 'none';
+            sortContainer.style.top = '140px';
+            sortContainer.style.right = '420px'; // Position left of filter panel
+
+            const sortList = document.createElement('div');
+            sortList.classList.add('filter-list', 'SortAndFilters-module__filterList___T81LH');
+
+            const heading = document.createElement('h2');
+            heading.classList.add(
+                'filter-text-heading',
+                'typography-module__spotLightSubtitlePortrait___RB7M0',
+                'SortAndFilters-module__filtersText___8OwXG'
+            );
+            heading.textContent = 'Sort';
+
+            const sortCriteriaContainer = document.createElement('div');
+            sortCriteriaContainer.id = 'ifc_sort_criteria_container';
+            sortCriteriaContainer.className = 'ifc-sort-criteria-container';
+
+            sortList.appendChild(heading);
+            sortList.appendChild(sortCriteriaContainer);
+            sortContainer.appendChild(sortList);
+            document.body.appendChild(sortContainer);
+
+            const sortButton = getElement(`#${CONFIG.ids.sortButton}`);
+            if (sortButton) {
+                sortButton.addEventListener('click', toggleSortContainer);
+            }
+
+            // Initialize with first sort criterion
+            renderSortCriteria();
+
+            state.ui.divSort = true;
+        } catch (ex) {
+            console.error('Failed to add sort container:', ex);
+        }
+    }
+
+    /**
+     * Toggle sort container
+     */
+    function toggleSortContainer() {
+        try {
+            state.ui.divSortShow = !state.ui.divSortShow;
+            
+            const sortContainer = getElement(`#${CONFIG.ids.sortContainer}`);
+            const sortButton = getElement(`#${CONFIG.ids.sortButton}`);
+            
+            if (!sortContainer || !sortButton) return;
+
+            // Close filter if open
+            if (state.ui.divFilterShow) {
+                toggleFilterContainer();
+            }
+
+            if (state.ui.divSortShow) {
+                sortContainer.style.display = null;
+                sortButton.setAttribute('aria-pressed', 'true');
+                sortButton.classList.add(CONFIG.classes.activeButton);
+            } else {
+                sortContainer.style.display = 'none';
+                sortButton.setAttribute('aria-pressed', 'false');
+                sortButton.classList.remove(CONFIG.classes.activeButton);
+            }
+        } catch (ex) {
+            console.error('Failed to toggle sort container:', ex);
+        }
+    }
+
+    /**
+     * Render sort criteria UI
+     */
+    function renderSortCriteria() {
+        const container = getElement('#ifc_sort_criteria_container');
+        if (!container) return;
+
+        container.innerHTML = '';
+
+        state.sort.criteria.forEach((criterion, index) => {
+            const criterionRow = document.createElement('div');
+            criterionRow.className = 'ifc-sort-criterion';
+            criterionRow.style.display = 'flex';
+            criterionRow.style.gap = '8px';
+            criterionRow.style.marginBottom = '10px';
+            criterionRow.style.alignItems = 'center';
+
+            // Dropdown for field selection
+            const select = document.createElement('select');
+            select.className = 'ifc-sort-select';
+            select.style.flex = '1';
+            select.style.padding = '8px';
+            select.style.borderRadius = '4px';
+            select.style.border = '1px solid #757575';
+            select.style.backgroundColor = '#2d2d2d';
+            select.style.color = '#f5f5f5';
+            select.style.fontFamily = "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif";
+            select.style.fontSize = '0.875rem';
+
+            state.sort.fields.forEach(field => {
+                const option = document.createElement('option');
+                option.value = field.value;
+                option.textContent = field.label;
+                option.selected = field.value === criterion.field;
+                select.appendChild(option);
+            });
+
+            select.addEventListener('change', (e) => {
+                state.sort.criteria[index].field = e.target.value;
+                const selectedField = state.sort.fields.find(f => f.value === e.target.value);
+                if (selectedField) {
+                    state.sort.criteria[index].label = selectedField.label;
+                }
+                applySorting();
+            });
+
+            // Toggle button for ASC/DESC
+            const toggleBtn = document.createElement('button');
+            toggleBtn.className = 'ifc-sort-toggle';
+            toggleBtn.textContent = criterion.order === 'asc' ? '↑' : '↓';
+            toggleBtn.title = criterion.order === 'asc' ? 'Ascending' : 'Descending';
+            toggleBtn.style.width = '36px';
+            toggleBtn.style.height = '36px';
+            toggleBtn.style.padding = '0';
+            toggleBtn.style.borderRadius = '4px';
+            toggleBtn.style.border = '1px solid #757575';
+            toggleBtn.style.backgroundColor = '#107c10';
+            toggleBtn.style.color = '#ffffff';
+            toggleBtn.style.cursor = 'pointer';
+            toggleBtn.style.fontSize = '1.2rem';
+            toggleBtn.style.fontWeight = 'bold';
+
+            toggleBtn.addEventListener('click', () => {
+                state.sort.criteria[index].order = criterion.order === 'asc' ? 'desc' : 'asc';
+                toggleBtn.textContent = state.sort.criteria[index].order === 'asc' ? '↑' : '↓';
+                toggleBtn.title = state.sort.criteria[index].order === 'asc' ? 'Ascending' : 'Descending';
+                applySorting();
+            });
+
+            // Remove button (not shown for first criterion)
+            if (index > 0) {
+                const removeBtn = document.createElement('button');
+                removeBtn.className = 'ifc-sort-remove';
+                removeBtn.textContent = '×';
+                removeBtn.title = 'Remove sort criterion';
+                removeBtn.style.width = '36px';
+                removeBtn.style.height = '36px';
+                removeBtn.style.padding = '0';
+                removeBtn.style.borderRadius = '4px';
+                removeBtn.style.border = '1px solid #757575';
+                removeBtn.style.backgroundColor = '#dc3545';
+                removeBtn.style.color = '#ffffff';
+                removeBtn.style.cursor = 'pointer';
+                removeBtn.style.fontSize = '1.5rem';
+                removeBtn.style.fontWeight = 'bold';
+
+                removeBtn.addEventListener('click', () => {
+                    state.sort.criteria.splice(index, 1);
+                    renderSortCriteria();
+                    applySorting();
+                });
+
+                criterionRow.appendChild(select);
+                criterionRow.appendChild(toggleBtn);
+                criterionRow.appendChild(removeBtn);
+            } else {
+                criterionRow.appendChild(select);
+                criterionRow.appendChild(toggleBtn);
+            }
+
+            container.appendChild(criterionRow);
+        });
+
+        // Add button (shown when less than 3 criteria)
+        if (state.sort.criteria.length < 3) {
+            const addBtn = document.createElement('button');
+            addBtn.className = 'ifc-sort-add';
+            addBtn.textContent = '+ Add Sort Level';
+            addBtn.style.width = '100%';
+            addBtn.style.padding = '8px';
+            addBtn.style.borderRadius = '4px';
+            addBtn.style.border = '1px solid #757575';
+            addBtn.style.backgroundColor = '#107c10';
+            addBtn.style.color = '#ffffff';
+            addBtn.style.cursor = 'pointer';
+            addBtn.style.fontFamily = "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif";
+            addBtn.style.fontSize = '0.875rem';
+            addBtn.style.fontWeight = '600';
+            addBtn.style.marginTop = '10px';
+
+            addBtn.addEventListener('click', () => {
+                if (state.sort.criteria.length < 3) {
+                    state.sort.criteria.push({
+                        field: 'ifcName',
+                        order: 'asc',
+                        label: 'Name'
+                    });
+                    renderSortCriteria();
+                    applySorting();
+                }
+            });
+
+            container.appendChild(addBtn);
+        }
+    }
+
+    /**
+     * Apply sorting to wishlist items
+     */
+    function applySorting() {
+        try {
+            const containers = Array.from(document.getElementsByClassName(CONFIG.selectors.items));
+            const parent = containers[0]?.parentElement;
+            if (!parent) return;
+
+            // Sort containers based on criteria
+            containers.sort((a, b) => {
+                for (const criterion of state.sort.criteria) {
+                    const aVal = a.dataset[criterion.field];
+                    const bVal = b.dataset[criterion.field];
+
+                    let comparison = 0;
+
+                    // Handle numeric fields
+                    if (criterion.field === 'ifcId' || 
+                        criterion.field === 'ifcPrice' || 
+                        criterion.field === 'ifcPriceDiscountPercent' || 
+                        criterion.field === 'ifcPriceDiscountAmount') {
+                        const aNum = parseFloat(aVal) || 0;
+                        const bNum = parseFloat(bVal) || 0;
+                        comparison = aNum - bNum;
+                    } else {
+                        // Handle string fields
+                        const aStr = (aVal || '').toString().toLowerCase();
+                        const bStr = (bVal || '').toString().toLowerCase();
+                        comparison = aStr.localeCompare(bStr);
+                    }
+
+                    if (comparison !== 0) {
+                        return criterion.order === 'asc' ? comparison : -comparison;
+                    }
+                }
+                return 0;
+            });
+
+            // Re-append in sorted order
+            containers.forEach(container => parent.appendChild(container));
+
+        } catch (ex) {
+            console.error('Failed to apply sorting:', ex);
         }
     }
 
@@ -1705,6 +2020,7 @@
             toggleContainers();
             updateFilterLabels();
             updateActiveTags();
+            applySorting();
             saveFilterState();
         } catch (ex) {
             console.error('Failed to update screen:', ex);
