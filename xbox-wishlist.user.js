@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         XBOX Wishlist
 // @namespace    https://github.com/zellreid/xbox-wishlist
-// @version      1.3.25326.1
+// @version      1.3.25326.2
 // @description  Advanced filtering and sorting suite with multi-level sort (up to 3 criteria)
 // @author       ZellReid
 // @homepage     https://github.com/zellreid/xbox-wishlist
@@ -1511,8 +1511,6 @@
             sortContainer.id = CONFIG.ids.sortContainer;
             sortContainer.classList.add('filter-section', 'SortAndFilters-module__container___yA+Vp');
             sortContainer.style.display = 'none';
-            sortContainer.style.top = '140px';
-            sortContainer.style.right = '420px'; // Position left of filter panel
 
             const sortList = document.createElement('div');
             sortList.classList.add('filter-list', 'SortAndFilters-module__filterList___T81LH');
