@@ -6,12 +6,14 @@
     position: fixed;
     top: 140px;
     right: 120px;
-    width: 140px;
+    width: 280px;
     border-radius: 10px;
-    padding: 5px;
+    padding: 15px;
     z-index: 998;
     --color: #f5f5f5;
     --background-color: #262626;
+    max-height: calc(100vh - 160px);
+    overflow-y: auto;
 }
 
 .filter-dropdown {
@@ -28,6 +30,263 @@
     padding: 5px;
 }
 
+/* ==================== TAG CONTAINER ==================== */
+.ifc-tag-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 10px 0;
+    margin-bottom: 10px;
+    border-bottom: 1px solid rgba(117, 117, 117, 0.3);
+}
+
+.ifc-filter-tag {
+    display: inline-flex;
+    align-items: center;
+    background-color: #107c10;
+    color: #ffffff;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    gap: 6px;
+}
+
+.theme-dark .ifc-filter-tag {
+    background-color: #0e7a0e;
+}
+
+.ifc-tag-remove {
+    background: transparent;
+    border: none;
+    color: #ffffff;
+    font-size: 1.2rem;
+    line-height: 1;
+    padding: 0;
+    margin: 0;
+    cursor: pointer;
+    width: 16px;
+    height: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.ifc-tag-remove:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+    border-radius: 2px;
+}
+
+/* ==================== SELECT2 XBOX THEME ==================== */
+.select2-container--xbox .select2-selection--multiple {
+    background-color: #2d2d2d !important;
+    border: 1px solid #757575 !important;
+    border-radius: 6px;
+    min-height: 38px;
+    padding: 4px;
+}
+
+.theme-dark .select2-container--xbox .select2-selection--multiple {
+    background-color: #1a1a1a !important;
+}
+
+.select2-container--xbox .select2-selection--multiple .select2-selection__choice {
+    background-color: #107c10 !important;
+    border: none !important;
+    color: #ffffff !important;
+    border-radius: 4px;
+    padding: 4px 8px;
+    margin: 2px;
+    font-size: 0.75rem;
+}
+
+.select2-container--xbox .select2-selection--multiple .select2-selection__choice__remove {
+    color: #ffffff !important;
+    margin-right: 6px;
+    font-weight: bold;
+}
+
+.select2-container--xbox .select2-selection--multiple .select2-selection__choice__remove:hover {
+    color: #ffdddd !important;
+}
+
+.select2-container--xbox .select2-search__field {
+    color: #f5f5f5 !important;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.select2-container--xbox .select2-search__field::placeholder {
+    color: #999999 !important;
+}
+
+.select2-container--xbox.select2-container--focus .select2-selection--multiple {
+    border-color: #107c10 !important;
+    box-shadow: 0 0 0 2px rgba(16, 124, 16, 0.2);
+}
+
+/* Select2 Dropdown */
+.select2-container--xbox .select2-dropdown {
+    background-color: #2d2d2d;
+    border: 1px solid #757575;
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.theme-dark .select2-container--xbox .select2-dropdown {
+    background-color: #1a1a1a;
+}
+
+.select2-container--xbox .select2-results__option {
+    color: #f5f5f5;
+    padding: 8px 12px;
+    font-size: 0.875rem;
+}
+
+.select2-container--xbox .select2-results__option--highlighted {
+    background-color: #107c10 !important;
+    color: #ffffff !important;
+}
+
+.select2-container--xbox .select2-results__option--selected {
+    background-color: rgba(16, 124, 16, 0.3);
+}
+
+.select2-container--xbox .select2-search--dropdown .select2-search__field {
+    background-color: #3d3d3d;
+    border: 1px solid #757575;
+    border-radius: 4px;
+    color: #f5f5f5;
+    padding: 8px;
+}
+
+/* ==================== STATIC FILTER BLOCKS ==================== */
+.ifc-filter-block-static {
+    padding: 10px;
+}
+
+.ifc-filter-static-heading {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #f5f5f5;
+    margin: 0 0 10px 0;
+    padding: 0;
+}
+
+.theme-dark .ifc-filter-static-heading {
+    color: #ffffff;
+}
+
+.ifc-select2-multi {
+    width: 100%;
+}
+
+/* ==================== RANGE SLIDERS ==================== */
+.ifc-slider-container {
+    padding: 10px;
+    margin: 5px 0;
+}
+
+.ifc-slider-label {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-size: 0.75rem;
+    color: #f5f5f5;
+    margin-bottom: 15px;
+    text-align: center;
+    font-weight: 500;
+}
+
+.theme-dark .ifc-slider-label {
+    color: #ffffff;
+}
+
+.ifc-slider-track {
+    position: relative;
+    height: 6px;
+    background-color: #3d3d3d;
+    border-radius: 3px;
+    margin: 20px 0;
+}
+
+.theme-dark .ifc-slider-track {
+    background-color: #2a2a2a;
+}
+
+.ifc-slider-range {
+    position: absolute;
+    height: 100%;
+    background-color: #107c10;
+    border-radius: 3px;
+    pointer-events: none;
+}
+
+.theme-dark .ifc-slider-range {
+    background-color: #0e7a0e;
+}
+
+.ifc-slider {
+    position: absolute;
+    width: 100%;
+    height: 6px;
+    top: 0;
+    left: 0;
+    margin: 0;
+    padding: 0;
+    pointer-events: none;
+    -webkit-appearance: none;
+    appearance: none;
+    background: transparent;
+}
+
+.ifc-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    background-color: #107c10;
+    border: 2px solid #ffffff;
+    border-radius: 50%;
+    cursor: pointer;
+    pointer-events: all;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    transition: transform 0.15s ease;
+}
+
+.ifc-slider::-webkit-slider-thumb:hover {
+    transform: scale(1.15);
+    background-color: #0e7a0e;
+}
+
+.ifc-slider::-webkit-slider-thumb:active {
+    transform: scale(1.25);
+}
+
+.ifc-slider::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    background-color: #107c10;
+    border: 2px solid #ffffff;
+    border-radius: 50%;
+    cursor: pointer;
+    pointer-events: all;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    transition: transform 0.15s ease;
+}
+
+.ifc-slider::-moz-range-thumb:hover {
+    transform: scale(1.15);
+    background-color: #0e7a0e;
+}
+
+.ifc-slider::-moz-range-thumb:active {
+    transform: scale(1.25);
+}
+
+.ifc-slider-max {
+    z-index: 2;
+}
+
+/* ==================== ITEM STATES ==================== */
 .ifc-Owned {
     background-color: #10e11059;
 }
@@ -81,11 +340,11 @@
     border-color: #757575ff;
 }
 
-/* Discount Badge Styling - Using Xbox's original yellow style */
+/* ==================== DISCOUNT BADGE ==================== */
 .ifc-discount-badge {
-    background-color: #ffd800 !important;  /* Xbox's original yellow */
+    background-color: #ffd800 !important;
     border-radius: .25rem;
-    color: #000 !important;  /* Black text for contrast on yellow */
+    color: #000 !important;
     flex-shrink: 0;
     font-size: .75rem;
     font-weight: 600;
@@ -100,8 +359,8 @@
 }
 
 .theme-dark .ifc-discount-badge {
-    background-color: #ffd800 !important;  /* Same yellow in dark mode */
-    color: #000 !important;  /* Black text maintains contrast */
+    background-color: #ffd800 !important;
+    color: #000 !important;
 }
 
 /* Xbox's original discount tag styling (keeping for reference) */
@@ -120,4 +379,32 @@
     font-family: Segoe UI;
     font-size: .875rem;
     line-height: 1.25rem;
+}
+
+/* ==================== SCROLLBAR STYLING ==================== */
+.filter-section::-webkit-scrollbar {
+    width: 8px;
+}
+
+.filter-section::-webkit-scrollbar-track {
+    background: rgba(117, 117, 117, 0.2);
+    border-radius: 4px;
+}
+
+.filter-section::-webkit-scrollbar-thumb {
+    background: #107c10;
+    border-radius: 4px;
+}
+
+.filter-section::-webkit-scrollbar-thumb:hover {
+    background: #0e7a0e;
+}
+
+/* ==================== RESPONSIVE ADJUSTMENTS ==================== */
+@media (max-width: 768px) {
+    .filter-section {
+        width: calc(100vw - 40px);
+        right: 20px;
+        max-height: calc(100vh - 120px);
+    }
 }
