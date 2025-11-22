@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         XBOX Wishlist
 // @namespace    https://github.com/zellreid/xbox-wishlist
-// @version      1.2.25327.2
-// @description  Advanced filtering suite with Select2, tag display, inverted logic, and range sliders (bug fix: state initialization)
+// @version      1.2.25326.3
+// @description  Advanced filtering suite with Select2, tag display, inverted logic, and range sliders (bug fix: slider initialization)
 // @author       ZellReid
 // @homepage     https://github.com/zellreid/xbox-wishlist
 // @supportURL   https://github.com/zellreid/xbox-wishlist/issues
@@ -344,14 +344,16 @@
                         }
                     }
 
-                    // Safely merge price range
+                    // Safely merge price range (but never restore enabled flag)
                     if (parsed.priceRange && typeof parsed.priceRange === 'object') {
-                        state.filters.priceRange = { ...state.filters.priceRange, ...parsed.priceRange };
+                        const { enabled, ...priceRangeWithoutEnabled } = parsed.priceRange;
+                        state.filters.priceRange = { ...state.filters.priceRange, ...priceRangeWithoutEnabled, enabled: false };
                     }
 
-                    // Safely merge discount range
+                    // Safely merge discount range (but never restore enabled flag)
                     if (parsed.discountRange && typeof parsed.discountRange === 'object') {
-                        state.filters.discountRange = { ...state.filters.discountRange, ...parsed.discountRange };
+                        const { enabled, ...discountRangeWithoutEnabled } = parsed.discountRange;
+                        state.filters.discountRange = { ...state.filters.discountRange, ...discountRangeWithoutEnabled, enabled: false };
                     }
 
                     // Merge other top-level properties
@@ -627,6 +629,9 @@
         track.appendChild(maxSlider);
         container.appendChild(track);
 
+        // Track if this is user interaction
+        let isUserInteraction = false;
+
         // Update function
         const updateSlider = () => {
             let minVal = parseFloat(minSlider.value);
@@ -644,16 +649,26 @@
             range.style.left = `${minPercent}%`;
             range.style.width = `${maxPercent - minPercent}%`;
 
-            // Call change handler
-            if (onChange) {
+            // Call change handler only for user interactions
+            if (onChange && isUserInteraction) {
                 onChange(minVal, maxVal);
             }
         };
 
+        // Enable user interaction tracking before adding listeners
+        const enableUserTracking = () => {
+            isUserInteraction = true;
+        };
+
+        minSlider.addEventListener('mousedown', enableUserTracking);
+        minSlider.addEventListener('touchstart', enableUserTracking);
+        maxSlider.addEventListener('mousedown', enableUserTracking);
+        maxSlider.addEventListener('touchstart', enableUserTracking);
+
         minSlider.addEventListener('input', updateSlider);
         maxSlider.addEventListener('input', updateSlider);
 
-        // Initial update
+        // Initial update (without triggering onChange)
         updateSlider();
 
         return container;
@@ -1109,6 +1124,14 @@
 
         if (min === Infinity) min = 0;
         
+        // Ensure max is at least as large as min
+        if (max < min) max = min;
+        
+        // If both are 0, set a reasonable default
+        if (min === 0 && max === 0) {
+            max = 1000;
+        }
+        
         // Round to nice numbers
         min = Math.floor(min / 10) * 10;
         max = Math.ceil(max / 10) * 10;
@@ -1133,6 +1156,14 @@
         });
 
         if (min === 100) min = 0;
+        
+        // Ensure max is at least as large as min
+        if (max < min) max = min;
+        
+        // If both are 0, set a reasonable default
+        if (min === 0 && max === 0) {
+            max = 100;
+        }
         
         // Round to nice numbers
         min = Math.floor(min / 5) * 5;
