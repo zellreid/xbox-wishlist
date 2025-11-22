@@ -78,12 +78,19 @@
 }
 
 /* ==================== SELECT2 XBOX THEME ==================== */
+.select2-container--xbox {
+    width: 100% !important;
+}
+
 .select2-container--xbox .select2-selection--multiple {
     background-color: #2d2d2d !important;
     border: 1px solid #757575 !important;
     border-radius: 6px;
     min-height: 38px;
+    max-height: 120px;
+    overflow-y: auto;
     padding: 4px;
+    width: 100%;
 }
 
 .theme-dark .select2-container--xbox .select2-selection--multiple {
@@ -130,10 +137,21 @@
     border: 1px solid #757575;
     border-radius: 6px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    max-height: 300px;
 }
 
 .theme-dark .select2-container--xbox .select2-dropdown {
     background-color: #1a1a1a;
+}
+
+.select2-container--xbox .select2-results {
+    max-height: 250px;
+    overflow-y: auto;
+}
+
+.select2-container--xbox .select2-results__options {
+    max-height: 250px;
+    overflow-y: auto;
 }
 
 .select2-container--xbox .select2-results__option {
@@ -159,9 +177,34 @@
     padding: 8px;
 }
 
+/* ==================== SELECT2 SCROLLBARS ==================== */
+.select2-container--xbox .select2-selection--multiple::-webkit-scrollbar,
+.select2-container--xbox .select2-results__options::-webkit-scrollbar {
+    width: 8px;
+}
+
+.select2-container--xbox .select2-selection--multiple::-webkit-scrollbar-track,
+.select2-container--xbox .select2-results__options::-webkit-scrollbar-track {
+    background: rgba(117, 117, 117, 0.2);
+    border-radius: 4px;
+}
+
+.select2-container--xbox .select2-selection--multiple::-webkit-scrollbar-thumb,
+.select2-container--xbox .select2-results__options::-webkit-scrollbar-thumb {
+    background: #107c10;
+    border-radius: 4px;
+}
+
+.select2-container--xbox .select2-selection--multiple::-webkit-scrollbar-thumb:hover,
+.select2-container--xbox .select2-results__options::-webkit-scrollbar-thumb:hover {
+    background: #0e7a0e;
+}
+
 /* ==================== STATIC FILTER BLOCKS ==================== */
 .ifc-filter-block-static {
     padding: 10px;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .ifc-filter-static-heading {
@@ -179,12 +222,16 @@
 
 .ifc-select2-multi {
     width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
 }
 
 /* ==================== RANGE SLIDERS ==================== */
 .ifc-slider-container {
     padding: 10px;
     margin: 5px 0;
+    max-width: 100%;
+    box-sizing: border-box;
 }
 
 .ifc-slider-label {
@@ -194,6 +241,7 @@
     margin-bottom: 15px;
     text-align: center;
     font-weight: 500;
+    word-wrap: break-word;
 }
 
 .theme-dark .ifc-slider-label {
@@ -206,6 +254,8 @@
     background-color: #3d3d3d;
     border-radius: 3px;
     margin: 20px 0;
+    width: 100%;
+    max-width: 100%;
 }
 
 .theme-dark .ifc-slider-track {
