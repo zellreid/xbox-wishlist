@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         XBOX Wishlist
 // @namespace    https://github.com/zellreid/xbox-wishlist
-// @version      1.4.26056.3
+// @version      1.4.26056.4
 // @description  Advanced filtering and sorting suite with multi-level sort (up to 3 criteria) - Resilient selectors
 // @author       ZellReid
 // @homepage     https://github.com/zellreid/xbox-wishlist
@@ -632,7 +632,7 @@
         minSlider.min = min;
         minSlider.max = max;
         minSlider.value = currentMin;
-        minSlider.step = (max - min) / 100;
+        minSlider.step = Math.max(1, Math.round((max - min) / 100));
 
         const maxSlider = document.createElement('input');
         maxSlider.type = 'range';
@@ -641,7 +641,7 @@
         maxSlider.min = min;
         maxSlider.max = max;
         maxSlider.value = currentMax;
-        maxSlider.step = (max - min) / 100;
+        maxSlider.step = Math.max(1, Math.round((max - min) / 100));
 
         track.appendChild(minSlider);
         track.appendChild(maxSlider);
@@ -866,7 +866,7 @@
             return groupContainer;
         }
 
-        // Xbox-style accordion header (matches xbox.com/games/browse Genre/Subscriptions style)
+        // Xbox-style accordion header with SVG expand/collapse icons
         const headerButton = document.createElement('button');
         headerButton.className = 'ifc-accordion-header';
         headerButton.setAttribute('aria-expanded', 'false');
@@ -875,11 +875,13 @@
         headerText.className = 'ifc-accordion-title';
         headerText.textContent = text;
 
-        const chevron = document.createElement('span');
-        chevron.className = 'ifc-accordion-chevron';
+        const chevronContainer = document.createElement('div');
+        chevronContainer.className = 'ifc-accordion-chevron';
+        chevronContainer.id = `ifc_accordion_icon_${id}`;
+        loadSVGIntoContainer(chevronContainer, GM_getResourceURL('IMGExpand'), `accordion_${id}`);
 
         headerButton.appendChild(headerText);
-        headerButton.appendChild(chevron);
+        headerButton.appendChild(chevronContainer);
 
         // Collapsible content panel
         const contentPanel = document.createElement('div');
@@ -887,10 +889,13 @@
         if (id) contentPanel.id = `ifc_group_content_${id}`;
         contentPanel.style.display = 'none';
 
-        headerButton.addEventListener('click', () => {
+        headerButton.addEventListener('click', async () => {
             const isExpanded = headerButton.getAttribute('aria-expanded') === 'true';
             headerButton.setAttribute('aria-expanded', (!isExpanded).toString());
             contentPanel.style.display = isExpanded ? 'none' : 'block';
+            // Swap SVG icon
+            const resourceKey = isExpanded ? 'IMGExpand' : 'IMGCollapse';
+            await updateSVGIcon(`accordion_icon_${id}`, resourceKey, `accordion_${id}`);
         });
 
         groupContainer.appendChild(headerButton);
@@ -1727,202 +1732,9 @@
     /**
      * Inject inline CSS for checkbox styles and container backgrounds
      */
-    function injectInlineCSS() {
-        const css = document.createElement('style');
-        css.textContent = `
-            /* Semi-transparent background for filter/sort containers */
-            .filter-section {
-                background-color: rgba(30, 30, 30, 0.92) !important;
-                backdrop-filter: blur(10px);
-                -webkit-backdrop-filter: blur(10px);
-            }
-
-            /* Active button styling */
-            .ifc-active-button {
-                background-color: #107c10 !important;
-                border-color: #107c10 !important;
-            }
-
-            /* ==================== XBOX-STYLE ACCORDION ==================== */
-            /* Matches xbox.com/games/browse filter sections (Genre, Subscriptions, etc.) */
-
-            .ifc-accordion-group {
-                list-style: none;
-                border-bottom: 1px solid rgba(117, 117, 117, 0.3);
-            }
-
-            .ifc-accordion-group:first-child {
-                border-top: 1px solid rgba(117, 117, 117, 0.3);
-            }
-
-            .ifc-accordion-header {
-                display: flex;
-                align-items: center;
-                justify-content: space-between;
-                width: 100%;
-                padding: 14px 4px;
-                background: transparent;
-                border: none;
-                cursor: pointer;
-                color: inherit;
-                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-                font-size: 0.9375rem;
-                font-weight: 600;
-                line-height: 1.25rem;
-                text-align: left;
-                transition: opacity 0.15s ease;
-            }
-
-            .ifc-accordion-header:hover {
-                opacity: 0.8;
-            }
-
-            .ifc-accordion-header:focus-visible {
-                outline: 2px solid currentColor;
-                outline-offset: -2px;
-                border-radius: 2px;
-            }
-
-            .ifc-accordion-title {
-                flex: 1;
-                pointer-events: none;
-            }
-
-            /* Chevron: down arrow when collapsed, up arrow when expanded */
-            .ifc-accordion-chevron {
-                display: inline-flex;
-                align-items: center;
-                justify-content: center;
-                width: 20px;
-                height: 20px;
-                pointer-events: none;
-                transition: transform 0.2s ease;
-            }
-
-            .ifc-accordion-chevron::after {
-                content: '';
-                display: block;
-                width: 8px;
-                height: 8px;
-                border-right: 2px solid currentColor;
-                border-bottom: 2px solid currentColor;
-                transform: rotate(45deg);
-                margin-top: -3px;
-            }
-
-            .ifc-accordion-header[aria-expanded="true"] .ifc-accordion-chevron::after {
-                transform: rotate(-135deg);
-                margin-top: 3px;
-            }
-
-            .ifc-accordion-content {
-                padding: 0 4px 12px 4px;
-            }
-
-            /* ==================== XBOX-STYLE CHECKBOXES ==================== */
-            /* Matches xbox.com/games/browse checkbox styling */
-
-            .ifc-checkbox-list {
-                display: flex;
-                flex-direction: column;
-                gap: 0;
-                padding: 0;
-            }
-
-            .ifc-checkbox-list-scrollable {
-                max-height: 220px;
-                overflow-y: auto;
-                scrollbar-width: thin;
-                scrollbar-color: rgba(117, 117, 117, 0.5) transparent;
-            }
-
-            .ifc-checkbox-list-scrollable::-webkit-scrollbar {
-                width: 6px;
-            }
-
-            .ifc-checkbox-list-scrollable::-webkit-scrollbar-track {
-                background: transparent;
-            }
-
-            .ifc-checkbox-list-scrollable::-webkit-scrollbar-thumb {
-                background: rgba(117, 117, 117, 0.5);
-                border-radius: 3px;
-            }
-
-            .ifc-checkbox-item {
-                display: flex;
-                align-items: center;
-                gap: 10px;
-                padding: 7px 4px;
-                cursor: pointer;
-                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-                font-size: 0.875rem;
-                line-height: 1.25rem;
-                color: inherit;
-                user-select: none;
-                transition: opacity 0.1s ease;
-            }
-
-            .ifc-checkbox-item:hover {
-                opacity: 0.8;
-            }
-
-            /* Native-looking checkbox matching Xbox browse page */
-            .ifc-checkbox {
-                appearance: none;
-                -webkit-appearance: none;
-                -moz-appearance: none;
-                width: 16px;
-                height: 16px;
-                min-width: 16px;
-                min-height: 16px;
-                border: 1.5px solid currentColor;
-                border-radius: 2px;
-                background-color: transparent;
-                cursor: pointer;
-                position: relative;
-                margin: 0;
-                flex-shrink: 0;
-            }
-
-            .ifc-checkbox:checked {
-                background-color: currentColor;
-            }
-
-            .ifc-checkbox:checked::after {
-                content: '';
-                position: absolute;
-                top: 1px;
-                left: 4.5px;
-                width: 4px;
-                height: 8px;
-                border: solid;
-                border-width: 0 2px 2px 0;
-                border-color: var(--background-color, #262626);
-                transform: rotate(45deg);
-            }
-
-            .ifc-checkbox:focus-visible {
-                outline: 2px solid currentColor;
-                outline-offset: 2px;
-                border-radius: 2px;
-            }
-
-            .ifc-checkbox-label {
-                flex: 1;
-                line-height: 1.25rem;
-                pointer-events: none;
-            }
-        `;
-        document.head.appendChild(css);
-    }
-
     async function initialize() {
         try {
-            // Inject inline CSS for checkboxes and container backgrounds
-            injectInlineCSS();
-
-            // Load resources (jQuery/Select2 removed in v1.4.25226.2)
+            // Load external CSS stylesheet
             await addStyle(GM_getResourceURL('CSSFilter'));
 
             loadFilterState();
