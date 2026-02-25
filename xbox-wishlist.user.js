@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         XBOX Wishlist
 // @namespace    https://github.com/zellreid/xbox-wishlist
-// @version      1.4.26056.1
+// @version      1.4.26056.2
 // @description  Advanced filtering and sorting suite with multi-level sort (up to 3 criteria) - Resilient selectors
 // @author       ZellReid
 // @homepage     https://github.com/zellreid/xbox-wishlist
@@ -10,9 +10,6 @@
 // @match        https://www.xbox.com/*/wishlist*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=xbox.com
 // @run-at       document-body
-// @resource     JSJQuery https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js
-// @resource     JSSelect2 https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js
-// @resource     CSSSelect2 https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css
 // @resource     CSSFilter https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/xbox-wishlist.user.css
 // @resource     IMGFilter https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/filter.svg
 // @resource     IMGSort https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/sort.svg
@@ -229,7 +226,7 @@
             divFilterShow: false,
             divSortShow: false,
             tagContainer: false,
-            select2Ready: false,
+            // select2 removed in v1.4.25226.2
             complete: false
         },
         filters: {
@@ -523,11 +520,11 @@
         switch (tag.type) {
             case 'owned':
                 state.filters.owned.selected = state.filters.owned.selected.filter(v => v !== tag.value);
-                updateSelect2(CONFIG.ids.ownedSelect, state.filters.owned.selected);
+                updateCheckboxes(CONFIG.ids.ownedSelect, state.filters.owned.selected);
                 break;
             case 'publisher':
                 state.filters.publishers.selected = state.filters.publishers.selected.filter(v => v !== tag.value);
-                updateSelect2(CONFIG.ids.publishersSelect, state.filters.publishers.selected);
+                updateCheckboxes(CONFIG.ids.publishersSelect, state.filters.publishers.selected);
                 break;
             case 'price':
                 state.filters.priceRange.enabled = false;
@@ -541,49 +538,61 @@
         updateScreen();
     }
 
-    function updateSelect2(elementId, values) {
-        if (typeof jQuery === 'undefined' || typeof jQuery.fn.select2 === 'undefined') return;
-        const element = $(`#${elementId}`);
-        if (element.length) {
-            element.val(values).trigger('change.select2');
-        }
-    }
-
-    // ==================== SELECT2 INITIALIZATION ====================
-
-    function initSelect2(elementId, options = {}) {
-        if (typeof jQuery === 'undefined' || typeof jQuery.fn.select2 === 'undefined') {
-            console.error('Select2 not available');
-            return;
-        }
-        const $element = $(`#${elementId}`);
-        if (!$element.length) return;
-
-        const defaultOptions = {
-            theme: 'xbox',
-            width: '100%',
-            placeholder: 'Select filters...',
-            allowClear: false,
-            closeOnSelect: false,
-            ...options
-        };
-        $element.select2(defaultOptions);
-    }
-
-    async function waitForSelect2() {
-        return new Promise((resolve) => {
-            const checkInterval = setInterval(() => {
-                if (typeof jQuery !== 'undefined' && typeof jQuery.fn.select2 !== 'undefined') {
-                    clearInterval(checkInterval);
-                    state.ui.select2Ready = true;
-                    resolve();
-                }
-            }, 100);
-            setTimeout(() => {
-                clearInterval(checkInterval);
-                resolve();
-            }, 5000);
+    /**
+     * Update checkboxes to match state
+     */
+    function updateCheckboxes(containerId, selectedValues) {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+        container.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+            cb.checked = selectedValues.includes(cb.value);
         });
+    }
+
+    // ==================== CHECKBOX LIST CREATION ====================
+
+    /**
+     * Create a checkbox list container
+     */
+    function createCheckboxList(id, options, selected = [], onChange) {
+        const container = document.createElement('div');
+        container.id = id;
+        container.className = 'ifc-checkbox-list';
+
+        options.forEach(option => {
+            const label = document.createElement('label');
+            label.className = 'ifc-checkbox-item';
+
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.value = option.value;
+            checkbox.checked = selected.includes(option.value);
+            checkbox.className = 'ifc-checkbox';
+
+            checkbox.addEventListener('change', () => {
+                if (onChange) onChange();
+            });
+
+            const span = document.createElement('span');
+            span.className = 'ifc-checkbox-label';
+            span.textContent = option.label;
+
+            label.appendChild(checkbox);
+            label.appendChild(span);
+            container.appendChild(label);
+        });
+
+        return container;
+    }
+
+    /**
+     * Get selected values from a checkbox list
+     */
+    function getCheckboxValues(containerId) {
+        const container = document.getElementById(containerId);
+        if (!container) return [];
+        return Array.from(container.querySelectorAll('input[type="checkbox"]:checked'))
+            .map(cb => cb.value);
     }
 
     // ==================== UI CREATION HELPERS ====================
@@ -596,21 +605,7 @@
         return label;
     }
 
-    function createSelect2Multi(id, options, selected = []) {
-        const select = document.createElement('select');
-        select.id = id;
-        select.multiple = true;
-        select.className = 'ifc-select2-multi';
-
-        options.forEach(option => {
-            const opt = document.createElement('option');
-            opt.value = option.value;
-            opt.textContent = option.label;
-            if (selected.includes(option.value)) opt.selected = true;
-            select.appendChild(opt);
-        });
-        return select;
-    }
+    // createSelect2Multi removed in v1.4.25226.2 - replaced by createCheckboxList
 
     function createRangeSlider(id, min, max, currentMin, currentMax, onChange) {
         const container = document.createElement('div');
@@ -936,19 +931,19 @@
 
             if (contentContainer) {
                 const options = state.filters.owned.options.map(opt => ({ value: opt, label: opt }));
-                const select = createSelect2Multi(CONFIG.ids.ownedSelect, options, state.filters.owned.selected);
-                contentContainer.appendChild(select);
+                const checkboxList = createCheckboxList(
+                    CONFIG.ids.ownedSelect,
+                    options,
+                    state.filters.owned.selected,
+                    () => {
+                        state.filters.owned.selected = getCheckboxValues(CONFIG.ids.ownedSelect);
+                        updateScreen();
+                    }
+                );
+                contentContainer.appendChild(checkboxList);
             }
 
             filterGroups.appendChild(filterBlock);
-
-            if (state.ui.select2Ready) {
-                initSelect2(CONFIG.ids.ownedSelect);
-                $(`#${CONFIG.ids.ownedSelect}`).on('change', function() {
-                    state.filters.owned.selected = $(this).val() || [];
-                    updateScreen();
-                });
-            }
         } catch (ex) {
             console.error('Failed to add owned filter:', ex);
         }
@@ -980,7 +975,7 @@
         try {
             const existing = getElement(`#ifc_group_${groupName}`, false);
             if (existing) {
-                updatePublishersSelect();
+                updatePublishersCheckboxes();
                 return;
             }
 
@@ -991,39 +986,54 @@
             const contentContainer = filterBlock.querySelector('.ifc-filter-block-static');
 
             if (contentContainer) {
-                const select = createSelect2Multi(CONFIG.ids.publishersSelect, [], state.filters.publishers.selected);
-                contentContainer.appendChild(select);
+                // Create a scrollable container for potentially many publishers
+                const scrollContainer = document.createElement('div');
+                scrollContainer.id = CONFIG.ids.publishersSelect;
+                scrollContainer.className = 'ifc-checkbox-list ifc-checkbox-list-scrollable';
+                contentContainer.appendChild(scrollContainer);
             }
 
             filterGroups.appendChild(filterBlock);
-            updatePublishersSelect();
+            updatePublishersCheckboxes();
         } catch (ex) {
             console.error('Failed to add publishers filter:', ex);
         }
     }
 
-    function updatePublishersSelect() {
-        if (!state.ui.select2Ready) return;
+    function updatePublishersCheckboxes() {
         if (!Array.isArray(state.filters.publishers.selected)) {
             state.filters.publishers.selected = [];
         }
 
         const publishers = collectPublishers();
-        const $select = $(`#${CONFIG.ids.publishersSelect}`);
-        if (!$select.length) return;
+        const container = document.getElementById(CONFIG.ids.publishersSelect);
+        if (!container) return;
 
-        if ($select.data('select2')) $select.select2('destroy');
+        // Clear existing
+        container.innerHTML = '';
 
-        $select.empty();
         publishers.forEach((count, name) => {
-            const option = new Option(`${name} (${count})`, name, false, state.filters.publishers.selected.includes(name));
-            $select.append(option);
-        });
+            const label = document.createElement('label');
+            label.className = 'ifc-checkbox-item';
 
-        initSelect2(CONFIG.ids.publishersSelect);
-        $select.off('change').on('change', function() {
-            state.filters.publishers.selected = $(this).val() || [];
-            updateScreen();
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.value = name;
+            checkbox.checked = state.filters.publishers.selected.includes(name);
+            checkbox.className = 'ifc-checkbox';
+
+            checkbox.addEventListener('change', () => {
+                state.filters.publishers.selected = getCheckboxValues(CONFIG.ids.publishersSelect);
+                updateScreen();
+            });
+
+            const span = document.createElement('span');
+            span.className = 'ifc-checkbox-label';
+            span.textContent = `${name} (${count})`;
+
+            label.appendChild(checkbox);
+            label.appendChild(span);
+            container.appendChild(label);
         });
     }
 
@@ -1222,7 +1232,6 @@
             addSortButton();
             addFilterContainer();
             addSortContainer();
-            await waitForSelect2();
             await addFilterContainerOwned();
             await addFilterContainerPublishers();
             addPriceRangeFilter();
@@ -1647,7 +1656,7 @@
         });
 
         collectPublishers();
-        updatePublishersSelect();
+        updatePublishersCheckboxes();
         updatePriceSlider();
         updateDiscountSlider();
 
@@ -1729,11 +1738,127 @@
         observer.disconnect();
     }
 
+    /**
+     * Inject inline CSS for checkbox styles and container backgrounds
+     */
+    function injectInlineCSS() {
+        const css = document.createElement('style');
+        css.textContent = `
+            /* Semi-transparent background for filter/sort containers */
+            .filter-section {
+                background-color: rgba(30, 30, 30, 0.92) !important;
+                backdrop-filter: blur(10px);
+                -webkit-backdrop-filter: blur(10px);
+            }
+
+            /* Active button styling */
+            .ifc-active-button {
+                background-color: #107c10 !important;
+                border-color: #107c10 !important;
+            }
+
+            /* Checkbox list container */
+            .ifc-checkbox-list {
+                display: flex;
+                flex-direction: column;
+                gap: 2px;
+                padding: 4px 0;
+            }
+
+            .ifc-checkbox-list-scrollable {
+                max-height: 200px;
+                overflow-y: auto;
+                scrollbar-width: thin;
+                scrollbar-color: #107c10 #2d2d2d;
+            }
+
+            .ifc-checkbox-list-scrollable::-webkit-scrollbar {
+                width: 6px;
+            }
+
+            .ifc-checkbox-list-scrollable::-webkit-scrollbar-track {
+                background: #2d2d2d;
+                border-radius: 3px;
+            }
+
+            .ifc-checkbox-list-scrollable::-webkit-scrollbar-thumb {
+                background: #107c10;
+                border-radius: 3px;
+            }
+
+            /* Individual checkbox item */
+            .ifc-checkbox-item {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                padding: 6px 8px;
+                cursor: pointer;
+                border-radius: 4px;
+                transition: background-color 0.15s ease;
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                font-size: 0.85rem;
+                color: #e0e0e0;
+                user-select: none;
+            }
+
+            .ifc-checkbox-item:hover {
+                background-color: rgba(255, 255, 255, 0.08);
+            }
+
+            /* Custom checkbox styling */
+            .ifc-checkbox {
+                appearance: none;
+                -webkit-appearance: none;
+                width: 18px;
+                height: 18px;
+                min-width: 18px;
+                border: 2px solid #757575;
+                border-radius: 3px;
+                background-color: transparent;
+                cursor: pointer;
+                position: relative;
+                transition: all 0.15s ease;
+            }
+
+            .ifc-checkbox:checked {
+                background-color: #107c10;
+                border-color: #107c10;
+            }
+
+            .ifc-checkbox:checked::after {
+                content: '✓';
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                color: #ffffff;
+                font-size: 12px;
+                font-weight: bold;
+            }
+
+            .ifc-checkbox:hover {
+                border-color: #107c10;
+            }
+
+            .ifc-checkbox:focus {
+                outline: none;
+                box-shadow: 0 0 0 2px rgba(16, 124, 16, 0.3);
+            }
+
+            .ifc-checkbox-label {
+                flex: 1;
+                line-height: 1.3;
+            }
+        `;
+        document.head.appendChild(css);
+    }
+
     async function initialize() {
         try {
-            await addScript(GM_getResourceURL('JSJQuery'));
-            await addScript(GM_getResourceURL('JSSelect2'));
-            await addStyle(GM_getResourceURL('CSSSelect2'));
+            // Inject inline CSS for checkboxes and container backgrounds
+            injectInlineCSS();
+
+            // Load resources (jQuery/Select2 removed in v1.4.25226.2)
             await addStyle(GM_getResourceURL('CSSFilter'));
 
             loadFilterState();
