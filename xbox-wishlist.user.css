@@ -1,4 +1,4 @@
-#ifc_btn_Filter:hover {
+c#ifc_btn_Filter:hover {
     cursor: pointer;
 }
 
@@ -574,4 +574,9 @@
 
 .ifc-sort-add:hover {
     background-color: #0e7a0e;
+}
+
+.ifc-active-button {
+    background-color: #107c10 !important;
+    border-color: #107c10 !important;
 }
