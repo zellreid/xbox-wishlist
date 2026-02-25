@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         XBOX Wishlist
 // @namespace    https://github.com/zellreid/xbox-wishlist
-// @version      1.4.26056.2
+// @version      1.4.26056.3
 // @description  Advanced filtering and sorting suite with multi-level sort (up to 3 criteria) - Resilient selectors
 // @author       ZellReid
 // @homepage     https://github.com/zellreid/xbox-wishlist
@@ -850,7 +850,7 @@
     function createFilterBlock(id = null, text = '', collapsible = true) {
         const groupContainer = document.createElement('li');
         if (id) groupContainer.id = `ifc_group_${id}`;
-        groupContainer.classList.add('filter-block', 'SortAndFilters-module__li___aV+Oo');
+        groupContainer.className = 'ifc-accordion-group';
 
         if (!collapsible) {
             const contentContainer = document.createElement('div');
@@ -866,49 +866,35 @@
             return groupContainer;
         }
 
-        const menuContainer = document.createElement('div');
-        if (id) menuContainer.id = `ifc_group_menu_${id}`;
-        menuContainer.classList.add('SelectionDropdown-module__container___XzkIx');
+        // Xbox-style accordion header (matches xbox.com/games/browse Genre/Subscriptions style)
+        const headerButton = document.createElement('button');
+        headerButton.className = 'ifc-accordion-header';
+        headerButton.setAttribute('aria-expanded', 'false');
 
-        const menuButton = document.createElement('button');
-        menuButton.classList.add('filter-block-button', 'SelectionDropdown-module__titleContainer___YyoD0');
-        menuButton.setAttribute('aria-expanded', 'false');
-        menuButton.setAttribute('data-ifc-target', `group_${id}`);
+        const headerText = document.createElement('span');
+        headerText.className = 'ifc-accordion-title';
+        headerText.textContent = text;
 
-        const heading = document.createElement('span');
-        heading.classList.add(
-            'filter-text-heading-group',
-            'typography-module__xdsSubTitle2___6d6Da',
-            'SelectionDropdown-module__titleText___PN6s9'
-        );
-        heading.setAttribute('data-ifc-target', `group_${id}`);
-        heading.textContent = text;
+        const chevron = document.createElement('span');
+        chevron.className = 'ifc-accordion-chevron';
 
-        const imgContainer = createImageContainer(
-            `group_${id}`,
-            GM_getResourceURL('IMGExpand'),
-            'Expand', 'svg'
-        );
-        imgContainer.setAttribute('data-ifc-target', `group_${id}`);
+        headerButton.appendChild(headerText);
+        headerButton.appendChild(chevron);
 
-        menuButton.appendChild(heading);
-        menuButton.appendChild(imgContainer);
+        // Collapsible content panel
+        const contentPanel = document.createElement('div');
+        contentPanel.className = 'ifc-accordion-content';
+        if (id) contentPanel.id = `ifc_group_content_${id}`;
+        contentPanel.style.display = 'none';
 
-        const listContainer = document.createElement('div');
-        if (id) listContainer.id = `ifc_group_menu_list_${id}`;
-        listContainer.classList.add('filter-block-content');
-        applyStyles(listContainer, { maxHeight: '20rem', overflowY: 'auto', display: 'none' });
+        headerButton.addEventListener('click', () => {
+            const isExpanded = headerButton.getAttribute('aria-expanded') === 'true';
+            headerButton.setAttribute('aria-expanded', (!isExpanded).toString());
+            contentPanel.style.display = isExpanded ? 'none' : 'block';
+        });
 
-        const itemsContainer = document.createElement('div');
-        if (id) itemsContainer.id = `ifc_group_menu_list_items_${id}`;
-        itemsContainer.classList.add('filter-options', 'Selections-module__options___I24e7');
-
-        listContainer.appendChild(itemsContainer);
-        menuContainer.appendChild(menuButton);
-        menuContainer.appendChild(listContainer);
-        groupContainer.appendChild(menuContainer);
-
-        menuContainer.addEventListener('click', toggleFilterMenuListContainer);
+        groupContainer.appendChild(headerButton);
+        groupContainer.appendChild(contentPanel);
         return groupContainer;
     }
 
@@ -926,8 +912,8 @@
                 state.filters.owned.options = ['Owned', 'Not Owned', 'Un-Purchasable'];
             }
 
-            const filterBlock = createFilterBlock(groupName, 'Owned', false);
-            const contentContainer = filterBlock.querySelector('.ifc-filter-block-static');
+            const filterBlock = createFilterBlock(groupName, 'Owned', true);
+            const contentContainer = filterBlock.querySelector('.ifc-accordion-content');
 
             if (contentContainer) {
                 const options = state.filters.owned.options.map(opt => ({ value: opt, label: opt }));
@@ -982,8 +968,8 @@
             const filterGroups = getElement(`#${CONFIG.ids.filterContainer} ${CONFIG.selectors.filterGroups}`);
             if (!filterGroups) return;
 
-            const filterBlock = createFilterBlock(groupName, 'Publishers', false);
-            const contentContainer = filterBlock.querySelector('.ifc-filter-block-static');
+            const filterBlock = createFilterBlock(groupName, 'Publishers', true);
+            const contentContainer = filterBlock.querySelector('.ifc-accordion-content');
 
             if (contentContainer) {
                 // Create a scrollable container for potentially many publishers
@@ -1757,19 +1743,97 @@
                 border-color: #107c10 !important;
             }
 
-            /* Checkbox list container */
+            /* ==================== XBOX-STYLE ACCORDION ==================== */
+            /* Matches xbox.com/games/browse filter sections (Genre, Subscriptions, etc.) */
+
+            .ifc-accordion-group {
+                list-style: none;
+                border-bottom: 1px solid rgba(117, 117, 117, 0.3);
+            }
+
+            .ifc-accordion-group:first-child {
+                border-top: 1px solid rgba(117, 117, 117, 0.3);
+            }
+
+            .ifc-accordion-header {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                width: 100%;
+                padding: 14px 4px;
+                background: transparent;
+                border: none;
+                cursor: pointer;
+                color: inherit;
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                font-size: 0.9375rem;
+                font-weight: 600;
+                line-height: 1.25rem;
+                text-align: left;
+                transition: opacity 0.15s ease;
+            }
+
+            .ifc-accordion-header:hover {
+                opacity: 0.8;
+            }
+
+            .ifc-accordion-header:focus-visible {
+                outline: 2px solid currentColor;
+                outline-offset: -2px;
+                border-radius: 2px;
+            }
+
+            .ifc-accordion-title {
+                flex: 1;
+                pointer-events: none;
+            }
+
+            /* Chevron: down arrow when collapsed, up arrow when expanded */
+            .ifc-accordion-chevron {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                width: 20px;
+                height: 20px;
+                pointer-events: none;
+                transition: transform 0.2s ease;
+            }
+
+            .ifc-accordion-chevron::after {
+                content: '';
+                display: block;
+                width: 8px;
+                height: 8px;
+                border-right: 2px solid currentColor;
+                border-bottom: 2px solid currentColor;
+                transform: rotate(45deg);
+                margin-top: -3px;
+            }
+
+            .ifc-accordion-header[aria-expanded="true"] .ifc-accordion-chevron::after {
+                transform: rotate(-135deg);
+                margin-top: 3px;
+            }
+
+            .ifc-accordion-content {
+                padding: 0 4px 12px 4px;
+            }
+
+            /* ==================== XBOX-STYLE CHECKBOXES ==================== */
+            /* Matches xbox.com/games/browse checkbox styling */
+
             .ifc-checkbox-list {
                 display: flex;
                 flex-direction: column;
-                gap: 2px;
-                padding: 4px 0;
+                gap: 0;
+                padding: 0;
             }
 
             .ifc-checkbox-list-scrollable {
-                max-height: 200px;
+                max-height: 220px;
                 overflow-y: auto;
                 scrollbar-width: thin;
-                scrollbar-color: #107c10 #2d2d2d;
+                scrollbar-color: rgba(117, 117, 117, 0.5) transparent;
             }
 
             .ifc-checkbox-list-scrollable::-webkit-scrollbar {
@@ -1777,77 +1841,77 @@
             }
 
             .ifc-checkbox-list-scrollable::-webkit-scrollbar-track {
-                background: #2d2d2d;
-                border-radius: 3px;
+                background: transparent;
             }
 
             .ifc-checkbox-list-scrollable::-webkit-scrollbar-thumb {
-                background: #107c10;
+                background: rgba(117, 117, 117, 0.5);
                 border-radius: 3px;
             }
 
-            /* Individual checkbox item */
             .ifc-checkbox-item {
                 display: flex;
                 align-items: center;
-                gap: 8px;
-                padding: 6px 8px;
+                gap: 10px;
+                padding: 7px 4px;
                 cursor: pointer;
-                border-radius: 4px;
-                transition: background-color 0.15s ease;
                 font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-                font-size: 0.85rem;
-                color: #e0e0e0;
+                font-size: 0.875rem;
+                line-height: 1.25rem;
+                color: inherit;
                 user-select: none;
+                transition: opacity 0.1s ease;
             }
 
             .ifc-checkbox-item:hover {
-                background-color: rgba(255, 255, 255, 0.08);
+                opacity: 0.8;
             }
 
-            /* Custom checkbox styling */
+            /* Native-looking checkbox matching Xbox browse page */
             .ifc-checkbox {
                 appearance: none;
                 -webkit-appearance: none;
-                width: 18px;
-                height: 18px;
-                min-width: 18px;
-                border: 2px solid #757575;
-                border-radius: 3px;
+                -moz-appearance: none;
+                width: 16px;
+                height: 16px;
+                min-width: 16px;
+                min-height: 16px;
+                border: 1.5px solid currentColor;
+                border-radius: 2px;
                 background-color: transparent;
                 cursor: pointer;
                 position: relative;
-                transition: all 0.15s ease;
+                margin: 0;
+                flex-shrink: 0;
             }
 
             .ifc-checkbox:checked {
-                background-color: #107c10;
-                border-color: #107c10;
+                background-color: currentColor;
             }
 
             .ifc-checkbox:checked::after {
-                content: '✓';
+                content: '';
                 position: absolute;
-                top: 50%;
-                left: 50%;
-                transform: translate(-50%, -50%);
-                color: #ffffff;
-                font-size: 12px;
-                font-weight: bold;
+                top: 1px;
+                left: 4.5px;
+                width: 4px;
+                height: 8px;
+                border: solid;
+                border-width: 0 2px 2px 0;
+                border-color: var(--background-color, #262626);
+                transform: rotate(45deg);
             }
 
-            .ifc-checkbox:hover {
-                border-color: #107c10;
-            }
-
-            .ifc-checkbox:focus {
-                outline: none;
-                box-shadow: 0 0 0 2px rgba(16, 124, 16, 0.3);
+            .ifc-checkbox:focus-visible {
+                outline: 2px solid currentColor;
+                outline-offset: 2px;
+                border-radius: 2px;
             }
 
             .ifc-checkbox-label {
                 flex: 1;
-                line-height: 1.3;
+                line-height: 1.25rem;
+                pointer-events: none;
             }
         `;
         document.head.appendChild(css);
