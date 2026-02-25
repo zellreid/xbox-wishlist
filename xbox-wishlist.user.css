@@ -4,7 +4,7 @@
 
 .filter-section {
     position: fixed;
-    top: 145px;
+    top: 155px;
     right: 120px;
     width: 280px;
     border-radius: 10px;
@@ -12,7 +12,7 @@
     z-index: 998;
     --color: #f5f5f5;
     --background-color: #262626;
-    max-height: calc(100vh - 160px);
+    max-height: calc(100vh - 170px);
     overflow-y: auto;
     background-color: rgba(30, 30, 30, 0.70) !important;
     backdrop-filter: blur(12px);
@@ -659,6 +659,7 @@
     max-height: 220px;
     overflow-y: auto;
     scrollbar-width: thin;
+    scrollbar-color: #107c10 transparent;
 }
 
 .ifc-checkbox-list-scrollable::-webkit-scrollbar {
@@ -670,7 +671,12 @@
 }
 
 .ifc-checkbox-list-scrollable::-webkit-scrollbar-thumb {
+    background: #107c10;
     border-radius: 3px;
+}
+
+.ifc-checkbox-list-scrollable::-webkit-scrollbar-thumb:hover {
+    background: #0e7a0e;
 }
 
 .ifc-checkbox-item {
@@ -699,7 +705,7 @@
     height: 16px;
     min-width: 16px;
     min-height: 16px;
-    border: 1.5px solid currentColor;
+    border: 1.5px solid #ffffff;
     border-radius: 2px;
     background-color: transparent;
     cursor: pointer;
@@ -709,7 +715,7 @@
 }
 
 .ifc-checkbox:checked {
-    background-color: currentColor;
+    background-color: #ffffff;
 }
 
 .ifc-checkbox:checked::after {
@@ -721,12 +727,12 @@
     height: 8px;
     border: solid;
     border-width: 0 2px 2px 0;
-    border-color: var(--background-color, #262626);
+    border-color: #262626;
     transform: rotate(45deg);
 }
 
 .ifc-checkbox:focus-visible {
-    outline: 2px solid currentColor;
+    outline: 2px solid #ffffff;
     outline-offset: 2px;
     border-radius: 2px;
 }
@@ -735,4 +741,11 @@
     flex: 1;
     line-height: 1.25rem;
     pointer-events: none;
+}
+
+/* ==================== INJECTED BUTTON CONTAINER (for public wishlists) ==================== */
+.ifc-injected-button-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
