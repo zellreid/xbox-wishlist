@@ -1,387 +1,163 @@
-# Project Handoff Document - Xbox Wishlist v1.2
+# Project Handoff Document - Xbox Wishlist v1.4
 
-## 📋 Current Status
+## Current Status
 
-**Date:** November 21, 2025  
-**Version Completed:** 1.2.25326.1  
-**Status:** Advanced Filtering Suite - COMPLETE ✅
-
----
-
-## 🎯 What We Built Today
-
-### Version History (This Session)
-
-**v1.0.25326.1** - Initial cleanup
-- Price precision (2 decimals)
-- Percentage precision (integers)
-
-**v1.0.25326.2** - Enhanced styling
-- Improved discount badge display
-
-**v1.0.25326.3** - Badge optimization
-- Better badge injection logic
-
-**v1.0.25326.4** - Styling update
-- Xbox yellow discount badges (#ffd800)
-
-**v1.1.25326.5** - Publishers filter (minor bump)
-- Dynamic publisher filtering
-- Case-sensitive, no duplicates
-- Alphabetically sorted
-
-**v1.2.25326.1** - ADVANCED FILTERING SUITE (major bump) ⭐
-- Select2 multi-select dropdowns
-- Active filter tag display
-- Inverted filter logic
-- Price range slider
-- Discount range slider
+**Date:** February 26, 2026
+**Version:** 1.4.26056.5
+**Status:** Production - filtering, sorting, public wishlist support
 
 ---
 
-## 📦 Key Files Created
+## Architecture Overview
 
-### Production Files
-1. **xbox-wishlist-v1.2.user.js** - Main userscript (v1.2.25326.1)
-2. **xbox-wishlist.user.css** - Enhanced stylesheet with Select2 & slider styling
+### File Structure
+```
+C:\Dev\zellreid\xbox-wishlist\
+├── xbox-wishlist.user.js    # Main userscript (1041 lines)
+├── xbox-wishlist.user.css   # Stylesheet (751 lines, loaded via @resource)
+├── filter.svg               # Filter button icon
+├── sort.svg                 # Sort button icon
+├── expand.svg               # Accordion expand chevron
+├── collapse.svg             # Accordion collapse chevron
+├── README.md                # Project overview
+├── HANDOFF-DOCUMENT.md      # This file
+├── LICENSE                  # MIT License
+└── *.md                     # Legacy v1.2 docs (kept for history)
+```
 
-### Documentation Files
-3. **V1.2-ADVANCED-FILTERING-SUITE.md** - Complete feature documentation
-4. **V1.2-QUICK-START.md** - Quick start guide
-5. **VERSION-1.0.25326.5-PUBLISHERS-FILTER.md** - Publishers filter docs
-6. **IMPLEMENTATION-PLAN.md** - Technical implementation plan
-
-### Reference Files
-7. Various version documentation files from earlier iterations
-
----
-
-## 🔧 Technical Implementation Summary
-
-### New Features Implemented
-
-**1. Select2 Integration**
-- Replaced checkboxes with multi-select dropdowns
-- Custom Xbox theme styling
-- Dynamic population
-- Search functionality built-in
-
-**2. Tag Display System**
-- Visual display of active filters at top
-- One-click removal (× button)
-- Auto-updates on filter changes
-- Shows: Owned, Publishers, Price, Discount
-
-**3. Inverted Filter Logic** ⚠️ BREAKING CHANGE
-- OLD: All checked = show all, uncheck = hide
-- NEW: None selected = show all, selections = filter
-- More intuitive and industry-standard
-
-**4. Price Range Slider**
-- Dual-handle HTML5 range inputs
-- Auto-detects min/max from wishlist
-- Real-time filtering
-- Currency formatting (R X.XX)
-
-**5. Discount Range Slider**
-- Dual-handle HTML5 range inputs
-- Auto-detects discount range
-- Real-time filtering
-- Percentage formatting (X%)
-
-### State Structure Changes
+### Resilient Selector System
+Xbox uses CSS modules with hashed class names that change on every rebuild (e.g. `WishlistPage-module__itemContainer___Ab12c`). The script resolves these at runtime:
 
 ```javascript
-state.filters = {
-    activeTags: [],              // NEW: Active filter tags
-    owned: {
-        selected: [],            // CHANGED: Array instead of booleans
-        options: [...]           // NEW: Available options
-    },
-    publishers: {
-        selected: [],            // NEW: Array of selected publishers
-        list: Map()              // Count per publisher
-    },
-    priceRange: {                // NEW: Price filtering
-        min, max, currentMin, currentMax, enabled
-    },
-    discountRange: {             // NEW: Discount filtering
-        min, max, currentMin, currentMax, enabled
-    }
+const PREFIXES = {
+    itemContainer: 'WishlistPage-module__itemContainer',
+    menuContainer: 'WishlistPage-module__menuContainer',
+    imageContainer: 'WishlistPage-module__imageContainer',
+    productDetails: 'WishlistPage-module__productDetails',
+    // ... more prefixes
+};
+
+function resolveClass(prefix) {
+    // Scans document.styleSheets for any class starting with prefix
+    // Caches result for subsequent lookups
 }
 ```
 
-### Key Functions
-
-**Filter Logic:**
-- `shouldShowContainer()` - Inverted logic implementation
-- `toggleContainers()` - Apply all filters
-- `updateActiveTags()` - Manage tag display
-- `removeTag()` - Handle tag removal
-
-**Select2:**
-- `initSelect2()` - Initialize with Xbox theme
-- `updateSelect2()` - Programmatic updates
-- `addFilterContainerOwned()` - Owned dropdown
-- `addFilterContainerPublishers()` - Publishers dropdown
-
-**Sliders:**
-- `createRangeSlider()` - Generic slider creation
-- `addPriceRangeFilter()` - Price slider setup
-- `addDiscountRangeFilter()` - Discount slider setup
-- `calculatePriceRange()` - Auto-detect prices
-- `calculateDiscountRange()` - Auto-detect discounts
-
----
-
-## 🎨 Styling Enhancements
-
-### CSS Additions
-
-**Tag Display:**
-- `.ifc-tag-container` - Container styling
-- `.ifc-filter-tag` - Individual tags (Xbox green)
-- `.ifc-tag-remove` - Remove button (×)
-
-**Select2 Theme:**
-- `.select2-container--xbox` - Custom Xbox theme
-- Green selections (#107c10)
-- Dark mode support
-- Segoe UI font
-
-**Range Sliders:**
-- `.ifc-slider-container` - Slider wrapper
-- `.ifc-slider-track` - Track styling
-- `.ifc-slider-range` - Active range (green)
-- `.ifc-slider` - Handle styling
-- Smooth animations
-- Xbox green accents
-
-**Panel Improvements:**
-- Wider panel (280px vs 140px)
-- Better scrolling
-- Custom scrollbar (Xbox green)
-- Responsive design
-
----
-
-## ⚠️ Breaking Changes
-
-### Filter Logic Reversal
-**Impact:** Users must adapt to new behavior
-**Migration:** Clear old selections, re-apply with new logic
-**Benefit:** More intuitive, less clicking
-
-### State Structure
-**Impact:** Saved states from v1.1 incompatible
-**Migration:** Script handles conversion automatically
-**Benefit:** More flexible, scalable structure
-
----
-
-## 🚀 What Works Now
-
-✅ Price rounding (2 decimals)  
-✅ Percentage rounding (integers)  
-✅ Discount badges (Xbox yellow)  
-✅ Owned filtering (Select2)  
-✅ Publisher filtering (Select2, case-sensitive)  
-✅ Price range filtering (slider)  
-✅ Discount range filtering (slider)  
-✅ Active tag display  
-✅ Inverted filter logic  
-✅ State persistence  
-✅ Dark mode support  
-✅ Responsive design  
-
----
-
-## 📝 Known Issues & Limitations
-
-### Current Limitations
-1. Requires jQuery (auto-loaded)
-2. Requires Select2 (auto-loaded)
-3. Mobile sliders slightly harder to use
-4. State format changed (v1.1 saves incompatible)
-
-### Edge Cases Handled
-✅ Empty wishlist  
-✅ No discounts  
-✅ No publishers  
-✅ All same price  
-✅ Very long names  
-✅ 200+ items  
-
----
-
-## 🎯 Next Steps / Future Enhancements
-
-### Potential v1.3 Features
-- Sort functionality (price, name, discount, date added)
-- Save/load filter presets
-- Quick filter buttons (e.g., "Show deals", "Under R50")
-- Export/import wishlist data
-
-### Potential v1.4 Features
-- Price history tracking
-- Deal alerts/notifications
-- Comparison mode
-- Wishlist statistics dashboard
-- Price prediction based on history
-
-### Technical Debt
-- Consider removing jQuery dependency (vanilla Select2?)
-- Add keyboard shortcuts
-- Improve mobile slider UX
-- Add haptic feedback for touch devices
-- Optimize for 500+ item wishlists
-
----
-
-## 📚 Documentation Status
-
-### Complete Documentation ✅
-- Feature overview (ADVANCED-FILTERING-SUITE.md)
-- Quick start guide (QUICK-START.md)
-- Implementation plan (IMPLEMENTATION-PLAN.md)
-- Previous version docs (v1.0 - v1.1)
-
-### Missing Documentation
-- API reference (if needed)
-- Contributing guide
-- Testing guide
-- Deployment guide
-
----
-
-## 🔄 How to Continue in New Chat
-
-### What to Tell Claude
-
-**Context to provide:**
-```
-I'm continuing work on the Xbox Wishlist userscript project.
-Current version: 1.2.25326.1
-Latest files: xbox-wishlist-v1.2.user.js and xbox-wishlist.user.css
-
-We just completed:
-- Select2 integration
-- Tag display system
-- Inverted filter logic
-- Price/discount range sliders
-
-Next, I want to [describe what you want to work on]
+### State Structure (v1.4)
+```javascript
+state = {
+    info: { script: { version, name, description } },
+    containers: [],       // All wishlist item containers
+    cache: { elements: Map(), classes: Map() },
+    ui: {
+        floatButtons, lblFilter, btnFilter, btnSort,
+        divFilter, divSort, divFilterShow, divSortShow
+    },
+    filters: {
+        totalCount, filteredCount, activeTags: [],
+        owned:     { selected: [], options: ['Owned','Not Owned','Un-Purchasable'] },
+        publishers: { selected: [], list: Map() },
+        priceRange:    { min, max, currentMin, currentMax, enabled },
+        discountRange: { min, max, currentMin, currentMax, enabled }
+    },
+    sort: {
+        criteria: [{ field, order, label }],  // Up to 3 levels
+        fields: [
+            { value: 'ifcId', label: 'Default' },
+            { value: 'ifcName', label: 'Name' },
+            { value: 'ifcPublisher', label: 'Publisher' },
+            { value: 'ifcPrice', label: 'Price' },
+            { value: 'ifcPriceDiscountPercent', label: 'Discount %' },
+            { value: 'ifcPriceDiscountAmount', label: 'Discount Amount' }
+        ]
+    }
+};
 ```
 
-### Files to Reference
-Upload these files if needed:
-- `xbox-wishlist-v1.2.user.js` (main script)
-- `xbox-wishlist.user.css` (styling)
-- `HANDOFF-DOCUMENT.md` (this file)
+---
 
-### Key Points to Remember
-- Version format: MAJOR.MINOR.BUILDDATE.REVISION
-- Current build: 25326 (November 22, 2025 = day 326)
-- Filter logic is INVERTED (none = all)
-- Xbox theme colors: #107c10 (green), #ffd800 (yellow)
-- Case-sensitive publisher filtering
+## Key Functions Reference
+
+| Function | Purpose |
+|----------|---------|
+| `resolveClass(prefix)` | Finds hashed CSS module class from stable prefix |
+| `floatButtons()` | Injects Filter/Sort buttons (handles public wishlists) |
+| `createFilterBlock(id, text, collapsible)` | Creates accordion or static filter group |
+| `addFilterContainerOwned()` | Owned checkbox filter |
+| `addFilterContainerPublishers()` | Publisher multi-select filter |
+| `addPriceRangeFilter()` | Dual-handle price slider |
+| `addDiscountRangeFilter()` | Dual-handle discount slider |
+| `shouldShowContainer(container)` | Master filter logic (inverted: none = all) |
+| `toggleContainers()` | Applies all filters, updates counts/tags |
+| `renderSortCriteria()` | Renders multi-level sort UI |
+| `applySorting()` | DOM reorder based on sort criteria |
+| `loadSVGIntoContainer()` | Loads SVG icons from GM resources |
+| `setContainerData()` | Reads prices/publishers/ownership into data attributes |
 
 ---
 
-## 🎨 Design Principles Established
+## Version History
 
-1. **Match Xbox Native Styling** - Professional, seamless integration
-2. **Inverted Filter Logic** - None selected = show all
-3. **Real-time Updates** - Instant feedback on changes
-4. **Visual Clarity** - Tags show active state
-5. **Performance First** - Smooth with 100+ items
-6. **Mobile Responsive** - Works on all devices
-7. **Dark Mode Support** - Both themes look great
-8. **Minimal Dependencies** - Only jQuery + Select2
+### v1.4.26056.5 (Feb 2026)
+- Public/shared wishlist support (injected button container)
+- Expand/collapse chevron icon toggle fix
+- Price slider max always reaches R 3,000
+- Checkbox colors reverted to white, scrollbar to green
+- BUY AS A GIFT button detection for public wishlists
 
----
+### v1.3 (Jan 2026)
+- Multi-level sort (up to 3 criteria)
+- Resilient CSS module class resolution
+- SVG icon resources (filter, sort, expand, collapse)
+- Accordion-based collapsible filter groups
 
-## 💻 Technical Stack
+### v1.2 (Nov 2025)
+- Select2 multi-select dropdowns
+- Active filter tag display with one-click removal
+- Inverted filter logic (none selected = show all)
+- Price and discount range sliders
 
-**Core:**
-- Vanilla JavaScript (ES6+)
-- HTML5 (range inputs)
-- CSS3 (custom properties, flexbox)
-
-**Libraries:**
-- jQuery 3.6.0 (for Select2)
-- Select2 4.0.13 (multi-select)
-
-**Resources:**
-- Tampermonkey/Greasemonkey
-- Xbox.com DOM access
-- GM_getValue/GM_setValue for storage
+### v1.1 (Nov 2025) - Publisher filtering
+### v1.0 (Nov 2025) - Price precision, discount badges
 
 ---
 
-## 🎉 Project Status
+## Design Principles
 
-**Completion:** Advanced Filtering Suite COMPLETE ✅  
-**Quality:** Production-ready, well-documented  
-**Testing:** Functional tests passed  
-**Performance:** Excellent with typical wishlists  
-**User Experience:** Professional-grade  
+1. **Match Xbox native styling** - buttons, fonts, colors blend seamlessly
+2. **Inverted filter logic** - none selected = show all (industry standard)
+3. **Resilient selectors** - survives Xbox site rebuilds
+4. **Real-time feedback** - instant filtering and sorting
+5. **Minimal dependencies** - jQuery + Select2, auto-loaded
+6. **Dark mode support** - both themes work correctly
 
-**Ready for:**
-- Deployment
-- User testing
-- Feature additions
-- Bug fixes if found
+## Xbox Theme Colors
+- Green: `#107c10` (primary accent, scrollbar, tags)
+- Yellow: `#ffd800` (discount badges)
+- Background: `#1a1a1a` / `#262626` (dark theme)
+- Text: `#f5f5f5` / `#ffffff`
 
----
+## Technical Stack
+- Vanilla JavaScript (ES6+), HTML5 range inputs, CSS3
+- jQuery 3.6.0 (for Select2), Select2 4.0.13
+- Tampermonkey GM APIs: `GM_getResourceURL`, `GM_getValue`, `GM_setValue`
+- SVG icons loaded via `@resource` declarations
 
-## 📞 Key Contacts & Links
+## How to Continue Development
 
-**Repository:** https://github.com/zellreid/xbox-wishlist  
-**Issues:** https://github.com/zellreid/xbox-wishlist/issues  
-**Target Site:** https://www.xbox.com/*/wishlist  
+**Local dev path:** `C:\Dev\zellreid\xbox-wishlist` (accessible via Desktop Commander)
+**Repository:** https://github.com/zellreid/xbox-wishlist
+**GitHub raw URLs:**
+- JS: `https://github.com/zellreid/xbox-wishlist/raw/refs/heads/main/xbox-wishlist.user.js`
+- CSS: `https://github.com/zellreid/xbox-wishlist/raw/refs/heads/main/xbox-wishlist.user.css`
+**Target site:** https://www.xbox.com/*/wishlist
+**Xbox browse reference:** https://www.xbox.com/en-ZA/games/browse?noSplash=1
 
----
-
-## ✅ Session Accomplishments
-
-Today we:
-1. ✅ Fixed price/percentage precision
-2. ✅ Enhanced discount badges with Xbox styling
-3. ✅ Added publishers filter (v1.1 - minor bump)
-4. ✅ Built complete advanced filtering suite (v1.2 - major bump)
-5. ✅ Implemented Select2 integration
-6. ✅ Created tag display system
-7. ✅ Inverted filter logic for better UX
-8. ✅ Added price range slider
-9. ✅ Added discount range slider
-10. ✅ Enhanced all CSS styling
-11. ✅ Wrote comprehensive documentation
-
-**Total Features Added:** 10 major features  
-**Lines of Code:** ~1500+ (userscript)  
-**Lines of CSS:** ~400+  
-**Documentation Pages:** 6 comprehensive guides  
+Provide Claude with:
+- The GitHub raw URLs or local path for JS and CSS
+- This handoff document for context
+- Describe the feature or fix needed
 
 ---
 
-## 🚀 You're Ready to Continue!
-
-All files are in `/mnt/user-data/outputs/` and ready for the next phase.
-
-**Recommended next steps:**
-1. Test v1.2 on Xbox wishlist
-2. Gather user feedback
-3. Plan v1.3 features
-4. Fix any bugs found
-5. Add sort functionality?
-
-**To continue in new chat, just say:**
-"I'm continuing the Xbox Wishlist project from v1.2.25326.1. Here's the handoff document..."
-
----
-
-*Handoff Document Version: 1.0*  
-*Created: November 21, 2025*  
-*Project: Xbox Wishlist Advanced Filtering Suite*  
-*Status: READY FOR NEW CHAT ✅*
+*Last updated: February 26, 2026 - v1.4.26056.5*
