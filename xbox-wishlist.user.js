@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         XBOX Wishlist
 // @namespace    https://github.com/zellreid/xbox-wishlist
-// @version      1.4.26056.5
+// @version      1.4.26057.1
 // @description  Advanced filtering and sorting suite with multi-level sort (up to 3 criteria) - Resilient selectors - Public wishlist support
 // @author       ZellReid
 // @homepage     https://github.com/zellreid/xbox-wishlist
@@ -10,7 +10,7 @@
 // @match        https://www.xbox.com/*/wishlist*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=xbox.com
 // @run-at       document-body
-// @resource     CSSFilter https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/xbox-wishlist.user.css
+// @resource     CSSFilter https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/xbox-wishlist.user.css?ver=1.4.26057.1
 // @resource     IMGFilter https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/filter.svg
 // @resource     IMGSort https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/sort.svg
 // @resource     IMGExpand https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/expand.svg
@@ -18,8 +18,8 @@
 // @grant        GM_getResourceURL
 // @grant        GM_setValue
 // @grant        GM_getValue
-// @downloadURL  https://github.com/zellreid/xbox-wishlist/raw/refs/heads/main/xbox-wishlist.user.js
-// @updateURL    https://github.com/zellreid/xbox-wishlist/raw/refs/heads/main/xbox-wishlist.user.js
+// @downloadURL  https://update.greasyfork.org/scripts/567587/XBOX%20Wishlist.user.js
+// @updateURL    https://update.greasyfork.org/scripts/567587/XBOX%20Wishlist.meta.js
 // ==/UserScript==
 
 (function() {
