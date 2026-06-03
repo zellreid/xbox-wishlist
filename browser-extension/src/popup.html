@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body {
+      width: 300px;
+      font-family: Arial, sans-serif;
+      padding: 12px;
+      background: #1a1a1a;
+      color: #f5f5f5;
+    }
+    .preset {
+      padding: 8px 12px;
+      margin: 6px 0;
+      background: #107c10;
+      border: none;
+      border-radius: 4px;
+      color: white;
+      cursor: pointer;
+      width: 100%;
+      text-align: left;
+    }
+    .preset:hover {
+      background: #0a5a0a;
+    }
+    h2 {
+      font-size: 14px;
+      margin-top: 12px;
+      margin-bottom: 8px;
+    }
+  </style>
+</head>
+<body>
+  <h2>Quick Filters</h2>
+  <button class="preset" data-filter="owned">Show Owned Only</button>
+  <button class="preset" data-filter="discounted">Discounted Only</button>
+  <button class="preset" data-filter="cheap">Under $20</button>
+  
+  <h2>Settings</h2>
+  <label>
+    <input type="checkbox" id="persist-state"> Remember filters
+  </label>
+  
+  <script src="popup.js"></script>
+</body>
+</html>

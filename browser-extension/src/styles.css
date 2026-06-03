@@ -26,8 +26,8 @@
     padding: 5px;
 }
 
-.filter-block .title {
-}
+    .filter-block .title {
+    }
 
 .filter-options {
     padding: 5px;
@@ -75,26 +75,26 @@
     justify-content: center;
 }
 
-.ifc-tag-remove:hover {
-    background-color: rgba(255, 255, 255, 0.2);
-    border-radius: 2px;
-}
+    .ifc-tag-remove:hover {
+        background-color: rgba(255, 255, 255, 0.2);
+        border-radius: 2px;
+    }
 
 /* ==================== SELECT2 XBOX THEME ==================== */
 .select2-container--xbox {
     width: 100% !important;
 }
 
-.select2-container--xbox .select2-selection--multiple {
-    background-color: #2d2d2d !important;
-    border: 1px solid #757575 !important;
-    border-radius: 6px;
-    min-height: 38px;
-    max-height: 120px;
-    overflow-y: auto;
-    padding: 4px;
-    width: 100%;
-}
+    .select2-container--xbox .select2-selection--multiple {
+        background-color: #2d2d2d !important;
+        border: 1px solid #757575 !important;
+        border-radius: 6px;
+        min-height: 38px;
+        max-height: 120px;
+        overflow-y: auto;
+        padding: 4px;
+        width: 100%;
+    }
 
 .theme-dark .select2-container--xbox .select2-selection--multiple {
     background-color: #1a1a1a !important;
@@ -116,18 +116,18 @@
     font-weight: bold;
 }
 
-.select2-container--xbox .select2-selection--multiple .select2-selection__choice__remove:hover {
-    color: #ffdddd !important;
-}
+    .select2-container--xbox .select2-selection--multiple .select2-selection__choice__remove:hover {
+        color: #ffdddd !important;
+    }
 
 .select2-container--xbox .select2-search__field {
     color: #f5f5f5 !important;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
-.select2-container--xbox .select2-search__field::placeholder {
-    color: #999999 !important;
-}
+    .select2-container--xbox .select2-search__field::placeholder {
+        color: #999999 !important;
+    }
 
 .select2-container--xbox.select2-container--focus .select2-selection--multiple {
     border-color: #107c10 !important;
@@ -198,10 +198,10 @@
     border-radius: 4px;
 }
 
-.select2-container--xbox .select2-selection--multiple::-webkit-scrollbar-thumb:hover,
-.select2-container--xbox .select2-results__options::-webkit-scrollbar-thumb:hover {
-    background: #0e7a0e;
-}
+    .select2-container--xbox .select2-selection--multiple::-webkit-scrollbar-thumb:hover,
+    .select2-container--xbox .select2-results__options::-webkit-scrollbar-thumb:hover {
+        background: #0e7a0e;
+    }
 
 /* ==================== STATIC FILTER BLOCKS ==================== */
 .ifc-filter-block-static {
@@ -263,18 +263,18 @@
     align-items: center;
 }
 
-.ifc-slider-track::before {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 0;
-    right: 0;
-    height: 6px;
-    background-color: #3d3d3d;
-    border-radius: 3px;
-    transform: translateY(-50%);
-    z-index: 0;
-}
+    .ifc-slider-track::before {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 0;
+        right: 0;
+        height: 6px;
+        background-color: #3d3d3d;
+        border-radius: 3px;
+        transform: translateY(-50%);
+        z-index: 0;
+    }
 
 .theme-dark .ifc-slider-track::before {
     background-color: #2a2a2a;
@@ -310,60 +310,60 @@
     z-index: 2;
 }
 
-.ifc-slider::-webkit-slider-runnable-track {
-    height: 18px;
-    background: transparent;
-}
+    .ifc-slider::-webkit-slider-runnable-track {
+        height: 18px;
+        background: transparent;
+    }
 
-.ifc-slider::-moz-range-track {
-    height: 18px;
-    background: transparent;
-    border: none;
-}
+    .ifc-slider::-moz-range-track {
+        height: 18px;
+        background: transparent;
+        border: none;
+    }
 
-.ifc-slider::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    appearance: none;
-    width: 18px;
-    height: 18px;
-    background-color: #107c10;
-    border: 2px solid #ffffff;
-    border-radius: 50%;
-    cursor: pointer;
-    pointer-events: all;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-    transition: transform 0.15s ease;
-}
+    .ifc-slider::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 18px;
+        height: 18px;
+        background-color: #107c10;
+        border: 2px solid #ffffff;
+        border-radius: 50%;
+        cursor: pointer;
+        pointer-events: all;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        transition: transform 0.15s ease;
+    }
 
-.ifc-slider::-webkit-slider-thumb:hover {
-    transform: scale(1.15);
-    background-color: #0e7a0e;
-}
+        .ifc-slider::-webkit-slider-thumb:hover {
+            transform: scale(1.15);
+            background-color: #0e7a0e;
+        }
 
-.ifc-slider::-webkit-slider-thumb:active {
-    transform: scale(1.25);
-}
+        .ifc-slider::-webkit-slider-thumb:active {
+            transform: scale(1.25);
+        }
 
-.ifc-slider::-moz-range-thumb {
-    width: 18px;
-    height: 18px;
-    background-color: #107c10;
-    border: 2px solid #ffffff;
-    border-radius: 50%;
-    cursor: pointer;
-    pointer-events: all;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-    transition: transform 0.15s ease;
-}
+    .ifc-slider::-moz-range-thumb {
+        width: 18px;
+        height: 18px;
+        background-color: #107c10;
+        border: 2px solid #ffffff;
+        border-radius: 50%;
+        cursor: pointer;
+        pointer-events: all;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        transition: transform 0.15s ease;
+    }
 
-.ifc-slider::-moz-range-thumb:hover {
-    transform: scale(1.15);
-    background-color: #0e7a0e;
-}
+        .ifc-slider::-moz-range-thumb:hover {
+            transform: scale(1.15);
+            background-color: #0e7a0e;
+        }
 
-.ifc-slider::-moz-range-thumb:active {
-    transform: scale(1.25);
-}
+        .ifc-slider::-moz-range-thumb:active {
+            transform: scale(1.25);
+        }
 
 .ifc-slider-max {
     z-index: 3;
@@ -479,9 +479,9 @@
     border-radius: 4px;
 }
 
-.filter-section::-webkit-scrollbar-thumb:hover {
-    background: #0e7a0e;
-}
+    .filter-section::-webkit-scrollbar-thumb:hover {
+        background: #0e7a0e;
+    }
 
 /* ==================== RESPONSIVE ADJUSTMENTS ==================== */
 @media (max-width: 768px) {
@@ -545,10 +545,10 @@
     font-weight: bold;
 }
 
-.ifc-sort-toggle:hover {
-    background-color: #0e7a0e;
-    transform: scale(1.05);
-}
+    .ifc-sort-toggle:hover {
+        background-color: #0e7a0e;
+        transform: scale(1.05);
+    }
 
 .ifc-sort-remove {
     width: 36px;
@@ -560,10 +560,10 @@
     font-weight: bold;
 }
 
-.ifc-sort-remove:hover {
-    background-color: #c82333;
-    transform: scale(1.05);
-}
+    .ifc-sort-remove:hover {
+        background-color: #c82333;
+        transform: scale(1.05);
+    }
 
 .ifc-sort-add {
     width: 100%;
@@ -575,9 +575,9 @@
     margin-top: 10px;
 }
 
-.ifc-sort-add:hover {
-    background-color: #0e7a0e;
-}
+    .ifc-sort-add:hover {
+        background-color: #0e7a0e;
+    }
 
 .ifc-active-button {
     background-color: #107c10 !important;
@@ -591,9 +591,9 @@
     border-bottom: 1px solid rgba(117, 117, 117, 0.3);
 }
 
-.ifc-accordion-group:first-child {
-    border-top: 1px solid rgba(117, 117, 117, 0.3);
-}
+    .ifc-accordion-group:first-child {
+        border-top: 1px solid rgba(117, 117, 117, 0.3);
+    }
 
 .ifc-accordion-header {
     display: flex;
@@ -613,15 +613,15 @@
     transition: opacity 0.15s ease;
 }
 
-.ifc-accordion-header:hover {
-    opacity: 0.8;
-}
+    .ifc-accordion-header:hover {
+        opacity: 0.8;
+    }
 
-.ifc-accordion-header:focus-visible {
-    outline: 2px solid currentColor;
-    outline-offset: -2px;
-    border-radius: 2px;
-}
+    .ifc-accordion-header:focus-visible {
+        outline: 2px solid currentColor;
+        outline-offset: -2px;
+        border-radius: 2px;
+    }
 
 .ifc-accordion-title {
     flex: 1;
@@ -637,10 +637,10 @@
     pointer-events: none;
 }
 
-.ifc-accordion-chevron svg {
-    width: 16px;
-    height: 16px;
-}
+    .ifc-accordion-chevron svg {
+        width: 16px;
+        height: 16px;
+    }
 
 .ifc-accordion-content {
     padding: 0 4px 12px 4px;
@@ -662,22 +662,22 @@
     scrollbar-color: #107c10 transparent;
 }
 
-.ifc-checkbox-list-scrollable::-webkit-scrollbar {
-    width: 6px;
-}
+    .ifc-checkbox-list-scrollable::-webkit-scrollbar {
+        width: 6px;
+    }
 
-.ifc-checkbox-list-scrollable::-webkit-scrollbar-track {
-    background: transparent;
-}
+    .ifc-checkbox-list-scrollable::-webkit-scrollbar-track {
+        background: transparent;
+    }
 
-.ifc-checkbox-list-scrollable::-webkit-scrollbar-thumb {
-    background: #107c10;
-    border-radius: 3px;
-}
+    .ifc-checkbox-list-scrollable::-webkit-scrollbar-thumb {
+        background: #107c10;
+        border-radius: 3px;
+    }
 
-.ifc-checkbox-list-scrollable::-webkit-scrollbar-thumb:hover {
-    background: #0e7a0e;
-}
+        .ifc-checkbox-list-scrollable::-webkit-scrollbar-thumb:hover {
+            background: #0e7a0e;
+        }
 
 .ifc-checkbox-item {
     display: flex;
@@ -693,9 +693,9 @@
     transition: opacity 0.1s ease;
 }
 
-.ifc-checkbox-item:hover {
-    opacity: 0.8;
-}
+    .ifc-checkbox-item:hover {
+        opacity: 0.8;
+    }
 
 .ifc-checkbox {
     appearance: none;
@@ -714,28 +714,28 @@
     flex-shrink: 0;
 }
 
-.ifc-checkbox:checked {
-    background-color: #ffffff;
-}
+    .ifc-checkbox:checked {
+        background-color: #ffffff;
+    }
 
-.ifc-checkbox:checked::after {
-    content: '';
-    position: absolute;
-    top: 1px;
-    left: 4.5px;
-    width: 4px;
-    height: 8px;
-    border: solid;
-    border-width: 0 2px 2px 0;
-    border-color: #262626;
-    transform: rotate(45deg);
-}
+        .ifc-checkbox:checked::after {
+            content: '';
+            position: absolute;
+            top: 1px;
+            left: 4.5px;
+            width: 4px;
+            height: 8px;
+            border: solid;
+            border-width: 0 2px 2px 0;
+            border-color: #262626;
+            transform: rotate(45deg);
+        }
 
-.ifc-checkbox:focus-visible {
-    outline: 2px solid #ffffff;
-    outline-offset: 2px;
-    border-radius: 2px;
-}
+    .ifc-checkbox:focus-visible {
+        outline: 2px solid #ffffff;
+        outline-offset: 2px;
+        border-radius: 2px;
+    }
 
 .ifc-checkbox-label {
     flex: 1;
