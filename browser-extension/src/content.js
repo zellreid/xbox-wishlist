@@ -29,30 +29,32 @@
     };
     window.injected = state;
 
-    async function initialize() {
-        try {
-            loadFilterState();
-            const ce = getElement(`#${CONFIG.selectors.content}`, false);
-            const target = ce || document.body;
-            observer.observe(target, { childList: true, subtree: true });
-        } catch (ex) { console.error('Failed to initialize script:', ex); }
-    }
-
-    // ==================== RESILIENT SELECTOR RESOLVER ====================
-    const SELECTOR_CACHE = new Map();
-
-    function resolveClass(prefix) {
-        if (SELECTOR_CACHE.has(prefix)) return SELECTOR_CACHE.get(prefix);
-        const el = document.querySelector(`[class*="${prefix}"]`);
-        if (el) {
-            const match = Array.from(el.classList).find(c => c.startsWith(prefix));
-            if (match) { SELECTOR_CACHE.set(prefix, match); return match; }
-        }
-        SELECTOR_CACHE.set(prefix, null);
-        return null;
-    }
-
-    function clearSelectorCache() { SELECTOR_CACHE.clear(); }
+    // ==================== CONFIGURATION ====================
+    const CONFIG = {
+        selectors: {
+            content: 'PageContent',
+            items: null, buttons: null, imageContainer: null,
+            productDetails: null, productLink: null,
+            productPublisher: null, productPrices: null,
+            filterGroups: '.filter-groups'
+        },
+        ids: {
+            buttonContainer: 'ifc_ButtonContainer',
+            filterContainer: 'injectedFilterControls',
+            sortContainer: 'injectedSortControls',
+            filterLabel: 'ifc_lbl_Filter',
+            filterButton: 'ifc_btn_Filter',
+            sortButton: 'ifc_btn_Sort',
+            tagContainer: 'ifc_tag_container',
+            ownedSelect: 'ifc_select_owned',
+            publishersSelect: 'ifc_select_publishers',
+            priceSlider: 'ifc_slider_price',
+            discountSlider: 'ifc_slider_discount'
+        },
+        classes: { button: [], svgIcon: [], activeButton: null },
+        storage: { key: 'ifc_xbox_wishlist' },
+        ui: { buttonContainer: { position: 'fixed', top: '100px', right: '100px', zIndex: '998' } }
+    };
 
     // ==================== SELECTOR PREFIXES ====================
     const PREFIXES = {
@@ -82,32 +84,46 @@
         discountTag: 'Price-module__discountTag___',
     };
 
-    // ==================== CONFIGURATION ====================
-    const CONFIG = {
-        selectors: {
-            content: 'PageContent',
-            items: null, buttons: null, imageContainer: null,
-            productDetails: null, productLink: null,
-            productPublisher: null, productPrices: null,
-            filterGroups: '.filter-groups'
-        },
-        ids: {
-            buttonContainer: 'ifc_ButtonContainer',
-            filterContainer: 'injectedFilterControls',
-            sortContainer: 'injectedSortControls',
-            filterLabel: 'ifc_lbl_Filter',
-            filterButton: 'ifc_btn_Filter',
-            sortButton: 'ifc_btn_Sort',
-            tagContainer: 'ifc_tag_container',
-            ownedSelect: 'ifc_select_owned',
-            publishersSelect: 'ifc_select_publishers',
-            priceSlider: 'ifc_slider_price',
-            discountSlider: 'ifc_slider_discount'
-        },
-        classes: { button: [], svgIcon: [], activeButton: null },
-        storage: { key: 'ifc_xbox_wishlist' },
-        ui: { buttonContainer: { position: 'fixed', top: '100px', right: '100px', zIndex: '998' } }
-    };
+    // ==================== INITIALIZATION ====================
+    async function initialize() {
+        try {
+            loadFilterState();
+            const ce = getElement(`#${CONFIG.selectors.content}`, false);
+            const target = ce || document.body;
+            observer.observe(target, { childList: true, subtree: true });
+        } catch (ex) { console.error('Failed to initialize script:', ex); }
+    }
+
+    async function onDOMReady() {
+        if (state.ui.complete) return;
+        if (!resolveSelectors()) return;
+        if (!document.getElementsByClassName(CONFIG.selectors.items).length) return;
+        try {
+            floatButtons();
+            await addFilterControls();
+            removeUnwantedControls();
+            state.ui.complete = true;
+            updateScreen();
+            console.log('[XBOX Wishlist] v1.4 initialized successfully!');
+        } catch (ex) { console.error('Failed to initialize UI:', ex); }
+        observer.disconnect();
+    }
+
+    // ==================== RESILIENT SELECTOR RESOLVER ====================
+    const SELECTOR_CACHE = new Map();
+
+    function resolveClass(prefix) {
+        if (SELECTOR_CACHE.has(prefix)) return SELECTOR_CACHE.get(prefix);
+        const el = document.querySelector(`[class*="${prefix}"]`);
+        if (el) {
+            const match = Array.from(el.classList).find(c => c.startsWith(prefix));
+            if (match) { SELECTOR_CACHE.set(prefix, match); return match; }
+        }
+        SELECTOR_CACHE.set(prefix, null);
+        return null;
+    }
+
+    function clearSelectorCache() { SELECTOR_CACHE.clear(); }
 
     function resolveSelectors() {
         clearSelectorCache();
@@ -999,22 +1015,6 @@
     function removeUnwantedControls() {
         try { document.querySelectorAll('.hr.border-neutral-200').forEach(el => el.remove()); }
         catch (ex) { console.error('Failed to remove unwanted controls:', ex); }
-    }
-
-    // ==================== INITIALIZATION ====================
-    async function onDOMReady() {
-        if (state.ui.complete) return;
-        if (!resolveSelectors()) return;
-        if (!document.getElementsByClassName(CONFIG.selectors.items).length) return;
-        try {
-            floatButtons();
-            await addFilterControls();
-            removeUnwantedControls();
-            state.ui.complete = true;
-            updateScreen();
-            console.log('[XBOX Wishlist] v1.4 initialized successfully!');
-        } catch (ex) { console.error('Failed to initialize UI:', ex); }
-        observer.disconnect();
     }
 
     // ==================== START ====================

@@ -5,7 +5,7 @@
 .filter-section {
     position: fixed;
     top: 160px;
-    right: 120px;
+    right: 100px;
     width: 280px;
     border-radius: 10px;
     padding: 15px;
@@ -20,6 +20,11 @@
 }
 
 .filter-dropdown {
+}
+
+
+ul.filter-groups {
+    padding-inline-start: 0px;
 }
 
 .filter-block {
