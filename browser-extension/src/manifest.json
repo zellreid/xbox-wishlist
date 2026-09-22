@@ -25,15 +25,15 @@
   "content_scripts": [
     {
       "matches": [ "https://www.xbox.com/*/wishlist*" ],
-      "js": [ "content.js" ],
-      "css": [ "styles.css" ],
+      "js": [ "shared/xbox-wishlist.core.js", "content.js" ],
+      "css": [ "shared/styles.css" ],
       "run_at": "document_idle"
     }
   ],
 
   "web_accessible_resources": [
     {
-      "resources": ["icons/*.svg", "icons/*.png", "styles.css"],
+      "resources": ["shared/icons/*.svg", "shared/styles.css", "icons/*.png"],
       "matches": ["https://www.xbox.com/*"]
     }
   ],

@@ -1,1 +1,6 @@
 /.vs/*
+
+# Local-only wishlist page captures used by tools/mock-harness (personal
+# browsing data - never commit; drop your own "Save As Complete" snapshots
+# here and run tools/mock-harness/prepare-fixture.js)
+/mock_examples/

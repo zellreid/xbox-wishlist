@@ -222,10 +222,13 @@ minimalism over velocity. When in doubt, do less and confirm.
 xbox-wishlist is a Chrome/Edge browser extension (Manifest V3) that injects
 advanced filtering, sorting, and UI enhancements into the Xbox wishlist page
 at `xbox.com/*/wishlist`. It dynamically resolves Xbox's hashed CSS module
-class names at runtime, making it resilient to site rebuilds. A parallel
-Tampermonkey/Greasemonkey userscript (`xbox-wishlist.user.js`) exists as a
-legacy distribution channel. The extension targets Edge and Chrome as
-co-primary browsers, with future multi-browser support planned.
+class names at runtime, making it resilient to site rebuilds. All wishlist
+logic lives in a shared, platform-agnostic core
+(`browser-extension/src/shared/xbox-wishlist.core.js`) that both the Chrome
+extension and a Tampermonkey/Greasemonkey userscript (`xbox-wishlist.user.js`)
+load and drive through a small adapter — see Section 2.3. The extension
+targets Edge and Chrome as co-primary browsers, with future multi-browser
+support planned.
 
 **Repository Root:** `C:\Dev\zellreid\_personal\XBOX\xbox-wishlist`
 **Primary Language:** JavaScript (vanilla ES2020+, no transpiler currently)
@@ -282,13 +285,15 @@ Resolution: consolidate all storage to `chrome.storage.local`.
 
 | Layer | File | Responsibility |
 |---|---|---|
-| Content Script | `browser-extension/src/content.js` | Core IIFE: DOM injection, selector resolution, filtering, sorting, state management, storage I/O |
+| Shared Core | `browser-extension/src/shared/xbox-wishlist.core.js` | Platform-agnostic IIFE-in-a-function: DOM injection, selector resolution, filtering, sorting, state management. Takes an `adapter` (storage + resource URL callbacks) so it never calls `chrome.*` or `GM_*` directly. Consumed by both the extension and the userscript — this is the single source of truth for wishlist logic. |
+| Extension Adapter | `browser-extension/src/content.js` | Thin wrapper: builds the `chrome.storage`/`chrome.runtime.getURL` adapter and calls `XboxWishlistCore.init(adapter)` |
 | Popup UI | `browser-extension/src/popup.js` + `popup.html` | Extension popup: preset filter triggers, persist-state toggle |
 | Service Worker | `browser-extension/src/background.js` | Minimal messaging relay between popup and content script |
-| Styles | `browser-extension/src/styles.css` | Injected UI styles — Xbox-themed, dark mode, custom scrollbars |
-| Icons | `browser-extension/src/icons/` | PNG + SVG icons for extension toolbar and wishlist UI |
+| Shared Styles | `browser-extension/src/shared/styles.css` | Injected UI styles — Xbox-themed, dark mode, custom scrollbars. Loaded via `manifest.json` for the extension and via `@resource` for the userscript. |
+| Shared Icons | `browser-extension/src/shared/icons/` | SVG icons (filter/sort/expand/collapse) used by both platforms |
+| Toolbar Icons | `browser-extension/src/icons/` | PNG icons for the extension toolbar/action button only |
 | Manifest | `browser-extension/src/manifest.json` | MV3 manifest: permissions, host_permissions, CSP, web_accessible_resources |
-| Legacy Userscript | `xbox-wishlist.user.js` | Tampermonkey/Greasemonkey distribution — parallel asset, maintained separately |
+| Userscript Adapter | `xbox-wishlist.user.js` | Tampermonkey/Greasemonkey distribution — `@require`s the shared core straight from GitHub raw, then builds the `GM_*` adapter and calls `XboxWishlistCore.init(adapter)` |
 | Docs | `docs/` | PRD, design docs, audit reports — read-only reference material |
 
 #### Dependency Direction
@@ -296,15 +301,19 @@ Resolution: consolidate all storage to `chrome.storage.local`.
 ```
 popup.js → (chrome.tabs.sendMessage) → content.js
 popup.js → chrome.storage.local (⚠️ currently .sync — see ISSUE-001)
-content.js → chrome.storage.local
+content.js → XboxWishlistCore.init(adapter) → chrome.storage.local
+xbox-wishlist.user.js → XboxWishlistCore.init(adapter) → GM_setValue/GM_getValue
 background.js → chrome.runtime.onMessage (passive relay only)
-content.js → DOM (xbox.com wishlist page)
+XboxWishlistCore → DOM (xbox.com wishlist page)
 ```
 
 #### Architectural Violations — Rejected Immediately
 
 - Business logic (filtering, sorting, selector resolution) placed in
-  `popup.js` or `background.js` — all logic lives in `content.js`.
+  `popup.js`, `background.js`, or either platform adapter (`content.js`,
+  `xbox-wishlist.user.js`) — all logic lives in
+  `shared/xbox-wishlist.core.js`, which neither of those files may bypass by
+  calling `chrome.*`/`GM_*` directly.
 - Direct DOM manipulation from `background.js` — service workers have no
   DOM access in MV3.
 - `chrome.storage.sync` calls in new code — use `chrome.storage.local` only
