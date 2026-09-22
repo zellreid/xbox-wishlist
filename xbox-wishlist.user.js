@@ -1017,10 +1017,14 @@ window.XboxWishlistCore = {
                     if (!state.filters.publishers.selected.includes(publisher.trim())) return false;
                 } else return false;
             }
-            if (state.filters.priceRange.enabled && !isNaN(price) && price > 0) {
+            if (state.filters.priceRange.enabled) {
+                // No price data at all (e.g. un-purchasable items) can't be "in range" - exclude.
+                if (isNaN(price)) return false;
                 if (price < state.filters.priceRange.currentMin || price > state.filters.priceRange.currentMax) return false;
             }
-            if (state.filters.discountRange.enabled && !isNaN(discount) && discount > 0) {
+            if (state.filters.discountRange.enabled) {
+                // No price means no meaningful discount either - exclude, same as above.
+                if (isNaN(price)) return false;
                 if (discount < state.filters.discountRange.currentMin || discount > state.filters.discountRange.currentMax) return false;
             }
             return true;
