@@ -293,7 +293,7 @@ Resolution: consolidate all storage to `chrome.storage.local`.
 | Shared Icons | `browser-extension/src/shared/icons/` | SVG icons (filter/sort/expand/collapse) used by both platforms |
 | Toolbar Icons | `browser-extension/src/icons/` | PNG icons for the extension toolbar/action button only |
 | Manifest | `browser-extension/src/manifest.json` | MV3 manifest: permissions, host_permissions, CSP, web_accessible_resources |
-| Userscript Adapter | `xbox-wishlist.user.js` | Tampermonkey/Greasemonkey distribution — `@require`s the shared core straight from GitHub raw, then builds the `GM_*` adapter and calls `XboxWishlistCore.init(adapter)` |
+| Userscript Adapter | `xbox-wishlist.user.js` (generated — see `tools/userscript/`) | Tampermonkey/Greasemonkey distribution — a single self-contained file built by concatenating `tools/userscript/header.template.js` + the shared core + `tools/userscript/adapter.js`. The core is inlined rather than `@require`-d so the file GreasyFork reviews is the file that actually runs. Never hand-edit this file — edit the three sources and run `node tools/userscript/build.js` (or `bump-version.js` to also bump the version). |
 | Docs | `docs/` | PRD, design docs, audit reports — read-only reference material |
 
 #### Dependency Direction
@@ -617,8 +617,10 @@ A task is **complete** only when ALL of the following are true:
 - **Branch naming:** `feature/`, `fix/`, `chore/` prefixes
   - Example: `fix/storage-sync-local-consolidation`
 - **Protected:** `main` — no direct push
-- **Userscript versioning:** When `xbox-wishlist.user.js` is updated, bump
-  the `@version` header and keep it in sync with `manifest.json` version.
+- **Userscript versioning:** Don't hand-edit `@version` in
+  `xbox-wishlist.user.js` (it's generated — see `tools/userscript/README.md`).
+  Run `node tools/userscript/bump-version.js` to bump it following the
+  `major.minor.YYDDD.revision` scheme and regenerate the file.
 
 </git_conventions>
 
