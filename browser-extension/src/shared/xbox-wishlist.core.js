@@ -64,8 +64,7 @@ window.XboxWishlistCore = {
                 discountSlider: 'ifc_slider_discount'
             },
             classes: { button: [], svgIcon: [], activeButton: null },
-            storage: { key: 'ifc_xbox_wishlist' },
-            ui: { buttonContainer: { position: 'fixed', top: '100px', right: '100px', zIndex: '998' } }
+            storage: { key: 'ifc_xbox_wishlist' }
         };
 
         // ==================== SELECTOR PREFIXES ====================
@@ -195,7 +194,6 @@ window.XboxWishlistCore = {
         }
         function clearElementCache() { state.elementCache.clear(); }
         function addClasses(element, classes) { if (element && classes?.length) element.classList.add(...classes); }
-        function applyStyles(element, styles) { if (element && styles) Object.assign(element.style, styles); }
         function setDataAttribute(element, key, value) {
             try { element.dataset[key] = value ?? null; }
             catch (ex) { console.error(`Failed to set data attribute ${key}:`, ex); element.dataset[key] = null; }
@@ -310,8 +308,8 @@ window.XboxWishlistCore = {
             const tagContainer = getElement(`#${CONFIG.ids.tagContainer}`);
             if (!tagContainer) return;
             tagContainer.innerHTML = '';
-            if (state.filters.activeTags.length === 0) { tagContainer.style.display = 'none'; return; }
-            tagContainer.style.display = 'flex';
+            tagContainer.classList.toggle('ifc-hidden', state.filters.activeTags.length === 0);
+            if (state.filters.activeTags.length === 0) return;
             state.filters.activeTags.forEach(tag => {
                 const tagEl = document.createElement('span');
                 tagEl.className = 'ifc-filter-tag'; tagEl.textContent = tag.label;
@@ -368,7 +366,6 @@ window.XboxWishlistCore = {
         // ==================== UI CREATION HELPERS ====================
         function createLabel(id, text) {
             const label = document.createElement('label');
-            applyStyles(label, { marginLeft: '5px', marginRight: '5px' });
             label.textContent = text; if (id) label.id = `ifc_lbl_${id}`;
             return label;
         }
@@ -467,7 +464,6 @@ window.XboxWishlistCore = {
                     document.body.appendChild(buttonContainer);
                 }
                 buttonContainer.id = CONFIG.ids.buttonContainer;
-                applyStyles(buttonContainer, CONFIG.ui.buttonContainer);
                 state.ui.floatButtons = true;
             } catch (ex) { console.error('Failed to float buttons:', ex); }
         }
@@ -504,15 +500,14 @@ window.XboxWishlistCore = {
                 if (getElement(`#${CONFIG.ids.filterContainer}`, false)) return;
                 const fc = document.createElement('div');
                 fc.id = CONFIG.ids.filterContainer;
-                fc.classList.add('filter-section', 'SortAndFilters-module__container___yA+Vp');
-                fc.style.display = 'none';
+                fc.classList.add('filter-section', 'SortAndFilters-module__container___yA+Vp', 'ifc-hidden');
                 const fl = document.createElement('div');
                 fl.classList.add('filter-list', 'SortAndFilters-module__filterList___T81LH');
                 const h = document.createElement('h2');
                 h.classList.add('filter-text-heading', 'typography-module__spotLightSubtitlePortrait___RB7M0', 'SortAndFilters-module__filtersText___8OwXG');
                 h.textContent = 'Filters';
                 const tc = document.createElement('div');
-                tc.id = CONFIG.ids.tagContainer; tc.className = 'ifc-tag-container'; tc.style.display = 'none';
+                tc.id = CONFIG.ids.tagContainer; tc.className = 'ifc-tag-container ifc-hidden';
                 const fg = document.createElement('ul');
                 fg.classList.add('filter-groups', 'SortAndFilters-module__filterList___T81LH');
                 fl.appendChild(h); fl.appendChild(tc); fl.appendChild(fg); fc.appendChild(fl);
@@ -548,16 +543,15 @@ window.XboxWishlistCore = {
             headerButton.appendChild(headerText); headerButton.appendChild(chevronContainer);
 
             const contentPanel = document.createElement('div');
-            contentPanel.className = 'ifc-accordion-content';
+            contentPanel.className = 'ifc-accordion-content ifc-hidden';
             if (id) contentPanel.id = `ifc_group_content_${id}`;
-            contentPanel.style.display = 'none';
 
             // FIX: Load SVG directly into chevronContainer (closure ref) instead of
             // updateSVGIcon which looks for #ifc_img_... prefixed IDs that don't match
             headerButton.addEventListener('click', async () => {
                 const isExpanded = headerButton.getAttribute('aria-expanded') === 'true';
                 headerButton.setAttribute('aria-expanded', (!isExpanded).toString());
-                contentPanel.style.display = isExpanded ? 'none' : 'block';
+                contentPanel.classList.toggle('ifc-hidden', isExpanded);
                 const resourceKey = isExpanded ? 'IMGExpand' : 'IMGCollapse';
                 await loadSVGIntoContainer(chevronContainer, adapter.getResourceUrl(resourceKey), `accordion_${id}`);
             });
@@ -780,10 +774,11 @@ window.XboxWishlistCore = {
                 const fc = getElement(`#${CONFIG.ids.filterContainer}`), fb = getElement(`#${CONFIG.ids.filterButton}`);
                 if (!fc || !fb) return;
                 if (state.ui.divSortShow) toggleSortContainer();
+                fc.classList.toggle('ifc-hidden', !state.ui.divFilterShow);
                 if (state.ui.divFilterShow) {
-                    fc.style.display = null; fb.setAttribute('aria-pressed', 'true'); fb.classList.add(CONFIG.classes.activeButton);
+                    fb.setAttribute('aria-pressed', 'true'); fb.classList.add(CONFIG.classes.activeButton);
                 } else {
-                    fc.style.display = 'none'; fb.setAttribute('aria-pressed', 'false'); fb.classList.remove(CONFIG.classes.activeButton);
+                    fb.setAttribute('aria-pressed', 'false'); fb.classList.remove(CONFIG.classes.activeButton);
                 }
             } catch (ex) { console.error('Failed to toggle filter container:', ex); }
         }
@@ -795,8 +790,7 @@ window.XboxWishlistCore = {
                 if (getElement(`#${CONFIG.ids.sortContainer}`, false)) return;
                 const sc = document.createElement('div');
                 sc.id = CONFIG.ids.sortContainer;
-                sc.classList.add('filter-section', 'SortAndFilters-module__container___yA+Vp');
-                sc.style.display = 'none';
+                sc.classList.add('filter-section', 'SortAndFilters-module__container___yA+Vp', 'ifc-hidden');
                 const sl = document.createElement('div');
                 sl.classList.add('filter-list', 'SortAndFilters-module__filterList___T81LH');
                 const h = document.createElement('h2');
@@ -819,10 +813,11 @@ window.XboxWishlistCore = {
                 const sc = getElement(`#${CONFIG.ids.sortContainer}`), sb = getElement(`#${CONFIG.ids.sortButton}`);
                 if (!sc || !sb) return;
                 if (state.ui.divFilterShow) toggleFilterContainer();
+                sc.classList.toggle('ifc-hidden', !state.ui.divSortShow);
                 if (state.ui.divSortShow) {
-                    sc.style.display = null; sb.setAttribute('aria-pressed', 'true'); sb.classList.add(CONFIG.classes.activeButton);
+                    sb.setAttribute('aria-pressed', 'true'); sb.classList.add(CONFIG.classes.activeButton);
                 } else {
-                    sc.style.display = 'none'; sb.setAttribute('aria-pressed', 'false'); sb.classList.remove(CONFIG.classes.activeButton);
+                    sb.setAttribute('aria-pressed', 'false'); sb.classList.remove(CONFIG.classes.activeButton);
                 }
             } catch (ex) { console.error('Failed to toggle sort container:', ex); }
         }
@@ -905,10 +900,8 @@ window.XboxWishlistCore = {
                 const dtc = resolveClass(PREFIXES.discountTag); if (dtc) badge.classList.add(dtc);
                 badge.textContent = `-${discountPercent}%`;
                 badge.setAttribute('aria-label', `${discountPercent}% discount`);
-                badge.style.marginLeft = '8px'; badge.style.display = 'inline-flex';
-                badge.style.alignItems = 'center'; badge.style.justifyContent = 'center';
                 const pc = pd.querySelector('div');
-                if (pc) { pc.style.display = 'flex'; pc.style.alignItems = 'center'; pc.appendChild(badge); }
+                if (pc) { pc.classList.add('ifc-price-row'); pc.appendChild(badge); }
             } catch (ex) { console.error('Failed to inject discount badge:', ex); }
         }
 
@@ -998,10 +991,10 @@ window.XboxWishlistCore = {
             Array.from(containers).forEach(c => {
                 try {
                     if (shouldShowContainer(c)) {
-                        c.style.display = null; c.classList.add('ifc-Show'); c.classList.remove('ifc-Hide');
+                        c.classList.add('ifc-Show'); c.classList.remove('ifc-Hide');
                         setDataAttribute(c, 'ifcShow', true);
                     } else {
-                        c.style.display = 'none'; c.classList.add('ifc-Hide'); c.classList.remove('ifc-Show');
+                        c.classList.add('ifc-Hide'); c.classList.remove('ifc-Show');
                         setDataAttribute(c, 'ifcShow', false);
                     }
                 } catch (ex) { console.error('Failed to toggle container:', ex); }

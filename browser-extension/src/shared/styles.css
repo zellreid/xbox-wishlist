@@ -4,8 +4,13 @@
 
 /* Force the "Viewing X of Y results" label onto its own line above the
    filter/sort buttons, whether this is Xbox's own native menu container
-   or our injected one for public wishlists (both get this id). */
+   or our injected one for public wishlists (both get this id). Position
+   here is the single source of truth - core.js just applies this id. */
 #ifc_ButtonContainer {
+    position: fixed;
+    top: 50px;
+    right: 100px;
+    z-index: 998;
     flex-wrap: wrap;
     justify-content: flex-end;
 }
@@ -13,15 +18,24 @@
 #ifc_lbl_Filter {
     flex-basis: 100%;
     text-align: right;
+    margin-left: 5px;
+    margin-right: 5px;
+}
+
+/* Generic "hide this element" toggle used in place of inline style.display
+   assignments - see the filter/sort panels, tag container, and accordion
+   content panels in xbox-wishlist.core.js. */
+.ifc-hidden {
+    display: none !important;
 }
 
 .filter-section {
     position: fixed;
     /* Below #ifc_ButtonContainer, which is now two rows tall (label above
        the filter/sort buttons) instead of one - see #ifc_ButtonContainer
-       above. Keep this in sync with CONFIG.ui.buttonContainer's top offset
-       in xbox-wishlist.core.js if that ever changes. */
-    top: 200px;
+       above. Keep this in sync with #ifc_ButtonContainer's top offset
+       if that ever changes. */
+    top: 140px;
     right: 100px;
     width: 280px;
     border-radius: 10px;
@@ -392,6 +406,10 @@ ul.filter-groups {
 }
 
 /* ==================== ITEM STATES ==================== */
+.ifc-Hide {
+    display: none !important;
+}
+
 .ifc-Owned {
     background-color: #10e11059;
 }
@@ -457,10 +475,18 @@ ul.filter-groups {
     text-align: center;
     min-width: 2.5rem;
     padding: 0 .375rem;
+    margin-left: 8px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+/* The (Xbox-owned) row a discount badge is appended into - given this class
+   ourselves rather than hard-coding one of Xbox's own class names. */
+.ifc-price-row {
+    display: flex;
+    align-items: center;
 }
 
 .theme-dark .ifc-discount-badge {
