@@ -2,9 +2,26 @@
     cursor: pointer;
 }
 
+/* Force the "Viewing X of Y results" label onto its own line above the
+   filter/sort buttons, whether this is Xbox's own native menu container
+   or our injected one for public wishlists (both get this id). */
+#ifc_ButtonContainer {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+#ifc_lbl_Filter {
+    flex-basis: 100%;
+    text-align: right;
+}
+
 .filter-section {
     position: fixed;
-    top: 160px;
+    /* Below #ifc_ButtonContainer, which is now two rows tall (label above
+       the filter/sort buttons) instead of one - see #ifc_ButtonContainer
+       above. Keep this in sync with CONFIG.ui.buttonContainer's top offset
+       in xbox-wishlist.core.js if that ever changes. */
+    top: 200px;
     right: 100px;
     width: 280px;
     border-radius: 10px;
@@ -12,7 +29,7 @@
     z-index: 998;
     --color: #f5f5f5;
     --background-color: #262626;
-    max-height: calc(100vh - 170px);
+    max-height: calc(100vh - 210px);
     overflow-y: auto;
     background-color: rgba(30, 30, 30, 0.70) !important;
     backdrop-filter: blur(12px);
