@@ -28,7 +28,7 @@ The Xbox wishlist page (`xbox.com/*/wishlist`) provides no native filtering, sor
 | Icons | SVG resources via `GM_getResourceURL` |
 | Persistence | `GM_setValue` / `GM_getValue` for user preferences |
 | Versioning | `major.minor.YYDDD.revision` (e.g. `1.4.26056.5`) |
-| Repo | `C:\Dev\zellreid\XBOX\xbox-wishlist` / `github.com/zellreid/xbox-wishlist` |
+| Repo | `C:\Dev\zellreid\_personal\XBOX\xbox-wishlist` / `github.com/zellreid/xbox-wishlist` |
 
 ---
 

@@ -5,44 +5,66 @@
 
 ## Architecture Overview
 
-This is a **single-page userscript injection** — no backend, no build pipeline, no server. Two files compose the entire system:
+The project ships as **two parallel, independently-maintained distributions**
+of the same feature set — no backend, no shared build pipeline, no server:
 
 ```
 xbox-wishlist/
-├── xbox-wishlist.user.js     # Core logic (currently ~1041 lines)
-├── xbox-wishlist.user.css    # Injected styles (currently ~751 lines)
-├── HANDOFF-DOCUMENT.md       # Session continuity doc
-├── README.md                 # Public-facing docs
+├── xbox-wishlist.user.js          # Userscript (Tampermonkey/Greasemonkey) — primary/live channel
+├── browser-extension/             # Chrome/Edge MV3 extension — secondary/unpublished channel
+│   └── src/
+│       ├── manifest.json
+│       ├── content.js             # Ported from xbox-wishlist.user.js
+│       ├── background.js
+│       ├── popup.html / popup.js
+│       ├── styles.css
+│       └── icons/
+├── AGENTS.md                      # Authoritative AI agent context (guardrails, HITL, extension architecture)
+├── CHANGELOG.md                   # Canonical version history for both channels
+├── README.md                      # Public-facing docs
 └── docs/
     ├── 01-PRD.md
-    ├── 02-SYSTEM-DESIGN.md
+    ├── 02-SYSTEM-DESIGN.md        # This file
     ├── 03-UI-UX-WIREFRAMES.md
     ├── 04-FEATURE-BREAKDOWN.md
     └── 05-MASTER-PROMPT.md
 ```
 
+The two channels currently drift out of sync — the userscript is the more
+advanced/live one. See `AGENTS.md` §2.1 for the tracked parity gap and
+`CHANGELOG.md` for what shipped where. This document covers the **userscript**
+system design in detail; for the extension's architecture, layer map, and
+coding standards, `AGENTS.md` §2.2–2.4 is authoritative.
+
 ---
 
-## Script Metadata Header
+## Userscript Metadata Header
 
 ```js
 // ==UserScript==
 // @name         XBOX Wishlist
 // @namespace    https://github.com/zellreid/xbox-wishlist
-// @version      1.4.26056.5
-// @description  Advanced filtering and sorting suite
+// @version      1.4.26057.1
+// @description  Advanced filtering and sorting suite with multi-level sort (up to 3 criteria) - Resilient selectors - Public wishlist support
 // @author       ZellReid
 // @match        https://www.xbox.com/*/wishlist*
-// @require      https://cdn.jsdelivr.net/.../noUiSlider.min.js
-// @resource     IMGFilter   ./assets/filter.svg
-// @resource     IMGSort     ./assets/sort.svg
-// @resource     IMGExpand   ./assets/expand.svg
-// @resource     IMGCollapse ./assets/collapse.svg
-// @grant        GM_getValue
-// @grant        GM_setValue
+// @run-at       document-body
+// @resource     CSSFilter   https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/xbox-wishlist.user.css?ver=1.4.26057.1
+// @resource     IMGFilter   https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/filter.svg
+// @resource     IMGSort     https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/sort.svg
+// @resource     IMGExpand   https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/expand.svg
+// @resource     IMGCollapse https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/collapse.svg
 // @grant        GM_getResourceURL
+// @grant        GM_setValue
+// @grant        GM_getValue
 // ==/UserScript==
 ```
+
+There is no `@require` for an external slider library — the price/discount
+range sliders are native HTML5 dual-range `<input type="range">` elements,
+custom-styled via the injected CSS resource. The CSS itself is not a local
+`.user.css` file; it's fetched from the GitHub raw URL via `@resource
+CSSFilter` and injected with `GM_addStyle`.
 
 **URL match pattern:** `https://www.xbox.com/*/wishlist*`
 - `/*/` captures locale (en-ZA, en-US, etc.)
@@ -54,16 +76,12 @@ xbox-wishlist/
 
 All IDs, selectors, and constants live in one `CONFIG` object at the top of the script:
 
+This is a simplified illustration of the pattern, not a verbatim excerpt —
+see `xbox-wishlist.user.js` (search `const CONFIG`) for the exact current
+shape:
+
 ```js
 const CONFIG = {
-  version: '1.4.26056.5',
-  ids: {
-    filterContainer:  'ifc_filter_container',
-    sortContainer:    'ifc_sort_container',
-    filterBtn:        'ifc_btn_filter',
-    sortBtn:          'ifc_btn_sort',
-    tagContainer:     'ifc_tag_container',
-  },
   selectors: {
     // Resilient selectors — match by partial class name using [class*=]
     wishlistItem:     '[class*="WishlistItem-module__"]',
@@ -71,19 +89,10 @@ const CONFIG = {
     itemTitle:        '[class*="ProductCard-module__title"]',
     itemPrice:        '[class*="Price-module__"]',
     itemPublisher:    '[class*="ProductCard-module__developerName"]',
-    itemImage:        '[class*="ProductCard-module__image"]',
   },
   storage: {
-    filterState:      'xbw_filter_state',
-    sortState:        'xbw_sort_state',
-    flaggedItems:     'xbw_flagged_items',
-    priceHistory:     'xbw_price_history',
-    filterPresets:    'xbw_filter_presets',
+    key:              'ifc_xbox_wishlist',  // single JSON blob — see Persistence below
   },
-  defaults: {
-    priceMax:         3000,   // Overridden at runtime by dynamic calculation (F-16)
-    discountMax:      100,
-  }
 };
 ```
 
@@ -123,7 +132,7 @@ GM_setValue()  ← Persists state for next page load
 - Target: `[class*="WishlistPage-module__wishlistMenuButton"]`
 - Append our button bar directly after this container
 
-### Public / Shared Wishlist (F-17)
+### Public / Shared Wishlist (F-17 — shipped v1.4)
 - The `wishlistMenuButton` container does **not** exist
 - Fallback: create a new `div.ifc-injected-btn-bar` and insert it into the nearest stable parent (`[class*="WishlistPage-module__header"]` or similar)
 - Detection: `if (!document.querySelector(CONFIG.selectors.buttonsArea)) { createFallbackContainer(); }`
@@ -168,15 +177,15 @@ GM_setValue()  ← Persists state for next page load
 
 ## Persistence
 
-All state persisted via `GM_setValue` as JSON strings:
+State is persisted via a **single** `GM_setValue(CONFIG.storage.key, ...)`
+call, storing one JSON blob under the key `ifc_xbox_wishlist` — not multiple
+top-level keys. The blob contains filter state, sort criteria, and UI
+preferences together, read back with `GM_getValue` on init.
 
-| Key | Contents |
-|-----|----------|
-| `xbw_filter_state` | `{ owned, notOwned, unPurchasable, publishers[], priceMin, priceMax, discountMin, discountMax }` |
-| `xbw_sort_state` | `[ { field, direction }, ... ]` (up to 3) |
-| `xbw_flagged_items` | `[ id, id, ... ]` |
-| `xbw_price_history` | `{ [id]: [ { date, price }, ... ] }` |
-| `xbw_filter_presets` | `{ [name]: filterState }` |
+Planned features that need new persisted data (flagged items — F-25, price
+history — F-27, saved filter presets — F-23) should extend this same blob
+rather than introduce parallel storage keys, to keep the userscript and the
+extension's `chrome.storage.local` equivalent easy to keep in sync.
 
 ---
 

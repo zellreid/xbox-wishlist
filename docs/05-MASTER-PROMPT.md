@@ -7,11 +7,17 @@
 
 I am continuing work on **Xbox Wishlist Enhanced** — a Tampermonkey userscript that injects advanced filtering and sorting UI into `xbox.com/*/wishlist`.
 
-**Repo:** `C:\Dev\zellreid\XBOX\xbox-wishlist` (local) / `github.com/zellreid/xbox-wishlist`
-**Current Version:** `1.4.26056.5`
+**Repo:** `C:\Dev\zellreid\_personal\XBOX\xbox-wishlist` (local) / `github.com/zellreid/xbox-wishlist`
+**Current Version:** see [CHANGELOG.md](../CHANGELOG.md) for the current version
 **Files:**
-- `xbox-wishlist.user.js` — ~1041 lines, vanilla JS
-- `xbox-wishlist.user.css` — ~751 lines, injected CSS
+- `xbox-wishlist.user.js` — main userscript, vanilla JS
+- CSS is injected via `@resource CSSFilter` (no separate `.user.css` file on disk — see `docs/02-SYSTEM-DESIGN.md`)
+
+> **Note:** This document predates `AGENTS.md`, which is now the primary,
+> authoritative agent-context file for this repo (guardrails, HITL matrix,
+> skills). Use this file only for the userscript-specific quick-reference
+> tables below; defer to `AGENTS.md` for anything about process or the
+> browser extension.
 
 ---
 
@@ -37,9 +43,9 @@ I am continuing work on **Xbox Wishlist Enhanced** — a Tampermonkey userscript
 | Script delivery | Tampermonkey `.user.js` |
 | Language | Vanilla JavaScript ES2020+ |
 | Styling | Injected CSS via `.user.css` + `GM_addStyle` |
-| Sliders | noUiSlider (CDN via `@require`) |
+| Sliders | Native HTML5 dual-range inputs (custom-styled, no external slider library) |
 | Icons | SVG resources via `GM_getResourceURL` |
-| Persistence | `GM_getValue` / `GM_setValue` |
+| Persistence | `GM_getValue` / `GM_setValue` under a single key, `CONFIG.storage.key` |
 | Environment | Chrome + Tampermonkey on Windows (MSI-2025, user: zellr) |
 
 ---
@@ -59,11 +65,9 @@ I am continuing work on **Xbox Wishlist Enhanced** — a Tampermonkey userscript
 
 ## Current Known Issues / In Progress
 
-| ID | Issue | Status |
-|----|-------|--------|
-| F-15 | Accordion label/title styling polish | ⚠️ Partially done |
-| F-16 | Price slider max should be dynamic (currently hard-coded R3,000) | ⚠️ Placeholder |
-| F-17 | Public wishlist has no button container — need fallback injection | ❌ Not started |
+See `docs/04-FEATURE-BREAKDOWN.md` for the live backlog. F-15 through F-17
+(accordion polish, dynamic price slider max, public wishlist support) shipped
+in v1.4 — current pending work starts at F-18 (Clear All Filters).
 
 ---
 
@@ -98,15 +102,17 @@ itemPrice:     '[class*="Price-module__"]'
 itemPublisher: '[class*="ProductCard-module__developerName"]'
 ```
 
-## Quick Reference — Storage Keys
+## Quick Reference — Storage
 
 ```js
-xbw_filter_state    // Active filter state (JSON)
-xbw_sort_state      // Active sort levels array (JSON)
-xbw_flagged_items   // Array of flagged item IDs (JSON)
-xbw_price_history   // Price snapshot history per item (JSON)
-xbw_filter_presets  // Named saved filter presets (JSON)
+CONFIG.storage.key  // 'ifc_xbox_wishlist' — single JSON blob holding
+                     // filter state, sort criteria, and UI prefs
 ```
+
+Future features that need new persisted structures (flagged items, price
+history, saved presets — see F-23/F-25/F-27 in `04-FEATURE-BREAKDOWN.md`)
+should extend this JSON blob rather than introduce new top-level keys,
+unless there's a size/perf reason to split them out.
 
 ---
 

@@ -57,13 +57,8 @@ Click the **Sort** button to open the sort panel:
 
 ## Version History
 
-| Version | Date | Highlights |
-|---------|------|------------|
-| 1.4.26056.5 | Feb 2026 | Public wishlist support, expand/collapse icon fix, slider max R 3000, checkbox/scrollbar styling |
-| 1.3 | Jan 2026 | Multi-level sorting, resilient selectors, SVG icon resources, accordion UI |
-| 1.2 | Nov 2025 | Advanced filtering suite: price/discount sliders, filter tags, inverted logic |
-| 1.1 | Nov 2025 | Publisher filtering |
-| 1.0 | Nov 2025 | Initial release: price precision, discount badges |
+See [CHANGELOG.md](CHANGELOG.md) for the full version history across both
+the userscript and the browser extension.
 
 ## Technical Notes
 
@@ -82,7 +77,7 @@ If you find a bug, please [report it](https://github.com/zellreid/xbox-wishlist/
 
 ## Contributing
 
-This script is open source. Check the [Issues](https://github.com/zellreid/xbox-wishlist/issues) page for open items tagged "Accepted". Fork, branch, fix, and submit a pull request.
+This script is open source. See [CONTRIBUTING.md](CONTRIBUTING.md) for setup, coding standards, and the PR process. Check the [Issues](https://github.com/zellreid/xbox-wishlist/issues) page for open items tagged "Accepted".
 
 ## License
 

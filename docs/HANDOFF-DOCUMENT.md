@@ -12,7 +12,7 @@
 
 ### File Structure
 ```
-C:\Dev\zellreid\xbox-wishlist\
+C:\Dev\zellreid\_personal\XBOX\xbox-wishlist\
 ├── xbox-wishlist.user.js    # Main userscript (1041 lines)
 ├── xbox-wishlist.user.css   # Stylesheet (751 lines, loaded via @resource)
 ├── filter.svg               # Filter button icon
@@ -98,27 +98,7 @@ state = {
 
 ## Version History
 
-### v1.4.26056.5 (Feb 2026)
-- Public/shared wishlist support (injected button container)
-- Expand/collapse chevron icon toggle fix
-- Price slider max always reaches R 3,000
-- Checkbox colors reverted to white, scrollbar to green
-- BUY AS A GIFT button detection for public wishlists
-
-### v1.3 (Jan 2026)
-- Multi-level sort (up to 3 criteria)
-- Resilient CSS module class resolution
-- SVG icon resources (filter, sort, expand, collapse)
-- Accordion-based collapsible filter groups
-
-### v1.2 (Nov 2025)
-- Select2 multi-select dropdowns
-- Active filter tag display with one-click removal
-- Inverted filter logic (none selected = show all)
-- Price and discount range sliders
-
-### v1.1 (Nov 2025) - Publisher filtering
-### v1.0 (Nov 2025) - Price precision, discount badges
+See [CHANGELOG.md](../CHANGELOG.md) for the full, canonical version history across both the userscript and browser extension.
 
 ---
 
@@ -145,7 +125,7 @@ state = {
 
 ## How to Continue Development
 
-**Local dev path:** `C:\Dev\zellreid\xbox-wishlist` (accessible via Desktop Commander)
+**Local dev path:** `C:\Dev\zellreid\_personal\XBOX\xbox-wishlist` (accessible via Desktop Commander)
 **Repository:** https://github.com/zellreid/xbox-wishlist
 **GitHub raw URLs:**
 - JS: `https://github.com/zellreid/xbox-wishlist/raw/refs/heads/main/xbox-wishlist.user.js`
