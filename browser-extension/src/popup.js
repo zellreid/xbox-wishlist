@@ -18,12 +18,12 @@ function applyFilter(preset) {
 }
 
 document.getElementById('persist-state').addEventListener('change', (e) => {
-    chrome.storage.sync.set({
+    chrome.storage.local.set({
         persistFilters: e.target.checked
     });
 });
 
 // Load saved setting
-chrome.storage.sync.get(['persistFilters'], (result) => {
+chrome.storage.local.get(['persistFilters'], (result) => {
     document.getElementById('persist-state').checked = result.persistFilters || false;
 });

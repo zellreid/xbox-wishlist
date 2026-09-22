@@ -234,13 +234,12 @@ support planned.
 **Primary Language:** JavaScript (vanilla ES2020+, no transpiler currently)
 **Runtime / Framework:** Chrome Extension API — Manifest V3
 
-**⚠️ Known tracked defect — storage split (ISSUE-001):**
-`popup.js` currently uses `chrome.storage.sync` for the `persistFilters`
-setting while `content.js` uses `chrome.storage.local` for all filter state
-(key: `ifc_xbox_wishlist`). This split is **unintentional** and means the
-persist-filters toggle does not coordinate with filter state. Before modifying
-any storage calls in either file, trigger HITL (Section 2.7, Trigger #9).
-Resolution: consolidate all storage to `chrome.storage.local`.
+**✅ RESOLVED — storage split (ISSUE-001):**
+`popup.js` previously used `chrome.storage.sync` for the `persistFilters`
+setting while the core used `chrome.storage.local` for all filter state
+(key: `ifc_xbox_wishlist`). `popup.js` now uses `chrome.storage.local` for
+`persistFilters` too, so all storage in this project goes through
+`chrome.storage.local`. Do not reintroduce `chrome.storage.sync` in new code.
 
 </agent_profile>
 
@@ -300,7 +299,7 @@ Resolution: consolidate all storage to `chrome.storage.local`.
 
 ```
 popup.js → (chrome.tabs.sendMessage) → content.js
-popup.js → chrome.storage.local (⚠️ currently .sync — see ISSUE-001)
+popup.js → chrome.storage.local
 content.js → XboxWishlistCore.init(adapter) → chrome.storage.local
 xbox-wishlist.user.js → XboxWishlistCore.init(adapter) → GM_setValue/GM_getValue
 background.js → chrome.runtime.onMessage (passive relay only)
@@ -487,7 +486,7 @@ proceeding in **any** of the following cases:
 | 6 | **Destructive operation** — irreversible file deletion or manifest permission removal | Loss of extension functionality |
 | 7 | **New cross-module coupling** — popup.js or background.js taking on filtering/sorting logic | Architectural violation |
 | 8 | **Conflict with this document** — user instruction contradicts a rule in AGENTS.md | Governance breach |
-| 9 | **ISSUE-001 storage changes** — any modification to storage calls in `popup.js` or `content.js` | Worsening the sync/local split before a coordinated fix |
+| 9 | **Reintroducing `chrome.storage.sync`** — ISSUE-001 (sync/local split) is resolved; any new `.sync` call in `popup.js` or `content.js` regresses it | Reopening the sync/local split |
 | 10 | **Manifest changes** — any edit to `manifest.json` (CSP, permissions, content_scripts config) | Extension breakage, Web Store policy violation |
 | 11 | **Build pipeline introduction** — adding `package.json`, a bundler (Vite/esbuild), or transpilation step | Changes how all source files are loaded and deployed |
 

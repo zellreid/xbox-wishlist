@@ -801,18 +801,24 @@ window.XboxWishlistCore = {
         }
 
         // ==================== FILTER TOGGLE HANDLERS ====================
+        // Applies filter panel visibility directly, with no side effect on the
+        // sort panel - used by toggleFilterContainer() and by
+        // toggleSortContainer() when it needs to close this panel, so opening
+        // one panel while the other is open can't recurse back and forth.
+        function setFilterVisible(show) {
+            const fc = getElement(`#${CONFIG.ids.filterContainer}`), fb = getElement(`#${CONFIG.ids.filterButton}`);
+            if (!fc || !fb) return;
+            state.ui.divFilterShow = show;
+            fc.classList.toggle('ifc-hidden', !show);
+            fb.setAttribute('aria-pressed', show ? 'true' : 'false');
+            fb.classList[show ? 'add' : 'remove'](CONFIG.classes.activeButton);
+        }
+
         function toggleFilterContainer() {
             try {
-                state.ui.divFilterShow = !state.ui.divFilterShow;
-                const fc = getElement(`#${CONFIG.ids.filterContainer}`), fb = getElement(`#${CONFIG.ids.filterButton}`);
-                if (!fc || !fb) return;
-                if (state.ui.divSortShow) toggleSortContainer();
-                fc.classList.toggle('ifc-hidden', !state.ui.divFilterShow);
-                if (state.ui.divFilterShow) {
-                    fb.setAttribute('aria-pressed', 'true'); fb.classList.add(CONFIG.classes.activeButton);
-                } else {
-                    fb.setAttribute('aria-pressed', 'false'); fb.classList.remove(CONFIG.classes.activeButton);
-                }
+                const show = !state.ui.divFilterShow;
+                if (show && state.ui.divSortShow) setSortVisible(false);
+                setFilterVisible(show);
             } catch (ex) { console.error('Failed to toggle filter container:', ex); }
         }
 
@@ -840,18 +846,21 @@ window.XboxWishlistCore = {
             } catch (ex) { console.error('Failed to add sort container:', ex); }
         }
 
+        // See setFilterVisible() above for why this is separate from toggleSortContainer().
+        function setSortVisible(show) {
+            const sc = getElement(`#${CONFIG.ids.sortContainer}`), sb = getElement(`#${CONFIG.ids.sortButton}`);
+            if (!sc || !sb) return;
+            state.ui.divSortShow = show;
+            sc.classList.toggle('ifc-hidden', !show);
+            sb.setAttribute('aria-pressed', show ? 'true' : 'false');
+            sb.classList[show ? 'add' : 'remove'](CONFIG.classes.activeButton);
+        }
+
         function toggleSortContainer() {
             try {
-                state.ui.divSortShow = !state.ui.divSortShow;
-                const sc = getElement(`#${CONFIG.ids.sortContainer}`), sb = getElement(`#${CONFIG.ids.sortButton}`);
-                if (!sc || !sb) return;
-                if (state.ui.divFilterShow) toggleFilterContainer();
-                sc.classList.toggle('ifc-hidden', !state.ui.divSortShow);
-                if (state.ui.divSortShow) {
-                    sb.setAttribute('aria-pressed', 'true'); sb.classList.add(CONFIG.classes.activeButton);
-                } else {
-                    sb.setAttribute('aria-pressed', 'false'); sb.classList.remove(CONFIG.classes.activeButton);
-                }
+                const show = !state.ui.divSortShow;
+                if (show && state.ui.divFilterShow) setFilterVisible(false);
+                setSortVisible(show);
             } catch (ex) { console.error('Failed to toggle sort container:', ex); }
         }
 
