@@ -144,7 +144,8 @@ description: >
   Performs an exhaustive review of staged changes or a specified diff.
   Analyses for CSP violations, MV3 compliance issues, prohibited patterns,
   storage discipline, and style regressions before any commit.
-  Run before every commit on changes touching content.js, popup.js, or
+  Run before every commit on changes touching the shared core, either
+  platform adapter (content.js / xbox-wishlist.user.js), popup.js, or
   manifest.json.
 ```
 
@@ -157,7 +158,7 @@ they enter the repository. You report findings — you do not silently fix them.
 **Trigger options:**
 - Staged changes: `git diff --cached`
 - Unstaged changes: `git diff`
-- Specific file: `git diff HEAD -- browser-extension/src/content.js`
+- Specific file: `git diff HEAD -- browser-extension/src/shared/xbox-wishlist.core.js`
 - PR comparison: `git diff main...feature/branch-name`
 
 ---
@@ -177,7 +178,8 @@ they enter the repository. You report findings — you do not silently fix them.
 - `eval()`, `new Function()`, or dynamic `<script>` injection
 - External script URLs injected into the page
 - New host_permissions or manifest permissions added without HITL approval
-- `chrome.storage.sync` calls in new code (ISSUE-001 compliance)
+- `chrome.storage.sync` calls anywhere (ISSUE-001 is resolved — all storage
+  is `chrome.storage.local`; a new `.sync` call is a regression)
 
 **Pass 2 — MV3 Compliance & Cross-Browser Compatibility**
 - Service worker APIs used that are not supported in Edge or Firefox
@@ -185,16 +187,20 @@ they enter the repository. You report findings — you do not silently fix them.
 - `manifest.json` fields that differ between Chrome and Edge MV3 spec
 
 **Pass 3 — Architectural Integrity (AGENTS.md Section 2.3)**
-- Filtering or sorting logic placed in `popup.js` or `background.js`
+- Filtering or sorting logic placed in `popup.js`, `background.js`, or either
+  platform adapter (`content.js`, `xbox-wishlist.user.js`) instead of
+  `shared/xbox-wishlist.core.js`
 - Hard-coded Xbox CSS class names bypassing `resolveClass()`
 - DOM queries inside filter evaluation loops (should be `dataset.ifcXxx` reads)
 - New files added to `browser-extension/src/` without `web_accessible_resources` update
+- Hand-edits to `xbox-wishlist.user.js` itself (it's generated — see
+  `tools/userscript/README.md`)
 
 **Pass 4 — Robustness**
 - Storage calls without try/catch
 - Missing null checks on `resolveClass()` return values (can return `null`)
 - Unhandled promise rejections on chrome API calls
-- `console.error` missing on catch blocks in content.js initialization paths
+- `console.error` missing on catch blocks in the shared core's initialization paths
 
 **Pass 5 — Style & Standards (AGENTS.md Section 2.4)**
 - Naming convention violations (`ifc_` IDs, `ifc-` classes, `data-ifc-` attributes)
@@ -302,8 +308,9 @@ design document **before** any implementation code is written.
 ### Phase 1 — Requirement Analysis
 
 1. Restate the feature request in your own words to confirm understanding.
-2. Identify which files will be affected (content.js / popup.js / background.js
-   / manifest.json / styles.css).
+2. Identify which files will be affected (shared/xbox-wishlist.core.js /
+   content.js / xbox-wishlist.user.js / popup.js / background.js /
+   manifest.json / shared/styles.css).
 3. Identify any HITL triggers this feature will invoke (AGENTS.md Section 2.7).
 4. Flag any ambiguities that need human clarification before design proceeds.
    If any exist, halt here and ask.
@@ -340,9 +347,10 @@ design document **before** any implementation code is written.
 [Any manifest.json edits required — or "None"]
 [Trigger HITL block per AGENTS.md 2.7 #10 for any manifest change]
 
-### ISSUE-001 Interaction
-[Does this feature touch storage calls? If yes, note impact on the sync/local
-split and whether this is an opportunity to resolve it.]
+### Storage Impact
+[Does this feature touch storage calls? If yes, confirm it uses
+`chrome.storage.local` only — ISSUE-001 (the old sync/local split) is
+resolved; a new `.sync` call would reopen it.]
 
 ### Security Considerations
 [CSP compliance, new host_permissions, web_accessible_resources updates]
@@ -368,7 +376,7 @@ Please review the ADR, particularly:
   - Chrome API / permission changes (HITL required if any)
   - Manifest changes (HITL required if any)
   - Message contract changes
-  - ISSUE-001 interaction
+  - Storage impact
 
 Reply APPROVE to proceed to implementation planning.
 Reply REVISE [feedback] to adjust the architecture before proceeding.
@@ -399,16 +407,22 @@ name: skill-scaffold-feature
 trigger: /skill-scaffold-feature
 description: >
   End-to-end scaffold for a new filter criterion, sort criterion, or UI
-  enhancement in content.js. Follows the existing state/config/DOM injection
-  patterns exactly so new features are structurally consistent with the
-  codebase. Use whenever adding a new filter option, sort field, or injected
-  UI control.
+  enhancement in the shared core (shared/xbox-wishlist.core.js). Follows the
+  existing state/config/DOM injection patterns exactly so new features are
+  structurally consistent with the codebase, and land automatically in both
+  the extension and the userscript. Use whenever adding a new filter option,
+  sort field, or injected UI control.
 ```
 
 <skill_definition name="skill-scaffold-feature">
 
-You are scaffolding a new feature in content.js. You must follow the existing
-architectural patterns exactly — no new abstractions, no structural deviations.
+You are scaffolding a new feature in shared/xbox-wishlist.core.js — never in
+content.js or xbox-wishlist.user.js, which are thin per-platform adapters
+only (see AGENTS.md §2.3). You must follow the existing architectural
+patterns exactly — no new abstractions, no structural deviations. If the
+feature is userscript-only, remember xbox-wishlist.user.js is generated
+(`tools/userscript/build.js`) — rebuild it after editing the core, never
+hand-edit it.
 
 **Pre-conditions:**
 - AGENTS.md has been read in full this session.
@@ -420,7 +434,7 @@ architectural patterns exactly — no new abstractions, no structural deviations
 ### Phase 1 — Pattern Mapping
 
 1. Identify which existing feature is most structurally similar to the new one.
-   Read only the relevant section of `content.js` (use line ranges).
+   Read only the relevant section of `shared/xbox-wishlist.core.js` (use line ranges).
 2. Extract the pattern:
    - State slot in `state.filters` or `state.sort.fields`
    - Config slot in `CONFIG.ids` or `CONFIG.selectors`
@@ -435,11 +449,11 @@ architectural patterns exactly — no new abstractions, no structural deviations
 Scaffold Phase 1 Complete — Pattern Mapped
 
 Similar existing feature : [name]
-State slot location      : content.js line [N]
-Config slot location     : content.js line [N]
-DOM injection location   : content.js line [N]
-Filter/sort eval location: content.js line [N]
-Storage location         : content.js line [N]
+State slot location      : shared/xbox-wishlist.core.js line [N]
+Config slot location     : shared/xbox-wishlist.core.js line [N]
+DOM injection location   : shared/xbox-wishlist.core.js line [N]
+Filter/sort eval location: shared/xbox-wishlist.core.js line [N]
+Storage location         : shared/xbox-wishlist.core.js line [N]
 
 Proposed insertions:
 [numbered list of each change with file + line]
@@ -473,7 +487,10 @@ Scaffold Phase 2 Complete — Code Generated
 
 Files modified : [list]
 Lines changed  : [summary per file]
-ISSUE-001 check: No new chrome.storage.sync calls introduced ✅
+Storage check  : No new chrome.storage.sync calls introduced ✅
+
+If xbox-wishlist.user.js needed a change, confirm `node tools/userscript/build.js`
+was run afterward rather than hand-editing the generated file.
 
 Please load the extension unpacked and verify the new feature.
 Reply APPROVE to close the skill, or REVISE [feedback] to adjust.
@@ -487,19 +504,25 @@ Reply APPROVE to close the skill, or REVISE [feedback] to adjust.
 
 ## Skill: Fix ISSUE-001 Storage Split
 
+**✅ RESOLVED.** ISSUE-001 (the `chrome.storage.sync`/`chrome.storage.local`
+split between `popup.js` and the core) has been fixed — `popup.js` now uses
+`chrome.storage.local` throughout, same as the shared core. This skill
+definition is kept for reference in case a similar storage-consolidation
+task comes up again; don't run it expecting ISSUE-001 to still be open.
+
 ```yaml
 name: skill-fix-storage
 trigger: /skill-fix-storage
 description: >
-  Coordinated fix for ISSUE-001 — consolidates chrome.storage.sync usage in
-  popup.js to chrome.storage.local, aligning it with the canonical storage
-  strategy in content.js. Run this as a dedicated task, not inline with
-  other changes.
+  [Historical - ISSUE-001 is resolved.] Coordinated fix that consolidated
+  chrome.storage.sync usage in popup.js to chrome.storage.local, aligning it
+  with the canonical storage strategy in the shared core. Kept as a template
+  for any future storage-consolidation task.
 ```
 
 <skill_definition name="skill-fix-storage">
 
-You are executing a targeted, isolated fix for ISSUE-001. This is a
+You are executing a targeted, isolated storage-consolidation fix. This is a
 **storage-only change** — no filtering logic, no UI changes, no other fixes
 bundled into this task.
 
@@ -617,8 +640,9 @@ tested, and distributed.
    direction) or esbuild (lighter, no dev server).
 2. Identify all files in `browser-extension/src/` that will be inputs.
 3. Draft the proposed `package.json` and bundler config.
-4. Identify any content.js IIFE patterns that may need adjustment for
-   module bundling (e.g. `window.injected = state` export).
+4. Identify any IIFE patterns in shared/xbox-wishlist.core.js, content.js, or
+   xbox-wishlist.user.js that may need adjustment for module bundling (e.g.
+   `window.injected = state` and `window.XboxWishlistCore` globals).
 
 <pause_point action_required="human_approval">
 

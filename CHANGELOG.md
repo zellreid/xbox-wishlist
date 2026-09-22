@@ -1,20 +1,56 @@
 # Changelog
 
 Canonical version history for both distribution channels — the userscript
-(`xbox-wishlist.user.js`, primary/live channel) and the browser extension
-(`browser-extension/`, secondary/unpublished channel). Versions are cross-
-referenced where the two overlap; see [AGENTS.md](AGENTS.md) §2.1 for the
-current parity gap between them.
+(`xbox-wishlist.user.js`) and the browser extension (`browser-extension/`).
+As of v1.5, both are built from one shared core
+(`browser-extension/src/shared/xbox-wishlist.core.js`) and share a single
+version number, so entries from v1.5 onward apply to both channels
+identically unless noted otherwise. Versions before v1.5 are kept below as
+historical record of the pre-unification parity gap.
 
-Userscript versioning: `major.minor.YYDDD.revision` (`YYDDD` = 2-digit year +
-day-of-year). The extension currently versions independently (semver-ish),
-tracked as tech debt in [docs/04-FEATURE-BREAKDOWN.md](docs/04-FEATURE-BREAKDOWN.md).
+Versioning: `major.minor.YYDDD.revision` (`YYDDD` = 2-digit year +
+day-of-year). See [tools/userscript/README.md](tools/userscript/README.md)
+for how a version is bumped and published.
+
+---
+
+## v1.5.26265.2 (Sep 2026) — Shared core, both channels unified
+
+- Extracted all filtering/sorting/DOM logic out of both the userscript and
+  `content.js` into one platform-agnostic core,
+  `browser-extension/src/shared/xbox-wishlist.core.js`, driven through a
+  small adapter (storage + resource-URL callbacks) so it never calls
+  `chrome.*` or `GM_*` directly. `content.js` and `xbox-wishlist.user.js`
+  are now thin adapters only.
+- `xbox-wishlist.user.js` is now a **generated** file
+  (`tools/userscript/build.js`), inlining the shared core rather than
+  `@require`-ing it from GitHub — GreasyFork's code rules only allow
+  `@require` for well-known third-party libraries, not your own app logic.
+- Added `tools/userscript/bump-version.js` — bumps `major.minor.YYDDD.revision`,
+  rebuilds the userscript, and writes the same version into
+  `browser-extension/src/manifest.json`, ending the two channels' previously
+  independent versioning.
+- Added `tools/mock-harness/` — turns a locally saved wishlist page into an
+  offline fixture that boots the real extension code against it, for
+  regression-testing changes without touching xbox.com.
+- Fixed **ISSUE-001**: `popup.js`'s `persistFilters` setting moved from
+  `chrome.storage.sync` to `chrome.storage.local`, matching the core.
+- Fixed a Filter/Sort panel bug: opening one while the other was open closed
+  both instead of switching, due to the two toggle functions recursively
+  calling each other. Split into non-recursive `setFilterVisible`/
+  `setSortVisible` setters.
+- Moved the "Viewing X of Y results" label above the filter/sort buttons,
+  and moved several hard-coded inline styles (button container position,
+  discount badge margin, panel show/hide) out of JS and into `styles.css`.
+- Docs audit: brought `SKILL.md` and `docs/02-SYSTEM-DESIGN.md` in line with
+  the shared-core architecture (they still described the old
+  independently-maintained content.js/userscript split).
 
 ---
 
 ## Userscript
 
-### v1.4.26057.1 (Feb 2026) — current
+### v1.4.26057.1 (Feb 2026)
 - Housekeeping revision on top of v1.4.26056.5 (resource/version bump).
 
 ### v1.4.26056.5 (Feb 2026)
@@ -63,11 +99,11 @@ Initial port of the v1.4 userscript to a Chrome/Edge Manifest V3 extension.
   blocks inline event handlers).
 - Removed the deprecated `webRequest` permission from `manifest.json` (not
   valid in Manifest V3).
-- **Known gap:** this port predates the userscript's F-16/F-17 work (dynamic
-  price slider max, public wishlist support) — not yet ported. See
-  [AGENTS.md](AGENTS.md) §2.1, ISSUE-001 also tracked there (storage split
-  between `chrome.storage.sync` in `popup.js` and `chrome.storage.local` in
-  `content.js`).
+- **Known gap (resolved in v1.5):** this port predated the userscript's
+  F-16/F-17 work (dynamic price slider max, public wishlist support) and had
+  a storage split between `chrome.storage.sync` in `popup.js` and
+  `chrome.storage.local` in `content.js` (ISSUE-001). Both were closed by
+  the v1.5 shared-core unification above.
 - Not yet submitted to the Chrome Web Store — sideload only
   (`chrome://extensions` → Load unpacked → `browser-extension/src`).
 

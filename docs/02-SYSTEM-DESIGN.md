@@ -5,20 +5,27 @@
 
 ## Architecture Overview
 
-The project ships as **two parallel, independently-maintained distributions**
-of the same feature set — no backend, no shared build pipeline, no server:
+The project ships two distributions from **one shared, platform-agnostic
+core** — no backend, no npm-based build pipeline, no server:
 
 ```
 xbox-wishlist/
-├── xbox-wishlist.user.js          # Userscript (Tampermonkey/Greasemonkey) — primary/live channel
-├── browser-extension/             # Chrome/Edge MV3 extension — secondary/unpublished channel
+├── xbox-wishlist.user.js          # Userscript (Tampermonkey/Greasemonkey) — GENERATED, do not hand-edit
+├── browser-extension/             # Chrome/Edge MV3 extension
 │   └── src/
 │       ├── manifest.json
-│       ├── content.js             # Ported from xbox-wishlist.user.js
+│       ├── content.js             # Thin adapter: builds chrome.* adapter, calls XboxWishlistCore.init()
 │       ├── background.js
 │       ├── popup.html / popup.js
-│       ├── styles.css
-│       └── icons/
+│       ├── icons/                 # Toolbar action icon only
+│       └── shared/                # Shared with the userscript build
+│           ├── xbox-wishlist.core.js   # All filtering/sorting/DOM logic - the single source of truth
+│           ├── styles.css
+│           └── icons/             # Filter/sort/expand/collapse SVGs
+├── tools/
+│   ├── userscript/                # header.template.js + adapter.js + build.js + bump-version.js
+│   │                               # concatenate into xbox-wishlist.user.js - see tools/userscript/README.md
+│   └── mock-harness/              # Offline test fixture built from a saved wishlist page
 ├── AGENTS.md                      # Authoritative AI agent context (guardrails, HITL, extension architecture)
 ├── CHANGELOG.md                   # Canonical version history for both channels
 ├── README.md                      # Public-facing docs
@@ -30,11 +37,10 @@ xbox-wishlist/
     └── 05-MASTER-PROMPT.md
 ```
 
-The two channels currently drift out of sync — the userscript is the more
-advanced/live one. See `AGENTS.md` §2.1 for the tracked parity gap and
-`CHANGELOG.md` for what shipped where. This document covers the **userscript**
-system design in detail; for the extension's architecture, layer map, and
-coding standards, `AGENTS.md` §2.2–2.4 is authoritative.
+Both channels now share one version number and one feature set - see
+`tools/userscript/README.md` for the build/publish flow. `AGENTS.md` §2.3 is
+authoritative for the file/layer map and architectural rules; this document
+covers the shared core's design and logic in detail.
 
 ---
 
@@ -44,27 +50,32 @@ coding standards, `AGENTS.md` §2.2–2.4 is authoritative.
 // ==UserScript==
 // @name         XBOX Wishlist
 // @namespace    https://github.com/zellreid/xbox-wishlist
-// @version      1.4.26057.1
+// @version      1.5.26265.1
 // @description  Advanced filtering and sorting suite with multi-level sort (up to 3 criteria) - Resilient selectors - Public wishlist support
 // @author       ZellReid
 // @match        https://www.xbox.com/*/wishlist*
 // @run-at       document-body
-// @resource     CSSFilter   https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/xbox-wishlist.user.css?ver=1.4.26057.1
-// @resource     IMGFilter   https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/filter.svg
-// @resource     IMGSort     https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/sort.svg
-// @resource     IMGExpand   https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/expand.svg
-// @resource     IMGCollapse https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/collapse.svg
+// @resource     CSSFilter   https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/styles.css?ver=1.5.26265.1
+// @resource     IMGFilter   https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/filter.svg
+// @resource     IMGSort     https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/sort.svg
+// @resource     IMGExpand   https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/expand.svg
+// @resource     IMGCollapse https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/collapse.svg
 // @grant        GM_getResourceURL
 // @grant        GM_setValue
 // @grant        GM_getValue
+// @grant        GM_info
 // ==/UserScript==
 ```
 
-There is no `@require` for an external slider library — the price/discount
-range sliders are native HTML5 dual-range `<input type="range">` elements,
-custom-styled via the injected CSS resource. The CSS itself is not a local
-`.user.css` file; it's fetched from the GitHub raw URL via `@resource
-CSSFilter` and injected with `GM_addStyle`.
+This header (`tools/userscript/header.template.js`) is only a third of the
+generated file. `tools/userscript/build.js` appends `shared/xbox-wishlist.core.js`
+in full, then `tools/userscript/adapter.js` (the `GM_*` adapter), into the
+`xbox-wishlist.user.js` at the repo root — see `tools/userscript/README.md`.
+There is no `@require` for the shared core itself: GreasyFork's code rules
+only allow `@require` for well-known third-party libraries, not your own
+application logic, so it's inlined instead. The CSS is fetched from the
+GitHub raw URL via `@resource CSSFilter` and injected with a small
+`addStyle()` helper (not the `GM_addStyle` API).
 
 **URL match pattern:** `https://www.xbox.com/*/wishlist*`
 - `/*/` captures locale (en-ZA, en-US, etc.)
@@ -177,15 +188,19 @@ GM_setValue()  ← Persists state for next page load
 
 ## Persistence
 
-State is persisted via a **single** `GM_setValue(CONFIG.storage.key, ...)`
-call, storing one JSON blob under the key `ifc_xbox_wishlist` — not multiple
-top-level keys. The blob contains filter state, sort criteria, and UI
-preferences together, read back with `GM_getValue` on init.
+State is persisted via a **single** call through the shared core's
+`saveFilterState()`, storing one JSON blob under the key `ifc_xbox_wishlist`
+— not multiple top-level keys. The blob contains filter state, sort
+criteria, and UI preferences together, read back via `loadFilterState()` on
+init. The core itself never calls `GM_*` or `chrome.*` directly - it goes
+through the `adapter.storage.save`/`load` callbacks supplied by
+`xbox-wishlist.user.js` (`GM_setValue`/`GM_getValue`) or `content.js`
+(`chrome.storage.local`) - so both channels persist identically by
+construction, not by convention.
 
 Planned features that need new persisted data (flagged items — F-25, price
 history — F-27, saved filter presets — F-23) should extend this same blob
-rather than introduce parallel storage keys, to keep the userscript and the
-extension's `chrome.storage.local` equivalent easy to keep in sync.
+rather than introduce parallel storage keys.
 
 ---
 
