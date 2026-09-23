@@ -180,6 +180,8 @@
 
 **Goal:** Re-read the wishlist without a manual page reload.
 
+**Status (v1.5.26266.14):** v1 done - Refresh button (`addRefreshButton()`) saves state and reloads; verified in the mock harness that filters, sort (2 levels), tags, visible count and order come back identical. Steps 1 and 3 below (the fetch-and-parse data layer) remain for F-26 onwards.
+
 **Findings (2026-09-23):** The wishlist page HTML embeds a large preloaded-state JSON (`window.__PRELOADED_STATE__`, about 2.4 MB) that includes the wishlist and per-product data - structured data, independent of Xbox's hashed CSS classes. Swapping fetched item markup into the live list is not viable: that list is owned by Xbox's React app, and foreign nodes would lose React's event handling (BUY/DETAILS) and be undone on the next re-render.
 
 | Step | Task |
@@ -261,6 +263,8 @@ With a sort such as Discount % ↓ then Price ↑, un-purchasable items (no pric
 ### T-10 - Icon set: adopt Xbox icons where they add value
 
 A consolidated catalogue (custom `shared/icons` + icons extracted from both mocks' Xbox bundles and rendered pages) showed no Xbox equivalents for filter, sort or export, so those stay custom; expand/collapse already are Xbox's.
+
+**Status (v1.5.26266.14):** Done for the chosen set - `refresh.svg`, `close.svg` (×) and `plus.svg` (+) adopted from xbox.com's icon set; × and + rendered via `setGlyph()` with a text fallback. Brand badges (Game Pass, EA Play) remain runtime-clone only if ever needed. Icon provenance: expand/collapse/close/plus/refresh = xbox.com; export = Tabler Icons `file-export`; filter/sort = likely iconfont.cn (not recorded at the time).
 
 | Step | Task |
 |------|------|

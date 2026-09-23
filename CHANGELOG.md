@@ -14,6 +14,23 @@ for how a version is bumped and published.
 
 ---
 
+## v1.5.26266.14 (Sep 2026) - Refresh button, Xbox icons, exclusive panels
+
+- Added (F-32 v1): a Refresh button at the end of the toolbar that saves the
+  current state and reloads the page. Filters, sort and saved filters are
+  persisted, so everything comes back as it was.
+- Adopted three icons from xbox.com's own icon set (T-10), each noting its
+  source in the file: `refresh.svg`, `close.svg` (replaces the text "×" on
+  tag remove, saved-filter delete and sort-level remove) and `plus.svg`
+  (the "+" in "Add Sort Level"). The text glyph shows at once and stays if
+  an icon can't load.
+- Filter, Sort and the Export menu are now mutually exclusive - opening any
+  one closes the other two - and the Export button gets the same active
+  (green) look as Filter/Sort while its menu is open.
+- Sort-level remove buttons now have an accessible label.
+
+---
+
 ## v1.5.26266.13 (Sep 2026) - Export (F-24)
 
 - Added an Export button after Sort. Its menu offers "Export N items as

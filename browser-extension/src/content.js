@@ -7,6 +7,9 @@
         IMGFilter: 'shared/icons/filter.svg',
         IMGSort: 'shared/icons/sort.svg',
         IMGExport: 'shared/icons/export.svg',
+        IMGRefresh: 'shared/icons/refresh.svg',
+        IMGClose: 'shared/icons/close.svg',
+        IMGPlus: 'shared/icons/plus.svg',
         IMGExpand: 'shared/icons/expand.svg',
         IMGCollapse: 'shared/icons/collapse.svg',
         CSSFilter: null // already declared in manifest.json's content_scripts.css

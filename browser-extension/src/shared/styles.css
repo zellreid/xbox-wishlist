@@ -166,6 +166,35 @@ ul.filter-groups {
     background-color: rgba(255, 255, 255, 0.08);
 }
 
+/* ==================== GLYPH ICONS (×, +) ==================== */
+/* Inline Xbox icons inside small buttons (setGlyph() in core.js) */
+.ifc-glyph {
+    width: 10px;
+    height: 10px;
+    fill: currentColor;
+    flex-shrink: 0;
+    pointer-events: none;
+}
+
+.ifc-sort-remove .ifc-glyph,
+.ifc-sort-add-icon .ifc-glyph {
+    width: 12px;
+    height: 12px;
+}
+
+.ifc-sort-add-icon {
+    display: inline-flex;
+    vertical-align: -1px;
+    margin-right: 2px;
+}
+
+.ifc-sort-remove,
+.ifc-saved-preset-remove {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
 /* ==================== EXPORT MENU ==================== */
 /* export.svg is an outline (stroke) icon; Xbox's icon classes force a fill,
    which would render it as solid shapes */

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         XBOX Wishlist
 // @namespace    https://github.com/zellreid/xbox-wishlist
-// @version      1.5.26266.13
+// @version      1.5.26266.14
 // @description  Advanced filtering and sorting suite with multi-level sort (up to 3 criteria) - Resilient selectors - Public wishlist support
 // @author       ZellReid
 // @homepage     https://github.com/zellreid/xbox-wishlist
@@ -10,10 +10,13 @@
 // @match        https://www.xbox.com/*/wishlist*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=xbox.com
 // @run-at       document-body
-// @resource     CSSFilter https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/styles.css?ver=1.5.26266.13
+// @resource     CSSFilter https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/styles.css?ver=1.5.26266.14
 // @resource     IMGFilter https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/filter.svg
 // @resource     IMGSort https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/sort.svg
 // @resource     IMGExport https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/export.svg
+// @resource     IMGRefresh https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/refresh.svg
+// @resource     IMGClose https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/close.svg
+// @resource     IMGPlus https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/plus.svg
 // @resource     IMGExpand https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/expand.svg
 // @resource     IMGCollapse https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/collapse.svg
 // @grant        GM_getResourceURL
@@ -52,7 +55,7 @@ window.XboxWishlistCore = {
             scripts: [], styles: [],
             svgCache: new Map(), elementCache: new Map(),
             ui: {
-                floatButtons: false, lblFilter: false, btnFilter: false, btnSort: false, btnExport: false,
+                floatButtons: false, lblFilter: false, btnFilter: false, btnSort: false, btnExport: false, btnRefresh: false,
                 divFilter: false, divSort: false, divFilterShow: false, divSortShow: false,
                 tagContainer: false, complete: false, lowestItemId: null,
                 publisherSearch: ''
@@ -98,6 +101,7 @@ window.XboxWishlistCore = {
                 sortButton: 'ifc_btn_Sort',
                 exportButton: 'ifc_btn_Export',
                 exportMenu: 'ifc_export_menu',
+                refreshButton: 'ifc_btn_Refresh',
                 tagContainer: 'ifc_tag_container',
                 clearButton: 'ifc_btn_ClearAll',
                 searchInput: 'ifc_input_search',
@@ -403,7 +407,7 @@ window.XboxWishlistCore = {
                 const tagEl = document.createElement('span');
                 tagEl.className = 'ifc-filter-tag'; tagEl.textContent = tag.label;
                 const removeBtn = document.createElement('button');
-                removeBtn.className = 'ifc-tag-remove'; removeBtn.textContent = '×';
+                removeBtn.className = 'ifc-tag-remove'; setGlyph(removeBtn, 'IMGClose', '×');
                 removeBtn.setAttribute('aria-label', `Remove ${tag.label}`);
                 removeBtn.onclick = () => removeTag(tag);
                 tagEl.appendChild(removeBtn); tagContainer.appendChild(tagEl);
@@ -553,6 +557,21 @@ window.XboxWishlistCore = {
                 if (svg) { addClasses(svg, CONFIG.classes.svgIcon); svg.setAttribute('data-ifc-target', targetId); }
             } catch (ex) { console.error('Failed to load SVG into container:', ex); }
         }
+        // Small inline icon for a glyph button (×, +). The text fallback shows at once and
+        // stays if the SVG can't load; getSVG() caches, so frequent re-renders fetch once.
+        // Sized by .ifc-glyph, not Xbox's icon classes (those are toolbar-sized).
+        function setGlyph(el, resourceKey, fallback) {
+            el.textContent = fallback;
+            getSVG(adapter.getResourceUrl(resourceKey)).then(svgText => {
+                if (!svgText || el.textContent !== fallback) return;
+                const holder = document.createElement('span');
+                holder.innerHTML = svgText;
+                const svg = holder.querySelector('svg');
+                if (!svg) return;
+                svg.classList.add('ifc-glyph'); svg.setAttribute('aria-hidden', 'true'); svg.setAttribute('focusable', 'false');
+                el.replaceChildren(svg);
+            }).catch(() => { /* keep the text fallback */ });
+        }
         async function updateSVGIcon(containerId, resourceKey, targetId) {
             try {
                 const svgText = await getSVG(adapter.getResourceUrl(resourceKey));
@@ -642,6 +661,9 @@ window.XboxWishlistCore = {
             const menu = getElement(`#${CONFIG.ids.exportMenu}`, false), btn = getElement(`#${CONFIG.ids.exportButton}`, false);
             if (!menu || !btn) return;
             if (open) {
+                // Toolbar panels are mutually exclusive: opening Export closes Filter and Sort
+                if (state.ui.divFilterShow) setFilterVisible(false);
+                if (state.ui.divSortShow) setSortVisible(false);
                 // Label with the live count so it's clear only the visible items are exported
                 const n = getVisibleItems().length;
                 menu.querySelectorAll('.ifc-export-item').forEach(item => {
@@ -651,6 +673,29 @@ window.XboxWishlistCore = {
             }
             menu.classList.toggle('ifc-hidden', !open);
             btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+            btn.classList[open ? 'add' : 'remove'](CONFIG.classes.activeButton);
+        }
+
+        // ==================== REFRESH (F-32 v1) ====================
+        // Re-reads the wishlist by reloading the page. Filters, sort and saved filters are
+        // persisted, so they come back as they were. (A fetch-and-parse refresh of the
+        // page's embedded state is the planned data layer for price tracking, F-26+.)
+        function addRefreshButton() {
+            if (state.ui.btnRefresh) return;
+            try {
+                const bc = getElement(`#${CONFIG.ids.buttonContainer}`); if (!bc) return;
+                const btn = createImageButton('Refresh', adapter.getResourceUrl('IMGRefresh'), 'Refresh wishlist', 'svg');
+                btn.removeAttribute('aria-pressed');   // an action, not a toggle
+                btn.addEventListener('click', () => {
+                    try {
+                        btn.disabled = true; btn.setAttribute('aria-busy', 'true');
+                        saveFilterState();
+                        location.reload();
+                    } catch (ex) { btn.disabled = false; btn.removeAttribute('aria-busy'); console.error('Failed to refresh:', ex); }
+                });
+                bc.appendChild(btn);
+                state.ui.btnRefresh = true;
+            } catch (ex) { console.error('Failed to add refresh button:', ex); }
         }
 
         function getVisibleItems() {
@@ -1024,7 +1069,7 @@ window.XboxWishlistCore = {
                     if (isPresetActive(cur)) clearAllFilters(); else applyPreset(cur);
                 });
                 const del = document.createElement('button');
-                del.type = 'button'; del.className = 'ifc-saved-preset-remove'; del.textContent = '×';
+                del.type = 'button'; del.className = 'ifc-saved-preset-remove'; setGlyph(del, 'IMGClose', '×');
                 del.title = `Delete "${p.name}"`; del.setAttribute('aria-label', `Delete saved filters ${p.name}`);
                 del.addEventListener('click', () => deletePreset(p.name));
                 wrap.appendChild(btn); wrap.appendChild(del); list.appendChild(wrap);
@@ -1379,7 +1424,7 @@ window.XboxWishlistCore = {
 
         async function addFilterControls() {
             try {
-                addFilterLabel(); addFilterButton(); addSortButton(); addExportButton();
+                addFilterLabel(); addFilterButton(); addSortButton(); addExportButton(); addRefreshButton();
                 addFilterContainer(); addSortContainer();
                 addSearchFilter(); addQuickFilters();
                 await addFilterContainerOwned(); await addFilterContainerPublishers(); await addFilterContainerSubscriptions();
@@ -1406,6 +1451,7 @@ window.XboxWishlistCore = {
             try {
                 const show = !state.ui.divFilterShow;
                 if (show && state.ui.divSortShow) setSortVisible(false);
+                if (show) setExportMenuOpen(false);
                 setFilterVisible(show);
             } catch (ex) { console.error('Failed to toggle filter container:', ex); }
         }
@@ -1448,6 +1494,7 @@ window.XboxWishlistCore = {
             try {
                 const show = !state.ui.divSortShow;
                 if (show && state.ui.divFilterShow) setFilterVisible(false);
+                if (show) setExportMenuOpen(false);
                 setSortVisible(show);
             } catch (ex) { console.error('Failed to toggle sort container:', ex); }
         }
@@ -1482,7 +1529,8 @@ window.XboxWishlistCore = {
                 row.appendChild(select); row.appendChild(toggleBtn);
                 if (index > 0) {
                     const removeBtn = document.createElement('button'); removeBtn.className = 'ifc-sort-remove';
-                    removeBtn.textContent = '×'; removeBtn.title = 'Remove sort criterion';
+                    setGlyph(removeBtn, 'IMGClose', '×'); removeBtn.title = 'Remove sort criterion';
+                    removeBtn.setAttribute('aria-label', 'Remove sort criterion');
                     removeBtn.addEventListener('click', () => { state.sort.criteria.splice(index, 1); renderSortCriteria(); onSortChanged(); });
                     row.appendChild(removeBtn);
                 }
@@ -1490,7 +1538,9 @@ window.XboxWishlistCore = {
             });
             if (state.sort.criteria.length < 3) {
                 const addBtn = document.createElement('button'); addBtn.className = 'ifc-sort-add';
-                addBtn.textContent = '+ Add Sort Level';
+                const plus = document.createElement('span'); plus.className = 'ifc-sort-add-icon';
+                setGlyph(plus, 'IMGPlus', '+');
+                addBtn.append(plus, ' Add Sort Level');
                 addBtn.addEventListener('click', () => {
                     if (state.sort.criteria.length < 3) {
                         state.sort.criteria.push({ field: 'ifcName', order: 'asc', label: 'Name' });
