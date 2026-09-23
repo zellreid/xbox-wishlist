@@ -81,7 +81,7 @@
 
 **Goal:** One-click preset buttons above/below the main button bar.
 
-**Status (v1.5.26266.4):** Partial - shipped presets are "Owned", "On Sale" and "Cheap" (bottom third of this wishlist's own price spread, replacing the currency-specific "Under R500"). Remaining: decide on "Not Owned" and "≥50% Off", toggle-off on second click (step 8), and an active/filled state for the selected pill (step 3).
+**Status (v1.5.26266.6):** Done - presets are "Owned", "Not Owned", "On Sale", "≥50% Off" (disabled when no item reaches 50%) and "Cheap" (bottom third of this wishlist's own price spread, replacing the currency-specific "Under R500"). Pills toggle off on a second click and show a filled active state derived from `state.filters` (`getQuickFilterPresets()` / `updateQuickFilterStates()` in the shared core).
 
 | Step | Task |
 |------|------|

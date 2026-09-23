@@ -654,34 +654,73 @@ window.XboxWishlistCore = {
                 const row = document.createElement('div');
                 row.id = CONFIG.ids.quickFilters;
                 row.className = 'ifc-quick-filters';
-                const presets = [
-                    { label: 'Owned', apply: () => { state.filters.owned.selected = ['Owned']; updateCheckboxes(CONFIG.ids.ownedSelect, state.filters.owned.selected); } },
-                    { label: 'On Sale', apply: () => {
-                        state.filters.discountRange.enabled = true;
-                        state.filters.discountRange.currentMin = Math.max(1, state.filters.discountRange.min);
-                        state.filters.discountRange.currentMax = state.filters.discountRange.max;
-                        syncDiscountSliderUI();
-                    } },
-                    { label: 'Cheap', apply: () => {
-                        const { min, max } = state.filters.priceRange;
-                        state.filters.priceRange.enabled = true;
-                        state.filters.priceRange.currentMin = min;
-                        // Relative to this wishlist's own price spread, not a fixed
-                        // currency amount - prices are in the viewer's local currency.
-                        state.filters.priceRange.currentMax = min + (max - min) / 3;
-                        syncPriceSliderUI();
-                    } }
-                ];
-                presets.forEach(preset => {
+                getQuickFilterPresets().forEach(preset => {
                     const btn = document.createElement('button');
                     btn.type = 'button';
                     btn.className = 'ifc-quick-filter-btn';
+                    btn.dataset.ifcPreset = preset.key;
                     btn.textContent = preset.label;
-                    btn.addEventListener('click', () => { preset.apply(); updateScreen(); });
+                    btn.setAttribute('aria-pressed', 'false');
+                    btn.addEventListener('click', () => {
+                        // Re-resolve on click - the range objects in state are replaced as items render
+                        const p = getQuickFilterPresets().find(q => q.key === preset.key);
+                        if (!p) return;
+                        if (p.isActive()) p.clear(); else p.apply();
+                        updateScreen();
+                    });
                     row.appendChild(btn);
                 });
                 tc.parentNode.insertBefore(row, tc);
+                updateQuickFilterStates();
             } catch (ex) { console.error('Failed to add quick filters:', ex); }
+        }
+
+        // Each preset owns one filter dimension. Its active state is derived from
+        // state.filters rather than tracked separately, so the pills stay correct
+        // after slider drags, tag removal, checkbox clicks and Clear All.
+        function getQuickFilterPresets() {
+            const owned = () => state.filters.owned, pr = () => state.filters.priceRange, dr = () => state.filters.discountRange;
+            const ownedOnly = (value) => owned().selected.length === 1 && owned().selected[0] === value;
+            const setOwned = (selected) => { owned().selected = selected; updateCheckboxes(CONFIG.ids.ownedSelect, selected); };
+            const discountFrom = (atLeast) => Math.max(atLeast, dr().min);
+            const discountIs = (currentMin) => dr().enabled && dr().currentMin === currentMin && dr().currentMax === dr().max;
+            const setDiscount = (currentMin) => {
+                dr().enabled = true; dr().currentMin = currentMin; dr().currentMax = dr().max;
+                syncDiscountSliderUI();
+            };
+            // Relative to this wishlist's own price spread, not a fixed
+            // currency amount - prices are in the viewer's local currency.
+            const cheapMax = () => pr().min + (pr().max - pr().min) / 3;
+            return [
+                { key: 'owned', label: 'Owned', isActive: () => ownedOnly('Owned'), apply: () => setOwned(['Owned']), clear: () => setOwned([]) },
+                { key: 'notOwned', label: 'Not Owned', isActive: () => ownedOnly('Not Owned'), apply: () => setOwned(['Not Owned']), clear: () => setOwned([]) },
+                { key: 'onSale', label: 'On Sale', isActive: () => discountIs(discountFrom(1)), apply: () => setDiscount(discountFrom(1)), clear: resetDiscountSlider },
+                { key: 'halfOff', label: '≥50% Off', isAvailable: () => dr().max >= 50,
+                    isActive: () => discountIs(discountFrom(50)), apply: () => setDiscount(discountFrom(50)), clear: resetDiscountSlider },
+                { key: 'cheap', label: 'Cheap',
+                    isActive: () => pr().enabled && pr().currentMin === pr().min && pr().currentMax === cheapMax(),
+                    apply: () => {
+                        pr().enabled = true; pr().currentMin = pr().min; pr().currentMax = cheapMax();
+                        syncPriceSliderUI();
+                    },
+                    clear: resetPriceSlider }
+            ];
+        }
+
+        function updateQuickFilterStates() {
+            try {
+                const row = getElement(`#${CONFIG.ids.quickFilters}`, false);
+                if (!row) return;
+                getQuickFilterPresets().forEach(p => {
+                    const btn = row.querySelector(`[data-ifc-preset="${p.key}"]`);
+                    if (!btn) return;
+                    const available = !p.isAvailable || p.isAvailable();
+                    const active = available && p.isActive();
+                    btn.disabled = !available;
+                    btn.classList.toggle('ifc-Active', active);
+                    btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+                });
+            } catch (ex) { console.error('Failed to update quick filter states:', ex); }
         }
 
         function clearAllFilters() {
@@ -1298,7 +1337,7 @@ window.XboxWishlistCore = {
             if (l) l.textContent = `Viewing ${state.filters.filteredCount} of ${state.filters.totalCount} results`;
         }
         function updateScreen() {
-            try { toggleContainers(); updateFilterLabels(); updateActiveTags(); applySorting(); saveFilterState(); }
+            try { toggleContainers(); updateFilterLabels(); updateActiveTags(); updateQuickFilterStates(); applySorting(); saveFilterState(); }
             catch (ex) { console.error('Failed to update screen:', ex); }
         }
 

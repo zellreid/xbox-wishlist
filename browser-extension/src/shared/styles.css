@@ -133,6 +133,22 @@ ul.filter-groups {
     background-color: rgba(255, 255, 255, 0.16);
 }
 
+.ifc-quick-filter-btn.ifc-Active,
+.ifc-quick-filter-btn.ifc-Active:hover {
+    background-color: #107C10;
+    border-color: #107C10;
+    color: #ffffff;
+}
+
+.ifc-quick-filter-btn:disabled {
+    opacity: 0.4;
+    cursor: default;
+}
+
+.ifc-quick-filter-btn:disabled:hover {
+    background-color: rgba(255, 255, 255, 0.08);
+}
+
 /* ==================== TAG CONTAINER ==================== */
 .ifc-tag-container {
     display: flex;

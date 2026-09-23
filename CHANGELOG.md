@@ -14,6 +14,20 @@ for how a version is bumped and published.
 
 ---
 
+## v1.5.26266.6 (Sep 2026) - Quick filters toggle and show their state (F-19)
+
+- Quick filters are now toggles: clicking an active one clears just that
+  filter. Active pills are filled Xbox green and set `aria-pressed`.
+- Active state is derived from the live filter state, so pills stay in sync
+  after slider drags, tag removal, checkbox changes, Clear All and restored
+  filters. Presets on the same filter replace each other (Owned/Not Owned,
+  On Sale/≥50% Off); presets on different filters combine.
+- Added "Not Owned" and "≥50% Off" presets. "≥50% Off" is disabled when no
+  item on the wishlist is discounted that much. "Under R500" from the
+  original spec stays replaced by "Cheap", which is currency-neutral.
+
+---
+
 ## v1.5.26266.5 (Sep 2026) - Price slider max follows the wishlist (F-16)
 
 - The price slider's max is now the wishlist's highest price (rounded up to
