@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         XBOX Wishlist
 // @namespace    https://github.com/zellreid/xbox-wishlist
-// @version      1.5.26266.2
+// @version      1.5.26266.3
 // @description  Advanced filtering and sorting suite with multi-level sort (up to 3 criteria) - Resilient selectors - Public wishlist support
 // @author       ZellReid
 // @homepage     https://github.com/zellreid/xbox-wishlist
@@ -10,7 +10,7 @@
 // @match        https://www.xbox.com/*/wishlist*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=xbox.com
 // @run-at       document-body
-// @resource     CSSFilter https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/styles.css?ver=1.5.26266.2
+// @resource     CSSFilter https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/styles.css?ver=1.5.26266.3
 // @resource     IMGFilter https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/filter.svg
 // @resource     IMGSort https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/sort.svg
 // @resource     IMGExpand https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/expand.svg
@@ -60,6 +60,7 @@ window.XboxWishlistCore = {
                 search: { term: '' },
                 owned: { selected: [], options: ['Owned', 'Not Owned', 'Un-Purchasable'] },
                 publishers: { selected: [], list: new Map() },
+                subscriptions: { selected: [], list: new Map() },
                 priceRange: { min: 0, max: 3000, currentMin: 0, currentMax: 3000, enabled: false },
                 discountRange: { min: 0, max: 100, currentMin: 0, currentMax: 100, enabled: false }
             },
@@ -97,6 +98,7 @@ window.XboxWishlistCore = {
                 quickFilters: 'ifc_quick_filters',
                 ownedSelect: 'ifc_select_owned',
                 publishersSelect: 'ifc_select_publishers',
+                subscriptionsSelect: 'ifc_select_subscriptions',
                 priceSlider: 'ifc_slider_price',
                 discountSlider: 'ifc_slider_discount'
             },
@@ -130,6 +132,7 @@ window.XboxWishlistCore = {
             iconBase: 'Icon-module__icon___',
             iconXXSmall: 'Icon-module__xxSmall___',
             discountTag: 'Price-module__discountTag___',
+            afterPriceTextContainer: 'Price-module__afterPriceTextContainer___',
         };
 
         // ==================== INITIALIZATION ====================
@@ -282,7 +285,8 @@ window.XboxWishlistCore = {
             try {
                 const saveData = {
                     ...state.filters,
-                    publishers: { selected: state.filters.publishers.selected, list: Array.from(state.filters.publishers.list.entries()) }
+                    publishers: { selected: state.filters.publishers.selected, list: Array.from(state.filters.publishers.list.entries()) },
+                    subscriptions: { selected: state.filters.subscriptions.selected, list: Array.from(state.filters.subscriptions.list.entries()) }
                 };
                 adapter.storage.save(CONFIG.storage.key, JSON.stringify(saveData));
             } catch (ex) { console.error('Failed to save filter state:', ex); }
@@ -304,6 +308,10 @@ window.XboxWishlistCore = {
                             if (parsed.publishers) {
                                 state.filters.publishers.selected = Array.isArray(parsed.publishers.selected) ? parsed.publishers.selected : [];
                                 if (Array.isArray(parsed.publishers.list)) state.filters.publishers.list = new Map(parsed.publishers.list);
+                            }
+                            if (parsed.subscriptions) {
+                                state.filters.subscriptions.selected = Array.isArray(parsed.subscriptions.selected) ? parsed.subscriptions.selected : [];
+                                if (Array.isArray(parsed.subscriptions.list)) state.filters.subscriptions.list = new Map(parsed.subscriptions.list);
                             }
                             if (parsed.priceRange && typeof parsed.priceRange === 'object') {
                                 const { enabled, ...rest } = parsed.priceRange;
@@ -334,6 +342,10 @@ window.XboxWishlistCore = {
             state.filters.publishers.selected.forEach(pub => {
                 const count = state.filters.publishers.list.get(pub) || 0;
                 tags.push({ type: 'publisher', value: pub, label: `${pub} (${count})` });
+            });
+            state.filters.subscriptions.selected.forEach(sub => {
+                const count = state.filters.subscriptions.list.get(sub) || 0;
+                tags.push({ type: 'subscription', value: sub, label: `${sub} (${count})` });
             });
             if (state.filters.priceRange.enabled) {
                 const { currentMin, currentMax } = state.filters.priceRange;
@@ -374,6 +386,9 @@ window.XboxWishlistCore = {
                 case 'publisher':
                     state.filters.publishers.selected = state.filters.publishers.selected.filter(v => v !== tag.value);
                     updateCheckboxes(CONFIG.ids.publishersSelect, state.filters.publishers.selected); break;
+                case 'subscription':
+                    state.filters.subscriptions.selected = state.filters.subscriptions.selected.filter(v => v !== tag.value);
+                    updateCheckboxes(CONFIG.ids.subscriptionsSelect, state.filters.subscriptions.selected); break;
                 case 'price': state.filters.priceRange.enabled = false; resetPriceSlider(); break;
                 case 'discount': state.filters.discountRange.enabled = false; resetDiscountSlider(); break;
                 case 'search': {
@@ -686,9 +701,11 @@ window.XboxWishlistCore = {
             try {
                 state.filters.owned.selected = [];
                 state.filters.publishers.selected = [];
+                state.filters.subscriptions.selected = [];
                 state.filters.search.term = '';
                 updateCheckboxes(CONFIG.ids.ownedSelect, []);
                 updateCheckboxes(CONFIG.ids.publishersSelect, []);
+                updateCheckboxes(CONFIG.ids.subscriptionsSelect, []);
                 const searchInput = getElement(`#${CONFIG.ids.searchInput}`);
                 if (searchInput) searchInput.value = '';
                 resetPriceSlider();
@@ -728,6 +745,27 @@ window.XboxWishlistCore = {
             return state.filters.publishers.list;
         }
 
+        // An item's ifcSubscriptions dataset attribute is a JSON-encoded array
+        // (see extractSubscriptions()) rather than a single value like publisher,
+        // since an item can have zero, one, or more than one subscription attached.
+        function getItemSubscriptions(container) {
+            try {
+                const parsed = JSON.parse(container.dataset.ifcSubscriptions || '[]');
+                return Array.isArray(parsed) ? parsed : [];
+            } catch (ex) { return []; }
+        }
+
+        function collectSubscriptions() {
+            const subscriptions = new Map();
+            Array.from(document.getElementsByClassName(CONFIG.selectors.items)).forEach(c => {
+                getItemSubscriptions(c).forEach(name => {
+                    if (name) subscriptions.set(name, (subscriptions.get(name) || 0) + 1);
+                });
+            });
+            state.filters.subscriptions.list = new Map(Array.from(subscriptions.entries()).sort((a, b) => a[0].localeCompare(b[0])));
+            return state.filters.subscriptions.list;
+        }
+
         async function addFilterContainerPublishers() {
             if (!state.ui.divFilter) return;
             const gn = 'Publishers';
@@ -760,6 +798,49 @@ window.XboxWishlistCore = {
                 cb.type = 'checkbox'; cb.value = name; cb.checked = state.filters.publishers.selected.includes(name);
                 cb.className = 'ifc-checkbox';
                 cb.addEventListener('change', () => { state.filters.publishers.selected = getCheckboxValues(CONFIG.ids.publishersSelect); updateScreen(); });
+                const span = document.createElement('span'); span.className = 'ifc-checkbox-label'; span.textContent = `${name} (${count})`;
+                label.appendChild(cb); label.appendChild(span); container.appendChild(label);
+            });
+        }
+
+        async function addFilterContainerSubscriptions() {
+            if (!state.ui.divFilter) return;
+            const gn = 'Subscriptions';
+            try {
+                if (getElement(`#ifc_group_${gn}`, false)) { updateSubscriptionsCheckboxes(); return; }
+                // NOTE: this runs during initial UI setup, before setContainerData()
+                // has scraped ifcSubscriptions onto any item (that happens later, in
+                // the first updateScreen() cycle) - so collectSubscriptions() here
+                // always sees zero. The group is created unconditionally, like
+                // Publishers, and gets populated on that first real refresh
+                // (toggleContainers() calls updateSubscriptionsCheckboxes() every cycle).
+                const fg = getElement(`#${CONFIG.ids.filterContainer} ${CONFIG.selectors.filterGroups}`);
+                if (!fg) return;
+                const fb = createFilterBlock(gn, 'Subscriptions', true);
+                const cc = fb.querySelector('.ifc-accordion-content');
+                if (cc) {
+                    const sc = document.createElement('div');
+                    sc.id = CONFIG.ids.subscriptionsSelect;
+                    sc.className = 'ifc-checkbox-list ifc-checkbox-list-scrollable';
+                    cc.appendChild(sc);
+                }
+                fg.appendChild(fb);
+                updateSubscriptionsCheckboxes();
+            } catch (ex) { console.error('Failed to add subscriptions filter:', ex); }
+        }
+
+        function updateSubscriptionsCheckboxes() {
+            if (!Array.isArray(state.filters.subscriptions.selected)) state.filters.subscriptions.selected = [];
+            const subscriptions = collectSubscriptions();
+            const container = document.getElementById(CONFIG.ids.subscriptionsSelect);
+            if (!container) return;
+            container.innerHTML = '';
+            subscriptions.forEach((count, name) => {
+                const label = document.createElement('label'); label.className = 'ifc-checkbox-item';
+                const cb = document.createElement('input');
+                cb.type = 'checkbox'; cb.value = name; cb.checked = state.filters.subscriptions.selected.includes(name);
+                cb.className = 'ifc-checkbox';
+                cb.addEventListener('change', () => { state.filters.subscriptions.selected = getCheckboxValues(CONFIG.ids.subscriptionsSelect); updateScreen(); });
                 const span = document.createElement('span'); span.className = 'ifc-checkbox-label'; span.textContent = `${name} (${count})`;
                 label.appendChild(cb); label.appendChild(span); container.appendChild(label);
             });
@@ -921,7 +1002,7 @@ window.XboxWishlistCore = {
                 addFilterLabel(); addFilterButton(); addSortButton();
                 addFilterContainer(); addSortContainer();
                 addSearchFilter(); addQuickFilters();
-                await addFilterContainerOwned(); await addFilterContainerPublishers();
+                await addFilterContainerOwned(); await addFilterContainerPublishers(); await addFilterContainerSubscriptions();
                 addPriceRangeFilter(); addDiscountRangeFilter();
             } catch (ex) { console.error('Failed to add filter controls:', ex); }
         }
@@ -1073,6 +1154,38 @@ window.XboxWishlistCore = {
             } catch (ex) { console.error('Failed to inject discount badge:', ex); }
         }
 
+        // The Xbox store URL is .../store/<slug>/<productId>/<skuIndex>[/<skuId>] -
+        // the segment right after the slug is a stable catalog ID, unlike ifcId
+        // (a position counter that changes if the list reorders or its length changes).
+        function extractProductId(uri) {
+            if (!uri) return null;
+            const match = uri.match(/\/store\/[^/]+\/([a-z0-9]+)/i);
+            return match ? match[1] : null;
+        }
+
+        // Subscription badges (Game Pass, EA Play, ...) render inside the price
+        // row's "afterPriceTextContainer" span, but not consistently: some carry
+        // an icon with a semantic aria-label (Game Pass), others are plain text
+        // with no icon at all (EA Play) - so an item can have zero, one, or more
+        // than one subscription attached, none of it discoverable from a single
+        // fixed selector. Handle both shapes and return every one found.
+        function extractSubscriptions(container) {
+            const found = [];
+            const containerClass = resolveClass(PREFIXES.afterPriceTextContainer);
+            if (!containerClass) return found;
+            const el = container.querySelector(`.${CSS.escape(containerClass)}`);
+            if (!el) return found;
+            el.querySelectorAll('[aria-label]').forEach(node => {
+                const label = node.getAttribute('aria-label');
+                if (label && !found.includes(label)) found.push(label);
+            });
+            if (found.length === 0) {
+                const match = el.textContent.trim().match(/^with\s+(.+)$/i);
+                if (match) found.push(match[1].trim());
+            }
+            return found;
+        }
+
         function setContainerData(container, id) {
             setDataAttribute(container, 'ifcId', id);
             const img = CONFIG.selectors.imageContainer ? safeQuerySelector(container, CONFIG.selectors.imageContainer) : null;
@@ -1080,6 +1193,7 @@ window.XboxWishlistCore = {
             const link = CONFIG.selectors.productLink ? safeQuerySelector(container, CONFIG.selectors.productLink) : null;
             setDataAttribute(container, 'ifcName', link?.innerText);
             setDataAttribute(container, 'ifcUri', link?.href);
+            setDataAttribute(container, 'ifcProductId', extractProductId(link?.href));
             const publisher = CONFIG.selectors.productPublisher ? safeQuerySelector(container, CONFIG.selectors.productPublisher) : null;
             setDataAttribute(container, 'ifcPublisher', publisher?.innerText);
 
@@ -1108,10 +1222,7 @@ window.XboxWishlistCore = {
                 setDataAttribute(container, 'ifcPriceDiscountAmount', 0);
                 setDataAttribute(container, 'ifcPriceDiscountPercent', 0);
             }
-            if (CONFIG.selectors.productPrices) {
-                const prices = container.querySelectorAll(CONFIG.selectors.productPrices);
-                setDataAttribute(container, 'ifcSubscription', prices[2]?.innerText);
-            }
+            setDataAttribute(container, 'ifcSubscriptions', JSON.stringify(extractSubscriptions(container)));
             const button = safeQuerySelector(container, 'button');
             const buttonText = button?.innerText;
             const hasOwnedText = container.innerText.indexOf('Owned') !== -1;
@@ -1150,6 +1261,11 @@ window.XboxWishlistCore = {
                     if (!state.filters.publishers.selected.includes(publisher.trim())) return false;
                 } else return false;
             }
+            if (state.filters.subscriptions.selected.length > 0) {
+                // An item can carry more than one subscription - match if it has ANY of the selected ones.
+                const itemSubscriptions = getItemSubscriptions(container);
+                if (!itemSubscriptions.some(s => state.filters.subscriptions.selected.includes(s))) return false;
+            }
             if (state.filters.priceRange.enabled) {
                 // No price data at all (e.g. un-purchasable items) can't be "in range" - exclude.
                 if (isNaN(price)) return false;
@@ -1166,7 +1282,7 @@ window.XboxWishlistCore = {
         function toggleContainers() {
             const containers = document.getElementsByClassName(CONFIG.selectors.items);
             Array.from(containers).forEach((c, i) => setContainerData(c, containers.length - i));
-            collectPublishers(); updatePublishersCheckboxes(); updatePriceSlider(); updateDiscountSlider();
+            collectPublishers(); updatePublishersCheckboxes(); updateSubscriptionsCheckboxes(); updatePriceSlider(); updateDiscountSlider();
             Array.from(containers).forEach(c => {
                 try {
                     if (shouldShowContainer(c)) {
