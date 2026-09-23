@@ -47,21 +47,32 @@ function buildHarnessBlock(outDir) {
   }
   #ifc-harness-banner.pass { background: #1a7f37; }
   #ifc-harness-banner.fail { background: #b3261e; }
+  #ifc-harness-banner.skip { background: #8a6d00; }
 </style>
 <div id="ifc-harness-banner">Harness: booting extension core against this fixture...</div>
 <script>
 (function () {
     'use strict';
     const banner = document.getElementById('ifc-harness-banner');
+    // ok: true = PASS, false = FAIL, null = SKIPPED (checks deliberately not run)
     function report(ok, lines) {
-        banner.className = ok ? 'pass' : 'fail';
-        banner.textContent = (ok ? 'HARNESS PASS\\n' : 'HARNESS FAIL\\n') + lines.join('\\n');
+        banner.className = ok === null ? 'skip' : ok ? 'pass' : 'fail';
+        banner.textContent = (ok === null ? 'HARNESS SKIPPED\\n' : ok ? 'HARNESS PASS\\n' : 'HARNESS FAIL\\n') + lines.join('\\n');
         window.__harnessResult = { ok, lines };
         console.log('[HARNESS RESULT] ' + JSON.stringify({ ok, lines }));
     }
 
-    // In-memory chrome.storage stand-in (no persistence needed between runs)
-    const memoryStore = {};
+    // chrome.storage stand-in that behaves like the real one where it matters:
+    // get() answers asynchronously (so load-order races reproduce) and data
+    // survives a page reload via sessionStorage (so persistence can be tested).
+    // Cleared when the tab closes; falls back to memory if sessionStorage throws.
+    // Every load starts from an empty store (so the sanity checks below see a clean
+    // slate) unless the URL has ?persist, which keeps the previous load's data.
+    const STORE_KEY = 'ifc_harness_store';
+    const PERSIST_MODE = new URLSearchParams(location.search).has('persist');
+    let memoryStore = {};
+    try { memoryStore = PERSIST_MODE ? JSON.parse(sessionStorage.getItem(STORE_KEY) || '{}') : {}; } catch (e) { memoryStore = {}; }
+    const persist = () => { try { sessionStorage.setItem(STORE_KEY, JSON.stringify(memoryStore)); } catch (e) { /* memory only */ } };
     window.chrome = {
         runtime: {
             getManifest: () => ({ version: 'harness-test' }),
@@ -69,11 +80,11 @@ function buildHarnessBlock(outDir) {
         },
         storage: {
             local: {
-                set: (obj) => Object.assign(memoryStore, obj),
+                set: (obj) => { Object.assign(memoryStore, obj); persist(); },
                 get: (keys, cb) => {
                     const result = {};
                     keys.forEach(k => { if (k in memoryStore) result[k] = memoryStore[k]; });
-                    cb(result);
+                    setTimeout(() => cb(result), 50);
                 }
             }
         }
@@ -113,6 +124,14 @@ function buildHarnessBlock(outDir) {
 
         const state = window.injected;
         const lines = [];
+
+        // The checks below assume no filters are active and would also overwrite the
+        // restored state being inspected - so skip them when a restore is under test.
+        if (PERSIST_MODE && state.filters.filteredCount !== state.filters.totalCount) {
+            report(null, ['persist mode: restored filters active, sanity checks not run',
+                'items detected: ' + state.filters.totalCount, 'visible after restore: ' + state.filters.filteredCount]);
+            return;
+        }
 
         if (!(state.filters.totalCount > 0)) failures.push('totalCount is 0 - no wishlist items detected');
         lines.push('items detected: ' + state.filters.totalCount);

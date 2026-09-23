@@ -14,6 +14,29 @@ for how a version is bumped and published.
 
 ---
 
+## v1.5.26266.8 (Sep 2026) - Filters (and quick filter pills) survive a reload
+
+- Fixed (extension only): saved filters could be wiped on page load.
+  `initialize()` didn't wait for `chrome.storage.local.get`, so when the
+  wishlist was already rendered the panel was built - and `updateScreen()`
+  saved - on the empty defaults before the saved state arrived, overwriting
+  it. `loadFilterState()` now returns a Promise that `initialize()` awaits
+  (and still resolves if storage throws). The userscript was unaffected
+  (`GM_getValue` is synchronous).
+- Price and discount range filters are now restored on load, including
+  whether they're active, so "On Sale", "≥50% Off" and "Cheap" (and any
+  manual slider selection) persist like the checkbox filters. Previously they
+  deliberately started fresh each load. The saved selection is re-applied to
+  the current page's range by the same `rerangeSelection()` rules used when
+  the range shifts. The search box still starts empty.
+- Correction to v1.5.26266.6: its note that pills stay in sync with
+  "restored filters" only held for checkbox filters, and only in the userscript.
+- Mock harness: its `chrome.storage` stand-in now answers asynchronously and
+  can keep data across reloads with `?persist` (see
+  `tools/mock-harness/README.md`), so both bugs above reproduce there.
+
+---
+
 ## v1.5.26266.7 (Sep 2026) - Discount slider label fix; range edges stay pinned
 
 - Fixed: the discount slider label could stay at "0% - 100%" while the

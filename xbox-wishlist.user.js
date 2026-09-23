@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         XBOX Wishlist
 // @namespace    https://github.com/zellreid/xbox-wishlist
-// @version      1.5.26266.7
+// @version      1.5.26266.8
 // @description  Advanced filtering and sorting suite with multi-level sort (up to 3 criteria) - Resilient selectors - Public wishlist support
 // @author       ZellReid
 // @homepage     https://github.com/zellreid/xbox-wishlist
@@ -10,7 +10,7 @@
 // @match        https://www.xbox.com/*/wishlist*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=xbox.com
 // @run-at       document-body
-// @resource     CSSFilter https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/styles.css?ver=1.5.26266.7
+// @resource     CSSFilter https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/styles.css?ver=1.5.26266.8
 // @resource     IMGFilter https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/filter.svg
 // @resource     IMGSort https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/sort.svg
 // @resource     IMGExpand https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/expand.svg
@@ -139,7 +139,7 @@ window.XboxWishlistCore = {
         async function initialize() {
             try {
                 await addStyle(adapter.getResourceUrl('CSSFilter'));
-                loadFilterState();
+                await loadFilterState();
                 const ce = getElement(`#${CONFIG.selectors.content}`, false);
                 const target = ce || document.body;
                 observer.observe(target, { childList: true, subtree: true });
@@ -292,15 +292,19 @@ window.XboxWishlistCore = {
             } catch (ex) { console.error('Failed to save filter state:', ex); }
         }
 
+        // Resolves once the saved state is in `state` - initialize() awaits this so the
+        // UI is never built (and saveFilterState() never runs) on the empty defaults,
+        // which used to overwrite the saved filters when chrome.storage answered late.
         function loadFilterState() {
-            adapter.storage.load(CONFIG.storage.key, (saved) => {
+            return new Promise(resolve => { try { adapter.storage.load(CONFIG.storage.key, (saved) => {
                 try {
                     if (saved) {
                         const parsed = JSON.parse(saved);
                         if (parsed && typeof parsed === 'object') {
-                            // search.term is intentionally not restored - like priceRange/
-                            // discountRange.enabled below, it starts fresh each page load
-                            // rather than silently re-filtering the list on arrival.
+                            // search.term is intentionally not restored - it starts fresh
+                            // each page load. Price/discount ranges ARE restored (including
+                            // `enabled`) and re-applied to the live range by rerangeSelection()
+                            // when the sliders are built.
                             if (parsed.owned) {
                                 state.filters.owned.selected = Array.isArray(parsed.owned.selected) ? parsed.owned.selected : [];
                                 if (Array.isArray(parsed.owned.options)) state.filters.owned.options = parsed.owned.options;
@@ -314,12 +318,10 @@ window.XboxWishlistCore = {
                                 if (Array.isArray(parsed.subscriptions.list)) state.filters.subscriptions.list = new Map(parsed.subscriptions.list);
                             }
                             if (parsed.priceRange && typeof parsed.priceRange === 'object') {
-                                const { enabled, ...rest } = parsed.priceRange;
-                                state.filters.priceRange = { ...state.filters.priceRange, ...rest, enabled: false };
+                                state.filters.priceRange = { ...state.filters.priceRange, ...parsed.priceRange, enabled: parsed.priceRange.enabled === true };
                             }
                             if (parsed.discountRange && typeof parsed.discountRange === 'object') {
-                                const { enabled, ...rest } = parsed.discountRange;
-                                state.filters.discountRange = { ...state.filters.discountRange, ...rest, enabled: false };
+                                state.filters.discountRange = { ...state.filters.discountRange, ...parsed.discountRange, enabled: parsed.discountRange.enabled === true };
                             }
                             if (typeof parsed.totalCount === 'number') state.filters.totalCount = parsed.totalCount;
                             if (typeof parsed.filteredCount === 'number') state.filters.filteredCount = parsed.filteredCount;
@@ -329,7 +331,12 @@ window.XboxWishlistCore = {
                 } catch (ex) {
                     console.error('Failed to load filter state:', ex);
                 }
-            });
+                resolve();
+            }); } catch (ex) {
+                // Storage unavailable (e.g. private mode) - start from defaults rather than block init
+                console.error('Failed to load filter state:', ex);
+                resolve();
+            } });
         }
 
         // ==================== TAG MANAGEMENT ====================
@@ -905,6 +912,18 @@ window.XboxWishlistCore = {
             });
         }
 
+        // Moves a range filter onto new slider bounds. An inactive filter spans the full
+        // new range; an active one keeps the user's selection, clamped inside it. A
+        // selection edge left at the old end means "no limit" on that side (e.g.
+        // "≥50% Off"), so it stays pinned to the new end instead. Used both when the
+        // range shifts as items render and when a saved selection is restored on load.
+        function rerangeSelection(prev, min, max) {
+            const pinnedMin = !prev.enabled || prev.currentMin === prev.min, pinnedMax = !prev.enabled || prev.currentMax === prev.max;
+            const currentMin = pinnedMin ? min : Math.min(Math.max(prev.currentMin, min), max);
+            const currentMax = pinnedMax ? max : Math.max(Math.min(prev.currentMax, max), currentMin);
+            return { ...prev, min, max, currentMin, currentMax };
+        }
+
         function calculatePriceRange() {
             const containers = document.getElementsByClassName(CONFIG.selectors.items);
             let min = Infinity, max = 0;
@@ -946,11 +965,13 @@ window.XboxWishlistCore = {
                 const fg = getElement(`#${CONFIG.ids.filterContainer} ${CONFIG.selectors.filterGroups}`);
                 if (!fg) return;
                 const { min, max } = calculatePriceRange();
-                state.filters.priceRange = { min, max, currentMin: min, currentMax: max, enabled: false };
+                // Re-applies a restored selection (loadFilterState) to this page's range
+                state.filters.priceRange = rerangeSelection(state.filters.priceRange, min, max);
+                const { currentMin, currentMax } = state.filters.priceRange;
                 const fb = createFilterBlock(gn, 'Price Range', false);
                 const cc = fb.querySelector('.ifc-filter-block-static');
                 if (cc) {
-                    const slider = createRangeSlider(CONFIG.ids.priceSlider, min, max, min, max, (minVal, maxVal) => {
+                    const slider = createRangeSlider(CONFIG.ids.priceSlider, min, max, currentMin, currentMax, (minVal, maxVal) => {
                         state.filters.priceRange.currentMin = minVal; state.filters.priceRange.currentMax = maxVal;
                         state.filters.priceRange.enabled = true;
                         const l = getElement(`#${CONFIG.ids.priceSlider}_label`);
@@ -959,7 +980,7 @@ window.XboxWishlistCore = {
                     });
                     cc.appendChild(slider);
                     const l = slider.querySelector('.ifc-slider-label');
-                    if (l) l.textContent = `${formatCurrency(min)} - ${formatCurrency(max)}`;
+                    if (l) l.textContent = `${formatCurrency(currentMin)} - ${formatCurrency(currentMax)}`;
                 }
                 fg.appendChild(fb);
             } catch (ex) { console.error('Failed to add price range filter:', ex); }
@@ -968,15 +989,8 @@ window.XboxWishlistCore = {
         function updatePriceSlider() {
             const { min, max } = calculatePriceRange();
             if (state.filters.priceRange.min !== min || state.filters.priceRange.max !== max) {
-                // The range moves as more items render. An inactive filter tracks the full
-                // new range; an active one keeps the user's selection, clamped inside it.
-                // A selection edge left at the old end means "no limit" on that side
-                // (e.g. "≥50% Off"), so it stays pinned to the new end instead.
-                const pr = state.filters.priceRange;
-                const pinnedMin = !pr.enabled || pr.currentMin === pr.min, pinnedMax = !pr.enabled || pr.currentMax === pr.max;
-                const currentMin = pinnedMin ? min : Math.min(Math.max(pr.currentMin, min), max);
-                const currentMax = pinnedMax ? max : Math.max(Math.min(pr.currentMax, max), currentMin);
-                state.filters.priceRange = { ...pr, min, max, currentMin, currentMax };
+                // The range moves as more items render
+                state.filters.priceRange = rerangeSelection(state.filters.priceRange, min, max);
                 const mn = getElement(`#${CONFIG.ids.priceSlider}_min`), mx = getElement(`#${CONFIG.ids.priceSlider}_max`);
                 if (mn && mx) {
                     // Same step formula as createRangeSlider() - a stale step from a wider
@@ -1014,11 +1028,13 @@ window.XboxWishlistCore = {
                 const fg = getElement(`#${CONFIG.ids.filterContainer} ${CONFIG.selectors.filterGroups}`);
                 if (!fg) return;
                 const { min, max } = calculateDiscountRange();
-                state.filters.discountRange = { min, max, currentMin: min, currentMax: max, enabled: false };
+                // Re-applies a restored selection (loadFilterState) to this page's range
+                state.filters.discountRange = rerangeSelection(state.filters.discountRange, min, max);
+                const { currentMin, currentMax } = state.filters.discountRange;
                 const fb = createFilterBlock(gn, 'Discount Range', false);
                 const cc = fb.querySelector('.ifc-filter-block-static');
                 if (cc) {
-                    const slider = createRangeSlider(CONFIG.ids.discountSlider, min, max, min, max, (minVal, maxVal) => {
+                    const slider = createRangeSlider(CONFIG.ids.discountSlider, min, max, currentMin, currentMax, (minVal, maxVal) => {
                         state.filters.discountRange.currentMin = minVal; state.filters.discountRange.currentMax = maxVal;
                         state.filters.discountRange.enabled = true;
                         const l = getElement(`#${CONFIG.ids.discountSlider}_label`);
@@ -1027,7 +1043,7 @@ window.XboxWishlistCore = {
                     });
                     cc.appendChild(slider);
                     const l = slider.querySelector('.ifc-slider-label');
-                    if (l) l.textContent = `${formatPercentage(min)} - ${formatPercentage(max)}`;
+                    if (l) l.textContent = `${formatPercentage(currentMin)} - ${formatPercentage(currentMax)}`;
                 }
                 fg.appendChild(fb);
             } catch (ex) { console.error('Failed to add discount range filter:', ex); }
@@ -1036,14 +1052,8 @@ window.XboxWishlistCore = {
         function updateDiscountSlider() {
             const { min, max } = calculateDiscountRange();
             if (state.filters.discountRange.min !== min || state.filters.discountRange.max !== max) {
-                // Same rules as updatePriceSlider(): an inactive filter tracks the full new
-                // range (e.g. the 0-100 fallback built before discount badges rendered),
-                // an active one keeps the user's selection, clamped inside it.
-                const dr = state.filters.discountRange;
-                const pinnedMin = !dr.enabled || dr.currentMin === dr.min, pinnedMax = !dr.enabled || dr.currentMax === dr.max;
-                const currentMin = pinnedMin ? min : Math.min(Math.max(dr.currentMin, min), max);
-                const currentMax = pinnedMax ? max : Math.max(Math.min(dr.currentMax, max), currentMin);
-                state.filters.discountRange = { ...dr, min, max, currentMin, currentMax };
+                // e.g. off the 0-100 fallback used when built before discount badges rendered
+                state.filters.discountRange = rerangeSelection(state.filters.discountRange, min, max);
                 const mn = getElement(`#${CONFIG.ids.discountSlider}_min`), mx = getElement(`#${CONFIG.ids.discountSlider}_max`);
                 if (mn && mx) {
                     const step = Math.max(1, Math.round((max - min) / 100));

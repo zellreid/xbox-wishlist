@@ -17,14 +17,14 @@ updated: 2026-09-23
 > Never put credentials, keys, connection strings or secrets in this file.
 
 ## Now
-- Live at v1.5.26266.7: one shared core drives both the MV3 extension and the userscript. ISSUE-001 resolved; popup/service worker removed.
+- Live at v1.5.26266.8: one shared core drives both the MV3 extension and the userscript. ISSUE-001 resolved; popup/service worker removed.
 - Shipped in v1.5: public wishlist buttons (F-17), Clear All (F-18), wishlist search (F-31), dynamic price slider max (F-16), quick filter toggles with active state (F-19).
-- F-16/F-19 look right on live xbox.com (Edge, user screenshots 2026-09-23); discount label bug seen there fixed in v1.5.26266.7, needs a live re-check.
+- Live Edge testing found a reload bug (filters wiped/not restored); fixed in v1.5.26266.8 and verified in the mock harness (new ?persist mode), needs a live re-check.
 
 ## TODO
 | ID | Item | Priority | Status | Next action |
 |---|---|---|---|---|
-| T-04 | Live re-check of v1.5.26266.7 (discount label on load, quick filter pills) in Edge and Chrome | Medium | In Progress | Reload the unpacked extension, confirm the discount label matches the real range on first open |
+| T-04 | Live re-check of v1.5.26266.8 in Edge and Chrome (filters survive reload, discount label on first open) | High | In Progress | Reload the extension, set Not Owned + 50% Off, reload page, confirm pills/tags/sliders restored |
 | F-15 | Accordion label/title styling polish | Medium | Todo | Visual check in Chrome and Edge against docs/04 F-15 steps |
 | F-20 | Publisher typeahead search | Medium | Todo | Add search input at top of Publishers accordion |
 | F-21 | Filtered result count in panel header | Medium | Todo | Count visible items after applyFilters(), show "Filters (x / y)" |
@@ -37,8 +37,8 @@ updated: 2026-09-23
 + 7 more in docs/04-FEATURE-BREAKDOWN.md and docs/01-PRD.md (F-25 to F-30, Firefox/Safari support)
 
 ## Recent sessions
+- 2026-09-23: Filters persist across reload - fixed load race that wiped saved filters, range filters now restored (v1.5.26266.8); harness gets async storage + ?persist mode; mock harness PASS, persist round-trip PASS
 - 2026-09-23: Discount slider label/re-range fix, pinned range edges, T-03 guard (v1.5.26266.7); mock harness PASS, T-03 edge not covered by the fixture
 - 2026-09-23: F-19 - quick filter toggles, active state, Not Owned and 50% Off presets (v1.5.26266.6); mock harness PASS, 50% Off disabled state not covered by the fixture
 - 2026-09-23: F-16 - dynamic price slider max, live re-ranging, end-of-track fix (v1.5.26266.5); mock harness PASS
 - 2026-09-23: DOC-1 - synced PRD and feature breakdown with the v1.5 code; seeded this TODO table
-- 2026-09-23: Search, clear-all and quick-filter presets; version bumps

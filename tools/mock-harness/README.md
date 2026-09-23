@@ -41,6 +41,17 @@ A banner at the top of the page turns green ("HARNESS PASS") or red
 ("HARNESS FAIL") with details; the same summary is logged to the console as
 `[HARNESS RESULT] {...}` for scripted checks.
 
+The `chrome.storage` stand-in answers asynchronously (like the real one) and
+keeps its data in `sessionStorage`. By default every load starts with an
+empty store, so the sanity checks always see a clean slate.
+
+**Testing persistence:** add `?persist` to the URL
+(`.../<name>.harness.html?persist`). Filters set on one load are then
+restored on the next reload. If restored filters are active, the banner
+turns amber ("HARNESS SKIPPED") because the sanity checks assume no filters
+and would overwrite the state being inspected - inspect the restored UI
+manually or by script instead. Closing the tab clears the store.
+
 A plain `file://` open won't work reliably (fetching the SVG icons via
 `fetch()` is blocked from `file://` origins in most browsers) - always go
 through the server.
