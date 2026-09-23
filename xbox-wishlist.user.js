@@ -57,6 +57,7 @@ window.XboxWishlistCore = {
             },
             filters: {
                 totalCount: 0, filteredCount: 0, activeTags: [],
+                search: { term: '' },
                 owned: { selected: [], options: ['Owned', 'Not Owned', 'Un-Purchasable'] },
                 publishers: { selected: [], list: new Map() },
                 priceRange: { min: 0, max: 3000, currentMin: 0, currentMax: 3000, enabled: false },
@@ -91,6 +92,9 @@ window.XboxWishlistCore = {
                 filterButton: 'ifc_btn_Filter',
                 sortButton: 'ifc_btn_Sort',
                 tagContainer: 'ifc_tag_container',
+                clearButton: 'ifc_btn_ClearAll',
+                searchInput: 'ifc_input_search',
+                quickFilters: 'ifc_quick_filters',
                 ownedSelect: 'ifc_select_owned',
                 publishersSelect: 'ifc_select_publishers',
                 priceSlider: 'ifc_slider_price',
@@ -290,6 +294,9 @@ window.XboxWishlistCore = {
                     if (saved) {
                         const parsed = JSON.parse(saved);
                         if (parsed && typeof parsed === 'object') {
+                            // search.term is intentionally not restored - like priceRange/
+                            // discountRange.enabled below, it starts fresh each page load
+                            // rather than silently re-filtering the list on arrival.
                             if (parsed.owned) {
                                 state.filters.owned.selected = Array.isArray(parsed.owned.selected) ? parsed.owned.selected : [];
                                 if (Array.isArray(parsed.owned.options)) state.filters.owned.options = parsed.owned.options;
@@ -320,6 +327,9 @@ window.XboxWishlistCore = {
         // ==================== TAG MANAGEMENT ====================
         function updateActiveTags() {
             const tags = [];
+            if (state.filters.search.term.trim() !== '') {
+                tags.push({ type: 'search', value: 'search', label: `Search: "${state.filters.search.term.trim()}"` });
+            }
             state.filters.owned.selected.forEach(item => tags.push({ type: 'owned', value: item, label: item }));
             state.filters.publishers.selected.forEach(pub => {
                 const count = state.filters.publishers.list.get(pub) || 0;
@@ -335,6 +345,8 @@ window.XboxWishlistCore = {
             }
             state.filters.activeTags = tags;
             renderTags();
+            const clearBtn = getElement(`#${CONFIG.ids.clearButton}`);
+            if (clearBtn) clearBtn.classList.toggle('ifc-hidden', tags.length === 0);
         }
 
         function renderTags() {
@@ -364,6 +376,12 @@ window.XboxWishlistCore = {
                     updateCheckboxes(CONFIG.ids.publishersSelect, state.filters.publishers.selected); break;
                 case 'price': state.filters.priceRange.enabled = false; resetPriceSlider(); break;
                 case 'discount': state.filters.discountRange.enabled = false; resetDiscountSlider(); break;
+                case 'search': {
+                    state.filters.search.term = '';
+                    const searchInput = getElement(`#${CONFIG.ids.searchInput}`);
+                    if (searchInput) searchInput.value = '';
+                    break;
+                }
             }
             updateScreen();
         }
@@ -536,14 +554,23 @@ window.XboxWishlistCore = {
                 fc.classList.add('filter-section', 'SortAndFilters-module__container___yA+Vp', 'ifc-hidden');
                 const fl = document.createElement('div');
                 fl.classList.add('filter-list', 'SortAndFilters-module__filterList___T81LH');
+                const headerRow = document.createElement('div');
+                headerRow.className = 'ifc-filter-header-row';
                 const h = document.createElement('h2');
                 h.classList.add('filter-text-heading', 'typography-module__spotLightSubtitlePortrait___RB7M0', 'SortAndFilters-module__filtersText___8OwXG');
                 h.textContent = 'Filters';
+                const clearBtn = document.createElement('button');
+                clearBtn.id = CONFIG.ids.clearButton;
+                clearBtn.type = 'button';
+                clearBtn.className = 'ifc-clear-all-btn ifc-hidden';
+                clearBtn.textContent = 'Clear All';
+                clearBtn.addEventListener('click', clearAllFilters);
+                headerRow.appendChild(h); headerRow.appendChild(clearBtn);
                 const tc = document.createElement('div');
                 tc.id = CONFIG.ids.tagContainer; tc.className = 'ifc-tag-container ifc-hidden';
                 const fg = document.createElement('ul');
                 fg.classList.add('filter-groups', 'SortAndFilters-module__filterList___T81LH');
-                fl.appendChild(h); fl.appendChild(tc); fl.appendChild(fg); fc.appendChild(fl);
+                fl.appendChild(headerRow); fl.appendChild(tc); fl.appendChild(fg); fc.appendChild(fl);
                 document.body.appendChild(fc);
                 const fb = getElement(`#${CONFIG.ids.filterButton}`);
                 if (fb) fb.addEventListener('click', toggleFilterContainer);
@@ -591,6 +618,83 @@ window.XboxWishlistCore = {
 
             groupContainer.appendChild(headerButton); groupContainer.appendChild(contentPanel);
             return groupContainer;
+        }
+
+        function addSearchFilter() {
+            if (!state.ui.divFilter) return;
+            try {
+                if (getElement(`#${CONFIG.ids.searchInput}`, false)) return;
+                const tc = getElement(`#${CONFIG.ids.tagContainer}`, false);
+                if (!tc || !tc.parentNode) return;
+                const wrapper = document.createElement('div');
+                wrapper.className = 'ifc-search-wrapper';
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.id = CONFIG.ids.searchInput;
+                input.className = 'ifc-search-input';
+                input.placeholder = 'Search wishlist...';
+                input.value = state.filters.search.term;
+                input.addEventListener('input', (e) => {
+                    state.filters.search.term = e.target.value;
+                    updateScreen();
+                });
+                wrapper.appendChild(input);
+                tc.parentNode.insertBefore(wrapper, tc);
+            } catch (ex) { console.error('Failed to add search filter:', ex); }
+        }
+
+        function addQuickFilters() {
+            if (!state.ui.divFilter) return;
+            try {
+                if (getElement(`#${CONFIG.ids.quickFilters}`, false)) return;
+                const tc = getElement(`#${CONFIG.ids.tagContainer}`, false);
+                if (!tc || !tc.parentNode) return;
+                const row = document.createElement('div');
+                row.id = CONFIG.ids.quickFilters;
+                row.className = 'ifc-quick-filters';
+                const presets = [
+                    { label: 'Owned', apply: () => { state.filters.owned.selected = ['Owned']; updateCheckboxes(CONFIG.ids.ownedSelect, state.filters.owned.selected); } },
+                    { label: 'On Sale', apply: () => {
+                        state.filters.discountRange.enabled = true;
+                        state.filters.discountRange.currentMin = Math.max(1, state.filters.discountRange.min);
+                        state.filters.discountRange.currentMax = state.filters.discountRange.max;
+                        syncDiscountSliderUI();
+                    } },
+                    { label: 'Cheap', apply: () => {
+                        const { min, max } = state.filters.priceRange;
+                        state.filters.priceRange.enabled = true;
+                        state.filters.priceRange.currentMin = min;
+                        // Relative to this wishlist's own price spread, not a fixed
+                        // currency amount - prices are in the viewer's local currency.
+                        state.filters.priceRange.currentMax = min + (max - min) / 3;
+                        syncPriceSliderUI();
+                    } }
+                ];
+                presets.forEach(preset => {
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.className = 'ifc-quick-filter-btn';
+                    btn.textContent = preset.label;
+                    btn.addEventListener('click', () => { preset.apply(); updateScreen(); });
+                    row.appendChild(btn);
+                });
+                tc.parentNode.insertBefore(row, tc);
+            } catch (ex) { console.error('Failed to add quick filters:', ex); }
+        }
+
+        function clearAllFilters() {
+            try {
+                state.filters.owned.selected = [];
+                state.filters.publishers.selected = [];
+                state.filters.search.term = '';
+                updateCheckboxes(CONFIG.ids.ownedSelect, []);
+                updateCheckboxes(CONFIG.ids.publishersSelect, []);
+                const searchInput = getElement(`#${CONFIG.ids.searchInput}`);
+                if (searchInput) searchInput.value = '';
+                resetPriceSlider();
+                resetDiscountSlider();
+                updateScreen();
+            } catch (ex) { console.error('Failed to clear filters:', ex); }
         }
 
         async function addFilterContainerOwned() {
@@ -734,11 +838,23 @@ window.XboxWishlistCore = {
                 }
             }
         }
+        // Moves the price slider's thumbs/fill/label to match state.filters.priceRange
+        // without re-triggering its onChange (mn.dispatchEvent below fires with
+        // isUserInteraction still false, since we don't dispatch mousedown first) -
+        // used whenever the range is set programmatically rather than by dragging.
+        function syncPriceSliderUI() {
+            const { currentMin, currentMax } = state.filters.priceRange;
+            const mn = getElement(`#${CONFIG.ids.priceSlider}_min`), mx = getElement(`#${CONFIG.ids.priceSlider}_max`);
+            if (mn && mx) {
+                mn.value = currentMin; mx.value = currentMax; mn.dispatchEvent(new Event('input'));
+                const l = getElement(`#${CONFIG.ids.priceSlider}_label`);
+                if (l) l.textContent = `${formatCurrency(currentMin)} - ${formatCurrency(currentMax)}`;
+            }
+        }
         function resetPriceSlider() {
             const { min, max } = state.filters.priceRange;
             state.filters.priceRange.currentMin = min; state.filters.priceRange.currentMax = max; state.filters.priceRange.enabled = false;
-            const mn = getElement(`#${CONFIG.ids.priceSlider}_min`), mx = getElement(`#${CONFIG.ids.priceSlider}_max`);
-            if (mn && mx) { mn.value = min; mx.value = max; mn.dispatchEvent(new Event('input')); }
+            syncPriceSliderUI();
         }
 
         function addDiscountRangeFilter() {
@@ -784,17 +900,27 @@ window.XboxWishlistCore = {
                 }
             }
         }
+        // See syncPriceSliderUI() above for why this is separate from resetDiscountSlider().
+        function syncDiscountSliderUI() {
+            const { currentMin, currentMax } = state.filters.discountRange;
+            const mn = getElement(`#${CONFIG.ids.discountSlider}_min`), mx = getElement(`#${CONFIG.ids.discountSlider}_max`);
+            if (mn && mx) {
+                mn.value = currentMin; mx.value = currentMax; mn.dispatchEvent(new Event('input'));
+                const l = getElement(`#${CONFIG.ids.discountSlider}_label`);
+                if (l) l.textContent = `${formatPercentage(currentMin)} - ${formatPercentage(currentMax)}`;
+            }
+        }
         function resetDiscountSlider() {
             const { min, max } = state.filters.discountRange;
             state.filters.discountRange.currentMin = min; state.filters.discountRange.currentMax = max; state.filters.discountRange.enabled = false;
-            const mn = getElement(`#${CONFIG.ids.discountSlider}_min`), mx = getElement(`#${CONFIG.ids.discountSlider}_max`);
-            if (mn && mx) { mn.value = min; mx.value = max; mn.dispatchEvent(new Event('input')); }
+            syncDiscountSliderUI();
         }
 
         async function addFilterControls() {
             try {
                 addFilterLabel(); addFilterButton(); addSortButton();
                 addFilterContainer(); addSortContainer();
+                addSearchFilter(); addQuickFilters();
                 await addFilterContainerOwned(); await addFilterContainerPublishers();
                 addPriceRangeFilter(); addDiscountRangeFilter();
             } catch (ex) { console.error('Failed to add filter controls:', ex); }
@@ -1005,6 +1131,11 @@ window.XboxWishlistCore = {
             const publisher = container.dataset.ifcPublisher;
             const price = parseFloat(container.dataset.ifcPrice);
             const discount = parseInt(container.dataset.ifcPriceDiscountPercent);
+            const searchTerm = state.filters.search.term.trim().toLowerCase();
+            if (searchTerm !== '') {
+                const name = container.dataset.ifcName;
+                if (!name || name === 'null' || !name.toLowerCase().includes(searchTerm)) return false;
+            }
             if (state.filters.owned.selected.length > 0) {
                 let m = false;
                 if (state.filters.owned.selected.includes('Owned') && isOwned) m = true;

@@ -69,6 +69,70 @@ ul.filter-groups {
     padding: 5px;
 }
 
+/* ==================== FILTER HEADER / CLEAR ALL ==================== */
+.ifc-filter-header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.ifc-clear-all-btn {
+    background: none;
+    border: none;
+    color: #9dd85c;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 2px 4px;
+}
+
+.ifc-clear-all-btn:hover {
+    text-decoration: underline;
+}
+
+/* ==================== SEARCH ==================== */
+.ifc-search-wrapper {
+    margin: 8px 0;
+}
+
+.ifc-search-input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 6px 10px;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background-color: rgba(255, 255, 255, 0.08);
+    color: #f5f5f5;
+    font-size: 0.85rem;
+}
+
+.ifc-search-input::placeholder {
+    color: rgba(245, 245, 245, 0.5);
+}
+
+/* ==================== QUICK FILTERS ==================== */
+.ifc-quick-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 8px;
+}
+
+.ifc-quick-filter-btn {
+    background-color: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 999px;
+    color: #f5f5f5;
+    font-size: 0.75rem;
+    padding: 4px 10px;
+    cursor: pointer;
+}
+
+.ifc-quick-filter-btn:hover {
+    background-color: rgba(255, 255, 255, 0.16);
+}
+
 /* ==================== TAG CONTAINER ==================== */
 .ifc-tag-container {
     display: flex;
