@@ -273,6 +273,60 @@
 
 ---
 
+### T-19 - Light Mode Styling Fix
+
+**Problem:** Our injected UI hard-codes dark colours, so it clashes when xbox.com is in light mode. Xbox marks its theme on `<body>` (`data-theme="dark"` / `class="theme-dark"`; light is expected to be the `light` equivalent - confirm on the light mock).
+
+| Step | Task |
+|------|------|
+| 1 | Prepare a harness for the light-mode mock `mock_examples/#wishlist/20260923_1603.html`; screenshot every panel, pill, tag, chip, badge and the export menu to list the clashes |
+| 2 | Move `styles.css` colours into CSS variables on our own root, with a dark set (current values) and a light set, chosen from the page's theme attribute |
+| 3 | Re-check both mocks (dark `20260923_1032`, light `20260923_1603`) visually |
+
+---
+
+### F-39 - Light / Dark Mode Toggle
+
+**Goal:** A toolbar button to switch between light and dark.
+
+| Step | Task |
+|------|------|
+| 1 | Decide scope (HITL question): follow the site theme automatically and only let the button override **our** UI, or switch the **whole page's** theme (Xbox's own setting lives in the site's settings - changing it may need their settings flow) |
+| 2 | Build on T-19's variables: button toggles our root's theme class; persisted (storage adapter) |
+| 3 | Icon from the catalogue (`tools/icons`) |
+
+---
+
+### F-38 - Run on Product Pages (starting with diagnostics)
+
+**Goal:** Let the extension (and userscript) run on a game's store page too - first to run tests such as T-17 there, later for product-page features.
+
+| Step | Task |
+|------|------|
+| 1 | Manifest `content_scripts.matches` + userscript `@match` for `/games/store/*` - **manifest change, HITL approval required** |
+| 2 | Core: detect page type (wishlist vs product) and only start the wishlist UI on wishlist pages; on product pages start just the tooling needed (e.g. the T-17 test) |
+| 3 | Harness fixture from `mock_examples/#products/DEAD OR ALIVE 6_ Core Fighters _ XBOX.html` (prepare-fixture currently targets `#wishlist` only - extend it) |
+
+---
+
+### F-40 - DLC for Wishlist Games (indicator, count, link)
+
+**Goal:** On a game in the wishlist, show that it has DLC, how many, and a link to browse all of it.
+
+**Findings (DOA6 mocks):**
+- **"Has DLC" is free:** every game's summary on the wishlist page has a has-add-ons flag (155 of 242 games on the mock). No request needed.
+- **The link is free:** the add-ons page is `https://www.xbox.com/<locale>/games/browse/ProductAddOns_<productId>` - built from the product id.
+- **The count costs one request per game:** the add-ons page's embedded state carries the total (462 for DEAD OR ALIVE 6) plus the first 25 add-ons as full summaries. Load it lazily and cache it like capabilities (or as part of "Load details" / the per-item refresh).
+
+| Step | Task |
+|------|------|
+| 1 | Per item: `data-ifc-has-dlc` from the has-add-ons flag; a "DLC" chip-link on games (not on DLC items themselves) opening the add-ons page in a new tab |
+| 2 | Count: fetch the add-ons page via `fetchPageState()`, read its total, cache per product id (own key, TTL); show "DLC (462)"; include in per-item refresh and "Load details" |
+| 3 | Filter / quick filter "Has DLC"; export `hasDlc`, `dlcCount` |
+| 4 | Harness: use `mock_examples/#products/DEAD OR ALIVE 6_ Core Fighters _ XBOX_Add-ons for this game _ XBOX.html` as the fetched add-ons page |
+
+---
+
 ### F-35 - Deals and Games Browse Page Support
 
 **Goal:** Bring the filter/sort tooling to xbox.com's "Game deals" and "Browse all games" pages (mocks in `mock_examples/#deals` and `#games`).
