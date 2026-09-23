@@ -6,6 +6,7 @@
     const RESOURCE_MAP = {
         IMGFilter: 'shared/icons/filter.svg',
         IMGSort: 'shared/icons/sort.svg',
+        IMGExport: 'shared/icons/export.svg',
         IMGExpand: 'shared/icons/expand.svg',
         IMGCollapse: 'shared/icons/collapse.svg',
         CSSFilter: null // already declared in manifest.json's content_scripts.css

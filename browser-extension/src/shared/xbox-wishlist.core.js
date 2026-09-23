@@ -18,7 +18,7 @@ window.XboxWishlistCore = {
             scripts: [], styles: [],
             svgCache: new Map(), elementCache: new Map(),
             ui: {
-                floatButtons: false, lblFilter: false, btnFilter: false, btnSort: false,
+                floatButtons: false, lblFilter: false, btnFilter: false, btnSort: false, btnExport: false,
                 divFilter: false, divSort: false, divFilterShow: false, divSortShow: false,
                 tagContainer: false, complete: false, lowestItemId: null,
                 publisherSearch: ''
@@ -62,6 +62,8 @@ window.XboxWishlistCore = {
                 filterLabel: 'ifc_lbl_Filter',
                 filterButton: 'ifc_btn_Filter',
                 sortButton: 'ifc_btn_Sort',
+                exportButton: 'ifc_btn_Export',
+                exportMenu: 'ifc_export_menu',
                 tagContainer: 'ifc_tag_container',
                 clearButton: 'ifc_btn_ClearAll',
                 searchInput: 'ifc_input_search',
@@ -574,6 +576,95 @@ window.XboxWishlistCore = {
                 bc.appendChild(createImageButton('Sort', adapter.getResourceUrl('IMGSort'), 'Sort', 'svg'));
                 state.ui.btnSort = true;
             } catch (ex) { console.error('Failed to add sort button:', ex); }
+        }
+
+        // ==================== EXPORT (F-24) ====================
+        // Exports only the items currently shown (filters applied), in the current sort order.
+        function addExportButton() {
+            if (state.ui.btnExport) return;
+            try {
+                const bc = getElement(`#${CONFIG.ids.buttonContainer}`); if (!bc) return;
+                const btn = createImageButton('Export', adapter.getResourceUrl('IMGExport'), 'Export', 'svg');
+                btn.setAttribute('aria-haspopup', 'menu'); btn.setAttribute('aria-expanded', 'false');
+                const menu = document.createElement('div');
+                menu.id = CONFIG.ids.exportMenu; menu.className = 'ifc-export-menu ifc-hidden';
+                menu.setAttribute('role', 'menu');
+                [['csv', 'CSV'], ['json', 'JSON']].forEach(([format, label]) => {
+                    const item = document.createElement('button');
+                    item.type = 'button'; item.className = 'ifc-export-item'; item.setAttribute('role', 'menuitem');
+                    item.dataset.ifcFormat = format; item.dataset.ifcLabel = label;
+                    item.addEventListener('click', () => { exportVisibleItems(format); setExportMenuOpen(false); });
+                    menu.appendChild(item);
+                });
+                btn.addEventListener('click', (e) => { e.stopPropagation(); setExportMenuOpen(menu.classList.contains('ifc-hidden')); });
+                document.addEventListener('click', (e) => { if (!menu.contains(e.target)) setExportMenuOpen(false); });
+                document.addEventListener('keydown', (e) => { if (e.key === 'Escape') setExportMenuOpen(false); });
+                bc.appendChild(btn); bc.appendChild(menu);
+                state.ui.btnExport = true;
+            } catch (ex) { console.error('Failed to add export button:', ex); }
+        }
+
+        function setExportMenuOpen(open) {
+            const menu = getElement(`#${CONFIG.ids.exportMenu}`, false), btn = getElement(`#${CONFIG.ids.exportButton}`, false);
+            if (!menu || !btn) return;
+            if (open) {
+                // Label with the live count so it's clear only the visible items are exported
+                const n = getVisibleItems().length;
+                menu.querySelectorAll('.ifc-export-item').forEach(item => {
+                    item.textContent = `Export ${n} item${n === 1 ? '' : 's'} as ${item.dataset.ifcLabel}`;
+                    item.disabled = n === 0;
+                });
+            }
+            menu.classList.toggle('ifc-hidden', !open);
+            btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+        }
+
+        function getVisibleItems() {
+            return Array.from(document.getElementsByClassName(CONFIG.selectors.items)).filter(shouldShowContainer);
+        }
+
+        function exportRow(c) {
+            const num = v => { const n = parseFloat(v); return isNaN(n) ? null : n; };
+            const text = v => (v && v !== 'null') ? v.trim() : '';
+            return {
+                title: text(c.dataset.ifcName), publisher: text(c.dataset.ifcPublisher),
+                price: num(c.dataset.ifcPrice), originalPrice: num(c.dataset.ifcPriceBase),
+                discountPercent: num(c.dataset.ifcPrice) === null ? null : (num(c.dataset.ifcPriceDiscountPercent) ?? 0),
+                owned: c.dataset.ifcOwned === 'true', unpurchasable: c.dataset.ifcUnpurchasable === 'true',
+                url: text(c.dataset.ifcUri)
+            };
+        }
+
+        function toCsv(rows) {
+            const cols = ['title', 'publisher', 'price', 'originalPrice', 'discountPercent', 'owned', 'unpurchasable', 'url'];
+            const cell = v => {
+                if (v === null || v === undefined) return '';
+                let s = String(v);
+                // Stop spreadsheet apps treating a value as a formula (CSV injection)
+                if (typeof v === 'string' && /^[=+\-@\t\r]/.test(s)) s = `'${s}`;
+                return /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+            };
+            return [cols.join(','), ...rows.map(r => cols.map(k => cell(r[k])).join(','))].join('\r\n');
+        }
+
+        function downloadFile(filename, mime, content) {
+            const url = URL.createObjectURL(new Blob([content], { type: mime }));
+            const a = document.createElement('a');
+            a.href = url; a.download = filename; a.style.display = 'none';
+            document.body.appendChild(a); a.click(); a.remove();
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+        }
+
+        function exportVisibleItems(format) {
+            try {
+                const rows = getVisibleItems().map(exportRow);
+                if (rows.length === 0) return;
+                const d = new Date(), pad = n => String(n).padStart(2, '0');
+                const base = `xbox-wishlist-${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+                if (format === 'json') downloadFile(`${base}.json`, 'application/json', JSON.stringify(rows, null, 2));
+                // BOM so Excel reads UTF-8 (™, accented titles) correctly
+                else downloadFile(`${base}.csv`, 'text/csv;charset=utf-8', '﻿' + toCsv(rows));
+            } catch (ex) { console.error('Failed to export wishlist:', ex); }
         }
 
         function addFilterContainer() {
@@ -1254,7 +1345,7 @@ window.XboxWishlistCore = {
 
         async function addFilterControls() {
             try {
-                addFilterLabel(); addFilterButton(); addSortButton();
+                addFilterLabel(); addFilterButton(); addSortButton(); addExportButton();
                 addFilterContainer(); addSortContainer();
                 addSearchFilter(); addQuickFilters();
                 await addFilterContainerOwned(); await addFilterContainerPublishers(); await addFilterContainerSubscriptions();

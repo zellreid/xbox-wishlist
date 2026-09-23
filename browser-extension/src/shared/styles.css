@@ -166,6 +166,50 @@ ul.filter-groups {
     background-color: rgba(255, 255, 255, 0.08);
 }
 
+/* ==================== EXPORT MENU ==================== */
+/* export.svg is an outline (stroke) icon; Xbox's icon classes force a fill,
+   which would render it as solid shapes */
+#ifc_img_Export svg,
+#ifc_img_Export svg * {
+    fill: none;
+}
+
+/* Positioned against #ifc_ButtonContainer (position: fixed), under the buttons */
+.ifc-export-menu {
+    position: absolute;
+    top: calc(100% + 4px);
+    right: 0;
+    z-index: 999;
+    display: flex;
+    flex-direction: column;
+    min-width: 190px;
+    padding: 4px;
+    background-color: #1f1f1f;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+.ifc-export-item {
+    background: none;
+    border: none;
+    border-radius: 4px;
+    color: #f5f5f5;
+    font-size: 0.8125rem;
+    text-align: left;
+    padding: 6px 10px;
+    cursor: pointer;
+}
+
+.ifc-export-item:hover {
+    background-color: rgba(255, 255, 255, 0.12);
+}
+
+.ifc-export-item:disabled {
+    opacity: 0.4;
+    cursor: default;
+}
+
 /* ==================== SAVED FILTER PRESETS ==================== */
 .ifc-saved-presets {
     margin-top: 12px;

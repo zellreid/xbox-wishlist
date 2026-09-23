@@ -14,6 +14,21 @@ for how a version is bumped and published.
 
 ---
 
+## v1.5.26266.13 (Sep 2026) - Export (F-24)
+
+- Added an Export button after Sort. Its menu offers "Export N items as
+  CSV" or "as JSON", where N is the number of items currently shown - only
+  the visible items are exported (current filters), in the current sort
+  order. File name `xbox-wishlist-YYYY-MM-DD.csv|json`. Columns: title,
+  publisher, price, originalPrice, discountPercent, owned, unpurchasable,
+  url. The CSV opens cleanly in Excel (UTF-8 BOM, proper quoting) and values
+  that look like formulas are neutralised.
+- New icon `shared/icons/export.svg` (Tabler Icons `file-export`), added to
+  the extension's resource map and the userscript's `@resource` list. The
+  userscript fetches it from GitHub `main`, so it shows there once pushed.
+
+---
+
 ## v1.5.26266.12 (Sep 2026) - No-price items sort last, sort indicator, saved filters
 
 - Fixed (T-05): items with no price (un-purchasable or unreadable) were read

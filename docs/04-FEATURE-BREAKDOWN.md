@@ -163,6 +163,8 @@
 
 **Goal:** Download the filtered wishlist as CSV or JSON.
 
+**Status (v1.5.26266.13):** Done - Export button after Sort (`addExportButton()`), menu "Export N items as CSV / JSON". Exports only the visible items (current filters), in the current sort order. Columns: `title, publisher, price, originalPrice, discountPercent, owned, unpurchasable, url` (no-price items export empty price fields). CSV has a UTF-8 BOM, RFC-4180 quoting and formula-injection protection. Icon: Tabler Icons `file-export` (`shared/icons/export.svg`, resource key `IMGExport`), forced to `fill: none` because Xbox's icon classes fill SVGs.
+
 | Step | Task |
 |------|------|
 | 1 | Add Export button (icon) to the main button bar |

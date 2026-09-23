@@ -49,7 +49,7 @@ The Xbox wishlist page (`xbox.com/*/wishlist`) provides no native filtering, sor
 
 ## Feature List
 
-### ✅ Implemented (v1.5.26266.12 - Current)
+### ✅ Implemented (v1.5.26266.13 - Current)
 
 | ID | Feature | Version Introduced |
 |----|---------|-------------------|
@@ -77,6 +77,7 @@ The Xbox wishlist page (`xbox.com/*/wishlist`) provides no native filtering, sor
 | F-21 | Filtered result count (met by the existing "Viewing X of Y results" label) | v1.5 |
 | F-22 | Active sort indicator dot on the sort button | v1.5 |
 | F-23 | Save/load named filter presets | v1.5 |
+| F-24 | Export the visible (filtered, sorted) items as CSV or JSON | v1.5 |
 
 ### ⚠️ In Progress / Partially Done
 
@@ -88,7 +89,6 @@ The Xbox wishlist page (`xbox.com/*/wishlist`) provides no native filtering, sor
 
 | ID | Feature | Priority | Notes |
 |----|---------|----------|-------|
-| F-24 | Export wishlist data | 🟡 Medium | Download filtered list as CSV or JSON |
 | F-25 | Highlight/flag items | 🟢 Nice | Star/flag per item, persisted, sortable |
 | F-26 | Last seen price annotation | 🟢 Nice | Show price delta on each item since last visit |
 | F-27 | Price history tracking | 🟢 Future | Store price snapshots over time in `GM_setValue` |
