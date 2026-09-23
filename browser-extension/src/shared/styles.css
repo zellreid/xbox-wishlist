@@ -166,6 +166,24 @@ ul.filter-groups {
     background-color: rgba(255, 255, 255, 0.08);
 }
 
+/* ==================== DEAL END BADGE ==================== */
+/* Sits right after the -N% discount badge in the item's price row */
+.ifc-deal-ends {
+    margin-left: 6px;
+    padding: 1px 6px;
+    border-radius: 3px;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    color: rgba(245, 245, 245, 0.8);
+    font-size: 0.6875rem;
+    white-space: nowrap;
+    vertical-align: middle;
+}
+
+.ifc-deal-ends-soon {
+    border-color: #ffb900;
+    color: #ffb900;
+}
+
 /* ==================== GLYPH ICONS (×, +) ==================== */
 /* Inline Xbox icons inside small buttons (setGlyph() in core.js) */
 .ifc-glyph {

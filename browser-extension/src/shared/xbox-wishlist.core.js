@@ -29,6 +29,9 @@ window.XboxWishlistCore = {
                 owned: { selected: [], options: ['Owned', 'Not Owned', 'Un-Purchasable'] },
                 publishers: { selected: [], list: new Map() },
                 subscriptions: { selected: [], list: new Map() },
+                // From the page's embedded product data (F-33)
+                genres: { selected: [], list: new Map() },
+                inPass: false,
                 priceRange: { min: 0, max: 3000, currentMin: 0, currentMax: 3000, enabled: false },
                 discountRange: { min: 0, max: 100, currentMin: 0, currentMax: 100, enabled: false }
             },
@@ -38,7 +41,10 @@ window.XboxWishlistCore = {
                     { value: 'ifcId', label: 'Default' }, { value: 'ifcName', label: 'Name' },
                     { value: 'ifcPublisher', label: 'Publisher' }, { value: 'ifcPrice', label: 'Price' },
                     { value: 'ifcPriceDiscountPercent', label: 'Discount %' },
-                    { value: 'ifcPriceDiscountAmount', label: 'Discount Amount' }
+                    { value: 'ifcPriceDiscountAmount', label: 'Discount Amount' },
+                    { value: 'ifcRating', label: 'Rating' },
+                    { value: 'ifcReleaseDate', label: 'Release Date' },
+                    { value: 'ifcDealEnds', label: 'Deal Ends' }
                 ]
             },
             // Named filter combinations (F-23): [{ name, filters }] - see snapshotFilters()
@@ -79,6 +85,7 @@ window.XboxWishlistCore = {
                 ownedSelect: 'ifc_select_owned',
                 publishersSelect: 'ifc_select_publishers',
                 subscriptionsSelect: 'ifc_select_subscriptions',
+                genresSelect: 'ifc_select_genres',
                 priceSlider: 'ifc_slider_price',
                 discountSlider: 'ifc_slider_discount'
             },
@@ -120,6 +127,9 @@ window.XboxWishlistCore = {
             try {
                 await addStyle(adapter.getResourceUrl('CSSFilter'));
                 await loadFilterState();
+                // Parse this page's embedded product data once (local, ~20 ms) so the first
+                // updateScreen() can attach rating/genre/release/deal data to every item
+                await loadProductData();
                 const ce = getElement(`#${CONFIG.selectors.content}`, false);
                 const target = ce || document.body;
                 observer.observe(target, { childList: true, subtree: true });
@@ -267,6 +277,7 @@ window.XboxWishlistCore = {
                     ...state.filters,
                     publishers: { selected: state.filters.publishers.selected, list: Array.from(state.filters.publishers.list.entries()) },
                     subscriptions: { selected: state.filters.subscriptions.selected, list: Array.from(state.filters.subscriptions.list.entries()) },
+                    genres: { selected: state.filters.genres.selected },   // list is rebuilt from the items
                     sort: { criteria: state.sort.criteria },
                     presets: state.savedPresets
                 };
@@ -299,6 +310,10 @@ window.XboxWishlistCore = {
                                 state.filters.subscriptions.selected = Array.isArray(parsed.subscriptions.selected) ? parsed.subscriptions.selected : [];
                                 if (Array.isArray(parsed.subscriptions.list)) state.filters.subscriptions.list = new Map(parsed.subscriptions.list);
                             }
+                            if (parsed.genres && Array.isArray(parsed.genres.selected)) {
+                                state.filters.genres.selected = parsed.genres.selected.filter(g => typeof g === 'string');
+                            }
+                            if (typeof parsed.inPass === 'boolean') state.filters.inPass = parsed.inPass;
                             if (parsed.priceRange && typeof parsed.priceRange === 'object') {
                                 state.filters.priceRange = { ...state.filters.priceRange, ...parsed.priceRange, enabled: parsed.priceRange.enabled === true };
                             }
@@ -348,6 +363,11 @@ window.XboxWishlistCore = {
                 const count = state.filters.subscriptions.list.get(sub) || 0;
                 tags.push({ type: 'subscription', value: sub, label: `${sub} (${count})` });
             });
+            state.filters.genres.selected.forEach(g => {
+                const count = state.filters.genres.list.get(g) || 0;
+                tags.push({ type: 'genre', value: g, label: `${g} (${count})` });
+            });
+            if (state.filters.inPass) tags.push({ type: 'inPass', value: 'inPass', label: 'In a pass' });
             if (state.filters.priceRange.enabled) {
                 const { currentMin, currentMax } = state.filters.priceRange;
                 tags.push({ type: 'price', value: 'price', label: `Price: ${formatCurrency(currentMin)} - ${formatCurrency(currentMax)}` });
@@ -390,6 +410,10 @@ window.XboxWishlistCore = {
                 case 'subscription':
                     state.filters.subscriptions.selected = state.filters.subscriptions.selected.filter(v => v !== tag.value);
                     updateCheckboxes(CONFIG.ids.subscriptionsSelect, state.filters.subscriptions.selected); break;
+                case 'genre':
+                    state.filters.genres.selected = state.filters.genres.selected.filter(v => v !== tag.value);
+                    updateCheckboxes(CONFIG.ids.genresSelect, state.filters.genres.selected); break;
+                case 'inPass': state.filters.inPass = false; break;
                 case 'price': state.filters.priceRange.enabled = false; resetPriceSlider(); break;
                 case 'discount': state.filters.discountRange.enabled = false; resetDiscountSlider(); break;
                 case 'search': {
@@ -708,7 +732,75 @@ window.XboxWishlistCore = {
             return productId ? state.productData.get(String(productId).toUpperCase()) || null : null;
         }
 
-        // Inspection hooks for DevTools / the mock harness until a feature consumes the data
+        // Xbox writes offer end dates as "MM/DD/YYYY HH:MM:SS" in UTC. Full-price offers
+        // carry far-future placeholders (year 2799 / 9998), so only a discounted offer's
+        // date counts as a deal end - and only while it's still in the future.
+        function parseOfferEndUtc(s) {
+            const m = typeof s === 'string' && s.match(/^(\d{2})\/(\d{2})\/(\d{4}) (\d{2}):(\d{2}):(\d{2})$/);
+            if (!m) return null;
+            const ms = Date.UTC(+m[3], +m[1] - 1, +m[2], +m[4], +m[5], +m[6]);
+            return +m[3] < 2100 ? ms : null;
+        }
+
+        // Price facts from the product data, by offer. The deal end comes from the biggest
+        // current discount (earliest end on a tie). The page exposes no deal *start* date.
+        function productOfferFacts(p) {
+            const offers = (p && p.specificPrices && Array.isArray(p.specificPrices.purchaseable)) ? p.specificPrices.purchaseable : [];
+            const now = Date.now();
+            let price = null, msrp = null, deal = null;
+            offers.forEach(o => {
+                if (typeof o.listPrice === 'number') price = price === null ? o.listPrice : Math.min(price, o.listPrice);
+                if (typeof o.msrp === 'number') msrp = msrp === null ? o.msrp : Math.max(msrp, o.msrp);
+                const ends = o.discountPercentage > 0 ? parseOfferEndUtc(o.endDateUtc) : null;
+                if (ends !== null && ends > now && (!deal || o.discountPercentage > deal.pct || (o.discountPercentage === deal.pct && ends < deal.ends))) {
+                    deal = { pct: o.discountPercentage, ends };
+                }
+            });
+            return { price, msrp, dealEnds: deal ? deal.ends : null };
+        }
+
+        // Copies the product-data fields used by filtering/sorting/export onto the item as
+        // data attributes, so those keep reading data-ifc-* like every other field.
+        // Missing values are stored as "null" and treated as missing (sorted last).
+        function setProductDataAttributes(container) {
+            const p = getProductData(container.dataset.ifcProductId);
+            const release = p && p.releaseDate ? Date.parse(p.releaseDate) : NaN;
+            const offer = productOfferFacts(p);
+            setDataAttribute(container, 'ifcRating', p && p.ratingCount > 0 ? p.averageRating : null);
+            setDataAttribute(container, 'ifcRatingCount', p ? (p.ratingCount || 0) : null);
+            setDataAttribute(container, 'ifcGenres', JSON.stringify(p && Array.isArray(p.categories) ? p.categories : []));
+            setDataAttribute(container, 'ifcReleaseDate', isNaN(release) ? null : release);
+            setDataAttribute(container, 'ifcInPass', !!(p && Array.isArray(p.includedWithPassesProductIds) && p.includedWithPassesProductIds.length > 0));
+            // Only for deals the page actually shows this viewer (some discounted offers in
+            // the data never render a discount), so sort, badge and export agree
+            const dealEnds = parseFloat(container.dataset.ifcPriceDiscountPercent) > 0 ? offer.dealEnds : null;
+            setDataAttribute(container, 'ifcDealEnds', dealEnds);
+            // Kept for a future in-place price update / tracker (F-26); not shown yet
+            setDataAttribute(container, 'ifcStatePrice', offer.price);
+            setDataAttribute(container, 'ifcStateMsrp', offer.msrp);
+            injectDealEndBadge(container, dealEnds);
+        }
+
+        // "Ends 24 Sep" next to the discount badge; "Ends in 5h" (amber) inside 24 hours
+        function injectDealEndBadge(container, endsMs) {
+            try {
+                let badge = container.querySelector('.ifc-deal-ends');
+                const discount = container.querySelector('.ifc-discount-badge');
+                if (!endsMs || !discount) { if (badge) badge.remove(); return; }
+                if (!badge) {
+                    badge = document.createElement('span'); badge.className = 'ifc-deal-ends';
+                    discount.insertAdjacentElement('afterend', badge);
+                }
+                const left = endsMs - Date.now(), end = new Date(endsMs);
+                const soon = left < 24 * 60 * 60 * 1000;
+                badge.textContent = soon ? `Ends in ${Math.max(1, Math.ceil(left / 3600000))}h`
+                    : `Ends ${end.toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}`;
+                badge.classList.toggle('ifc-deal-ends-soon', soon);
+                badge.title = `Deal ends ${end.toLocaleString()}`;
+            } catch (ex) { console.error('Failed to inject deal end badge:', ex); }
+        }
+
+        // Inspection hooks for DevTools / the mock harness
         state.debug = { loadProductData, getProductData, fetchPageState };
 
         // ==================== REFRESH (F-32 v1) ====================
@@ -745,14 +837,22 @@ window.XboxWishlistCore = {
                 price: num(c.dataset.ifcPrice), originalPrice: num(c.dataset.ifcPriceBase),
                 discountPercent: num(c.dataset.ifcPrice) === null ? null : (num(c.dataset.ifcPriceDiscountPercent) ?? 0),
                 owned: c.dataset.ifcOwned === 'true', unpurchasable: c.dataset.ifcUnpurchasable === 'true',
+                // From the page's product data (F-33); dates as ISO strings
+                rating: num(c.dataset.ifcRating), ratingCount: num(c.dataset.ifcRatingCount),
+                genres: getItemGenres(c),
+                releaseDate: num(c.dataset.ifcReleaseDate) === null ? null : new Date(num(c.dataset.ifcReleaseDate)).toISOString().slice(0, 10),
+                dealEnds: num(c.dataset.ifcDealEnds) === null ? null : new Date(num(c.dataset.ifcDealEnds)).toISOString(),
+                inPass: c.dataset.ifcInPass === 'true',
                 url: text(c.dataset.ifcUri)
             };
         }
 
         function toCsv(rows) {
-            const cols = ['title', 'publisher', 'price', 'originalPrice', 'discountPercent', 'owned', 'unpurchasable', 'url'];
+            const cols = ['title', 'publisher', 'price', 'originalPrice', 'discountPercent', 'owned', 'unpurchasable',
+                'rating', 'ratingCount', 'genres', 'releaseDate', 'dealEnds', 'inPass', 'url'];
             const cell = v => {
                 if (v === null || v === undefined) return '';
+                if (Array.isArray(v)) v = v.join('; ');
                 let s = String(v);
                 // Stop spreadsheet apps treating a value as a formula (CSV injection)
                 if (typeof v === 'string' && /^[=+\-@\t\r]/.test(s)) s = `'${s}`;
@@ -931,6 +1031,10 @@ window.XboxWishlistCore = {
                 { key: 'onSale', label: 'On Sale', isActive: () => discountIs(discountFrom(1)), apply: () => setDiscount(discountFrom(1)), clear: resetDiscountSlider },
                 { key: 'halfOff', label: '≥50% Off', isAvailable: () => dr().max >= 50,
                     isActive: () => discountIs(discountFrom(50)), apply: () => setDiscount(discountFrom(50)), clear: resetDiscountSlider },
+                // Included with a subscription pass right now (from the page's product data) -
+                // unlike the Subscriptions filter, which reads "with <pass>" member-price badges
+                { key: 'inPass', label: 'In a pass', isActive: () => state.filters.inPass === true,
+                    apply: () => { state.filters.inPass = true; }, clear: () => { state.filters.inPass = false; } },
                 { key: 'cheap', label: 'Cheap',
                     isActive: () => pr().enabled && pr().currentMin === pr().min && pr().currentMax === cheapMax(),
                     apply: () => {
@@ -962,10 +1066,13 @@ window.XboxWishlistCore = {
                 state.filters.owned.selected = [];
                 state.filters.publishers.selected = [];
                 state.filters.subscriptions.selected = [];
+                state.filters.genres.selected = [];
+                state.filters.inPass = false;
                 state.filters.search.term = '';
                 updateCheckboxes(CONFIG.ids.ownedSelect, []);
                 updateCheckboxes(CONFIG.ids.publishersSelect, []);
                 updateCheckboxes(CONFIG.ids.subscriptionsSelect, []);
+                updateCheckboxes(CONFIG.ids.genresSelect, []);
                 const searchInput = getElement(`#${CONFIG.ids.searchInput}`);
                 if (searchInput) searchInput.value = '';
                 resetPriceSlider();
@@ -986,6 +1093,7 @@ window.XboxWishlistCore = {
             const f = state.filters;
             return {
                 owned: [...f.owned.selected], publishers: [...f.publishers.selected], subscriptions: [...f.subscriptions.selected],
+                genres: [...f.genres.selected], inPass: f.inPass === true,
                 priceRange: snapshotRange(f.priceRange), discountRange: snapshotRange(f.discountRange)
             };
         }
@@ -1000,13 +1108,17 @@ window.XboxWishlistCore = {
             const f = p.filters;
             return {
                 name: p.name.trim().slice(0, MAX_PRESET_NAME),
-                filters: { owned: list(f.owned), publishers: list(f.publishers), subscriptions: list(f.subscriptions), priceRange: range(f.priceRange), discountRange: range(f.discountRange) }
+                filters: {
+                    owned: list(f.owned), publishers: list(f.publishers), subscriptions: list(f.subscriptions),
+                    genres: list(f.genres), inPass: f.inPass === true,   // absent in presets saved before F-33
+                    priceRange: range(f.priceRange), discountRange: range(f.discountRange)
+                }
             };
         }
         function hasPresetableFilters() {
             const f = state.filters;
             return f.owned.selected.length > 0 || f.publishers.selected.length > 0 || f.subscriptions.selected.length > 0
-                || f.priceRange.enabled || f.discountRange.enabled;
+                || f.genres.selected.length > 0 || f.inPass || f.priceRange.enabled || f.discountRange.enabled;
         }
         // A saved range re-applied to this page's slider bounds (same rules as a restore)
         function presetRangeOnPage(saved, current) {
@@ -1023,6 +1135,7 @@ window.XboxWishlistCore = {
             };
             return sameSet(f.owned.selected, pf.owned) && sameSet(f.publishers.selected, pf.publishers)
                 && sameSet(f.subscriptions.selected, pf.subscriptions)
+                && sameSet(f.genres.selected, pf.genres) && f.inPass === pf.inPass
                 && rangeIs(f.priceRange, pf.priceRange) && rangeIs(f.discountRange, pf.discountRange);
         }
         // Replaces the current filter selections with the preset's (search text is left alone)
@@ -1030,9 +1143,11 @@ window.XboxWishlistCore = {
             try {
                 const f = state.filters, pf = p.filters;
                 f.owned.selected = [...pf.owned]; f.publishers.selected = [...pf.publishers]; f.subscriptions.selected = [...pf.subscriptions];
+                f.genres.selected = [...pf.genres]; f.inPass = pf.inPass;
                 updateCheckboxes(CONFIG.ids.ownedSelect, f.owned.selected);
                 updateCheckboxes(CONFIG.ids.publishersSelect, f.publishers.selected);
                 updateCheckboxes(CONFIG.ids.subscriptionsSelect, f.subscriptions.selected);
+                updateCheckboxes(CONFIG.ids.genresSelect, f.genres.selected);
                 f.priceRange = presetRangeOnPage(pf.priceRange, f.priceRange);
                 f.discountRange = presetRangeOnPage(pf.discountRange, f.discountRange);
                 syncPriceSliderUI(); syncDiscountSliderUI();
@@ -1291,6 +1406,62 @@ window.XboxWishlistCore = {
             });
         }
 
+        // ==================== GENRES (F-33) ====================
+        // ifcGenres is a JSON-encoded array (an item can have several genres), set from
+        // the page's product data in setContainerData(); like Subscriptions, the list is
+        // empty at build time and filled on the first updateScreen() cycle.
+        function getItemGenres(container) {
+            try {
+                const parsed = JSON.parse(container.dataset.ifcGenres || '[]');
+                return Array.isArray(parsed) ? parsed : [];
+            } catch (ex) { return []; }
+        }
+
+        function collectGenres() {
+            const genres = new Map();
+            Array.from(document.getElementsByClassName(CONFIG.selectors.items)).forEach(c => {
+                getItemGenres(c).forEach(g => { if (g) genres.set(g, (genres.get(g) || 0) + 1); });
+            });
+            state.filters.genres.list = new Map(Array.from(genres.entries()).sort((a, b) => a[0].localeCompare(b[0])));
+            return state.filters.genres.list;
+        }
+
+        async function addFilterContainerGenres() {
+            if (!state.ui.divFilter) return;
+            const gn = 'Genres';
+            try {
+                if (getElement(`#ifc_group_${gn}`, false)) { updateGenresCheckboxes(); return; }
+                const fg = getElement(`#${CONFIG.ids.filterContainer} ${CONFIG.selectors.filterGroups}`);
+                if (!fg) return;
+                const fb = createFilterBlock(gn, 'Genres', true);
+                const cc = fb.querySelector('.ifc-accordion-content');
+                if (cc) {
+                    const gc = document.createElement('div');
+                    gc.id = CONFIG.ids.genresSelect;
+                    gc.className = 'ifc-checkbox-list ifc-checkbox-list-scrollable';
+                    cc.appendChild(gc);
+                }
+                fg.appendChild(fb);
+                updateGenresCheckboxes();
+            } catch (ex) { console.error('Failed to add genres filter:', ex); }
+        }
+
+        function updateGenresCheckboxes() {
+            const genres = collectGenres();
+            const container = document.getElementById(CONFIG.ids.genresSelect);
+            if (!container) return;
+            container.innerHTML = '';
+            genres.forEach((count, name) => {
+                const label = document.createElement('label'); label.className = 'ifc-checkbox-item';
+                const cb = document.createElement('input');
+                cb.type = 'checkbox'; cb.value = name; cb.checked = state.filters.genres.selected.includes(name);
+                cb.className = 'ifc-checkbox';
+                cb.addEventListener('change', () => { state.filters.genres.selected = getCheckboxValues(CONFIG.ids.genresSelect); updateScreen(); });
+                const span = document.createElement('span'); span.className = 'ifc-checkbox-label'; span.textContent = `${name} (${count})`;
+                label.appendChild(cb); label.appendChild(span); container.appendChild(label);
+            });
+        }
+
         // Moves a range filter onto new slider bounds. An inactive filter spans the full
         // new range; an active one keeps the user's selection, clamped inside it. A
         // selection edge left at the old end means "no limit" on that side (e.g.
@@ -1463,6 +1634,7 @@ window.XboxWishlistCore = {
                 addFilterContainer(); addSortContainer();
                 addSearchFilter(); addQuickFilters();
                 await addFilterContainerOwned(); await addFilterContainerPublishers(); await addFilterContainerSubscriptions();
+                await addFilterContainerGenres();
                 addPriceRangeFilter(); addDiscountRangeFilter();
                 addSavedPresets();
             } catch (ex) { console.error('Failed to add filter controls:', ex); }
@@ -1629,9 +1801,15 @@ window.XboxWishlistCore = {
                             if (aMissing !== bMissing) return aMissing ? 1 : -1;
                             if (aMissing) continue;
                         }
+                        // Same for product-data fields: unrated, unreleased or no current deal sorts last
+                        if (['ifcRating', 'ifcReleaseDate', 'ifcDealEnds'].includes(c.field)) {
+                            const aMissing = isNaN(parseFloat(a.dataset[c.field])), bMissing = isNaN(parseFloat(b.dataset[c.field]));
+                            if (aMissing !== bMissing) return aMissing ? 1 : -1;
+                            if (aMissing) continue;
+                        }
                         const aVal = a.dataset[c.field], bVal = b.dataset[c.field];
                         let cmp = 0;
-                        if (['ifcId', 'ifcPrice', 'ifcPriceDiscountPercent', 'ifcPriceDiscountAmount'].includes(c.field)) {
+                        if (['ifcId', 'ifcPrice', 'ifcPriceDiscountPercent', 'ifcPriceDiscountAmount', 'ifcRating', 'ifcReleaseDate', 'ifcDealEnds'].includes(c.field)) {
                             cmp = (parseFloat(aVal) || 0) - (parseFloat(bVal) || 0);
                         } else { cmp = (aVal || '').toString().toLowerCase().localeCompare((bVal || '').toString().toLowerCase()); }
                         if (cmp !== 0) return c.order === 'asc' ? cmp : -cmp;
@@ -1726,6 +1904,7 @@ window.XboxWishlistCore = {
                 setDataAttribute(container, 'ifcPriceDiscountPercent', 0);
             }
             setDataAttribute(container, 'ifcSubscriptions', JSON.stringify(extractSubscriptions(container)));
+            setProductDataAttributes(container);
             const button = safeQuerySelector(container, 'button');
             const buttonText = button?.innerText;
             const hasOwnedText = container.innerText.indexOf('Owned') !== -1;
@@ -1769,6 +1948,11 @@ window.XboxWishlistCore = {
                 const itemSubscriptions = getItemSubscriptions(container);
                 if (!itemSubscriptions.some(s => state.filters.subscriptions.selected.includes(s))) return false;
             }
+            if (state.filters.genres.selected.length > 0) {
+                // Items can have several genres - match if it has ANY of the selected ones
+                if (!getItemGenres(container).some(g => state.filters.genres.selected.includes(g))) return false;
+            }
+            if (state.filters.inPass && container.dataset.ifcInPass !== 'true') return false;
             if (state.filters.priceRange.enabled) {
                 // No price data at all (e.g. un-purchasable items) can't be "in range" - exclude.
                 if (isNaN(price)) return false;
@@ -1795,7 +1979,7 @@ window.XboxWishlistCore = {
             unnumbered.forEach(c => { c.dataset.ifcId = nextId--; });
             state.ui.lowestItemId = nextId + 1;
             Array.from(containers).forEach(c => setContainerData(c, c.dataset.ifcId));
-            collectPublishers(); updatePublishersCheckboxes(); updateSubscriptionsCheckboxes(); updatePriceSlider(); updateDiscountSlider();
+            collectPublishers(); updatePublishersCheckboxes(); updateSubscriptionsCheckboxes(); updateGenresCheckboxes(); updatePriceSlider(); updateDiscountSlider();
             Array.from(containers).forEach(c => {
                 try {
                     if (shouldShowContainer(c)) {

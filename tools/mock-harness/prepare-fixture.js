@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // Turns a raw "Save As -> Webpage, Complete" capture of the Xbox wishlist page
-// (dropped in mock_examples/) into a frozen test fixture that boots the real
-// extension core against it.
+// (dropped in mock_examples/#wishlist/) into a frozen test fixture that boots
+// the real extension core against it. mock_examples/ also holds #products,
+// #deals and #games captures - reference material, not harness fixtures.
 //
 // Why: opening the raw saved page directly lets its original React bundles
 // re-execute (browsers run classic <script> tags regardless of file
@@ -10,14 +11,15 @@
 // <script> tags freezes the DOM exactly as captured.
 //
 // Usage:
-//   node tools/mock-harness/prepare-fixture.js mock_examples/20260922_1138.html
-//   node tools/mock-harness/prepare-fixture.js            (prepares every *.html directly in mock_examples/)
+//   node tools/mock-harness/prepare-fixture.js "mock_examples/#wishlist/20260922_1138.html"
+//   node tools/mock-harness/prepare-fixture.js            (prepares every *.html in mock_examples/#wishlist/)
+// Open via the server with "#" URL-encoded, e.g. /mock_examples/%23wishlist/<name>.harness.html
 
 const fs = require('fs');
 const path = require('path');
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
-const MOCK_DIR = path.join(REPO_ROOT, 'mock_examples');
+const MOCK_DIR = path.join(REPO_ROOT, 'mock_examples', '#wishlist');
 const CORE_JS = path.join(REPO_ROOT, 'browser-extension', 'src', 'shared', 'xbox-wishlist.core.js');
 const CONTENT_JS = path.join(REPO_ROOT, 'browser-extension', 'src', 'content.js');
 const STYLES_CSS = path.join(REPO_ROOT, 'browser-extension', 'src', 'shared', 'styles.css');

@@ -5,13 +5,26 @@ Boots the real extension code (`browser-extension/src/shared/xbox-wishlist.core.
 Xbox wishlist page, so a change can be sanity-checked without touching
 xbox.com or waiting on the Chrome Web Store / Tampermonkey update cycle.
 
+## Mock layout
+
+`mock_examples/` (git-ignored - personal browsing data) is split by page type:
+
+| Folder | Contents | Harness fixture? |
+|---|---|---|
+| `#wishlist/` | Wishlist page captures | Yes - `prepare-fixture.js` targets this folder |
+| `#products/` | Product page captures | No - reference for product-page-only data (F-34) |
+| `#deals/` | Game deals browse page | No - reference for possible future deals-page support |
+| `#games/` | Browse all games page | No - reference for possible future games-page support |
+
+`#` starts a URL fragment, so encode it as `%23` in harness URLs.
+
 ## Adding a new fixture
 
 1. On the Xbox wishlist page, `Ctrl+S` -> "Webpage, Complete" -> save into
-   `mock_examples/` (this produces `<name>.html` + a `<name>_files/` folder).
+   `mock_examples/#wishlist/` (this produces `<name>.html` + a `<name>_files/` folder).
 2. Prepare it:
    ```
-   node tools/mock-harness/prepare-fixture.js mock_examples/<name>.html
+   node tools/mock-harness/prepare-fixture.js "mock_examples/#wishlist/<name>.html"
    ```
    This strips the page's own `<script>` tags (otherwise the live React app
    re-hydrates on load, its API calls fail offline, and it wipes the saved
@@ -21,14 +34,16 @@ xbox.com or waiting on the Chrome Web Store / Tampermonkey update cycle.
    small harness script that loads the real extension code against the
    frozen DOM and runs a few sanity checks (item count, publisher
    collection, an actual filter interaction). Output goes to
-   `mock_examples/<name>.harness.html` - **next to** the raw capture, not a
+   `mock_examples/#wishlist/<name>.harness.html` - **next to** the raw capture, not a
    separate folder, because the saved page's own asset links are relative
    (`./<name>_files/...`) and only resolve if the fixture stays alongside
    its `_files` sibling. Git-ignored - regenerate any time from the raw
    capture.
 
    Omit the argument to prepare every `.html` file directly under
-   `mock_examples/` in one pass.
+   `mock_examples/#wishlist/` in one pass. The fixture keeps Xbox's embedded
+   page-state script (as inert `text/plain`) so the product-data reader works
+   offline; every other script is stripped.
 
 ## Running it
 
@@ -36,7 +51,7 @@ xbox.com or waiting on the Chrome Web Store / Tampermonkey update cycle.
 node tools/mock-harness/server.js        # serves the repo at :8792
 ```
 
-Then open `http://localhost:8792/mock_examples/<name>.harness.html`.
+Then open `http://localhost:8792/mock_examples/%23wishlist/<name>.harness.html`.
 A banner at the top of the page turns green ("HARNESS PASS") or red
 ("HARNESS FAIL") with details; the same summary is logged to the console as
 `[HARNESS RESULT] {...}` for scripted checks.

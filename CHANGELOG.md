@@ -14,6 +14,32 @@ for how a version is bumped and published.
 
 ---
 
+## v1.5.26266.16 (Sep 2026) - Product data: rating, genres, release date, deal ends, "In a pass" (F-33)
+
+- Product data from the wishlist page's embedded state is now loaded once on
+  start (local, ~20 ms, no network) and attached to every item.
+- Sort: new **Rating**, **Release Date** and **Deal Ends** options. Items
+  without a value (unrated, no release date, no current deal) sort last in
+  either direction.
+- Filter: new **Genres** section (an item matches if it has any selected
+  genre) and an **"In a pass"** quick filter - games included with a
+  subscription pass right now (distinct from the Subscriptions filter, which
+  reads "with <pass>" member-price badges). Both show tags, are cleared by
+  Clear All, persist across reloads and are included in saved filters
+  (saved filters from before this version still load).
+- Items with a current deal get an "Ends 24 Sep" badge next to the discount
+  (amber "Ends in 5h" within 24 hours). Only deals the page actually shows
+  the viewer count, so the badge, the Deal Ends sort and export agree.
+- Export: new columns rating, ratingCount, genres, releaseDate, dealEnds, inPass.
+- The offer's list price and MSRP are also stored per item for a future
+  in-place price update (F-26); not shown yet.
+- Mock harness: follows the new `mock_examples/#wishlist|#products|#deals|#games`
+  layout (fixtures in `#wishlist`, opened as `%23wishlist` in URLs).
+- New `docs/07-DATA-FIELDS.md`: which item fields come free from the wishlist
+  page and which need a product page request.
+
+---
+
 ## v1.5.26266.15 (Sep 2026) - Saved-filter styling fix; product data reader
 
 - Fixed: since v1.5.26266.14 the × half of a saved-filter button was shorter

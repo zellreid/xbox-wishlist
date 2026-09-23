@@ -197,7 +197,7 @@
 
 **Goal:** Richer per-item data (rating, genres, release date, platforms, pass inclusion, size, ...) for new filters, sorts, columns and price tracking.
 
-**Status (v1.5.26266.15):** Reader done, not yet consumed - `parseEmbeddedState()`, `fetchPageState()`, `loadProductData({ fresh })`, `getProductData(id)` in the shared core; exposed as `window.injected.debug`. Harness: 100% of items matched on both mocks; local read ~16 ms, fetch + parse ~60 ms (local server).
+**Status (v1.5.26266.16):** Done - loaded once on start; per-item `data-ifc-rating/-rating-count/-genres/-release-date/-deal-ends/-in-pass/-state-price/-state-msrp` via `setProductDataAttributes()`; Rating / Release Date / Deal Ends sorts, Genres filter, "In a pass" quick filter, deal-end badge, export columns; persisted and included in saved filters. Deal start date is not in the data (see F-26). Field inventory: `docs/07-DATA-FIELDS.md`.
 
 **Findings:** The wishlist page's embedded state already holds a product summary for every wishlisted item, so one read (no per-item requests) covers the list. Product pages add only extras (additional information, full ratings/reviews). Fetching every product page would mean hundreds of multi-MB requests - slow and likely to trip rate limiting - so per-item fetches should be lazy, cached and throttled, and only for fields the summary lacks.
 
@@ -208,6 +208,49 @@
 | 3 | Decide when to load: on init (cheap, local) vs on demand; `fresh` on Refresh |
 | 4 | Copy chosen fields onto items as `data-ifc-*` in `setContainerData()` so filtering/sorting keep reading data attributes |
 | 5 | Optional: save a product page as a mock to build/test a lazy per-item fetch for the extras |
+
+---
+
+### F-34 - Deal Types and Product Indicators
+
+**Goal:** Show which deals and product features apply per item ("Just for you" with its reason, On sale with end date, Pre-order, platforms, Optimised for Xbox Series X|S, Smart Delivery, Xbox Play Anywhere), with matching icons.
+
+**Findings (2026-09-23, wishlist page state):**
+
+| Indicator | From the wishlist page? | Notes |
+|---|---|---|
+| Just for you (personal offer) | Yes | Marked on the offer, with the reason text ("Because of your loyalty to the franchise"), discount and end date. Personal to the signed-in user. |
+| On sale + ends | Yes | Discount % and deal end (already used by F-33) |
+| Member prices (Game Pass / PC Game Pass / EA Play) | Yes | With their own message text |
+| Pre-order | Yes | Per SKU flag + future release date |
+| Platforms | Yes | Xbox One, Xbox Series X\|S, PC, Handheld (multi) |
+| Pass inclusion + date added to the pass | Yes | Pass ids only - names not in the data |
+| Age rating (board, age, icon) | Yes | |
+| Optimised for X\|S, Smart Delivery, Play Anywhere, 4K... | Codes only | Stored as numeric badge codes (0-11); the code-to-name mapping lives in the product page's code, not the wishlist page's |
+| Capabilities (4K, 60 fps, single player, PC game pad) | No | Product page only |
+| Reviews text | No | Product page only |
+| Deal start date | No | Not in the data anywhere - can only be recorded as "first seen" (F-26) |
+| Icons for these badges | No | Not in the wishlist page's bundles - expected in the product page's |
+
+| Step | Task |
+|------|------|
+| 1 | Go through the mocks in `mock_examples/#products` (20 captured) - their state has named capabilities (Optimized for X\|S, Smart Delivery, Play Anywhere, 4K, 60 fps, ...) |
+| 2 | Map the wishlist page's badge codes to those names by comparing the same products; extract the badge icons (X\|S, Smart Delivery, Play Anywhere, pre-order, sale tag) from the product pages' code into the icon catalogue |
+| 3 | Add per-item fields: dealType (just-for-you / sale / member), dealReason, preorder, platforms, badges |
+| 4 | UI: small indicator icons on items + quick filters (e.g. "Just for you", "Pre-order") + Platforms filter; export columns |
+
+---
+
+### F-35 - Deals and Games Browse Page Support
+
+**Goal:** Bring the filter/sort tooling to xbox.com's "Game deals" and "Browse all games" pages (mocks in `mock_examples/#deals` and `#games`).
+
+| Step | Task |
+|------|------|
+| 1 | Examine both mocks: item markup (class prefixes) and whether the same embedded state is present |
+| 2 | Decide scope: those pages already have native sort/filters (platform, genre, price, ...) - add only what they lack (e.g. deal ends, rating, "In a pass", export) |
+| 3 | Match patterns / host permissions for the new URLs (manifest change - HITL approval required) |
+| 4 | Harness fixtures for those page types |
 
 ---
 
