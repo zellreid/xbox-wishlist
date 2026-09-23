@@ -264,9 +264,16 @@ ul.filter-groups {
     min-width: 0;
 }
 
+/* stretch: the × half takes the name half's height (its icon is smaller than text) */
 .ifc-saved-preset {
     display: inline-flex;
-    align-items: center;
+    align-items: stretch;
+}
+
+.ifc-saved-preset .ifc-quick-filter-btn.ifc-Active + .ifc-saved-preset-remove:not(:hover) {
+    background-color: #107C10;
+    border-color: #107C10;
+    color: #ffffff;
 }
 
 .ifc-saved-preset .ifc-quick-filter-btn {

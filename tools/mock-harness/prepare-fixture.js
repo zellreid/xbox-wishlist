@@ -26,8 +26,14 @@ function toUrlPath(p) {
     return p.split(path.sep).join('/');
 }
 
+// Strips every <script> except Xbox's embedded app state (window.__PRELOADED_STATE__),
+// which is kept as non-executing text/plain so the core's product-data reader can
+// parse it exactly as it does on the live page.
 function stripScripts(html) {
-    return html.replace(/<script[\s\S]*?<\/script>/gi, '');
+    return html.replace(/<script[\s\S]*?<\/script>/gi, (tag) =>
+        tag.includes('__PRELOADED_STATE__')
+            ? tag.replace(/^<script[^>]*>/i, '<script type="text/plain" data-harness-kept="preloaded-state">')
+            : '');
 }
 
 function buildHarnessBlock(outDir) {

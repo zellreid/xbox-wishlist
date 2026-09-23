@@ -14,6 +14,25 @@ for how a version is bumped and published.
 
 ---
 
+## v1.5.26266.15 (Sep 2026) - Saved-filter styling fix; product data reader
+
+- Fixed: since v1.5.26266.14 the × half of a saved-filter button was shorter
+  than its name half (the icon is smaller than the text it replaced) and
+  stayed grey when the filter was active. Both halves now share one height,
+  and the × turns green with an active filter (red on hover still means delete).
+- Added (F-33, groundwork): a product-data reader in the shared core. Xbox
+  pages embed their app state in an inline script; the reader parses it from
+  the script text (content scripts can't read page globals), from the current
+  page or a freshly fetched one. The wishlist page's state carries a summary
+  for every wishlisted product (rating, categories, release date, platforms,
+  passes, install size, descriptions, ...), matched to items by product id.
+  Not used by the UI yet - available as `window.injected.debug` for
+  inspection until a feature consumes it.
+- Mock harness: fixtures now keep the embedded-state script (as inert
+  `text/plain`) so the reader can be tested offline.
+
+---
+
 ## v1.5.26266.14 (Sep 2026) - Refresh button, Xbox icons, exclusive panels
 
 - Added (F-32 v1): a Refresh button at the end of the toolbar that saves the

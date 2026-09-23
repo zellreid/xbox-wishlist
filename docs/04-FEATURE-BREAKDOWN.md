@@ -193,6 +193,24 @@
 
 ---
 
+### F-33 - Product Data Enrichment
+
+**Goal:** Richer per-item data (rating, genres, release date, platforms, pass inclusion, size, ...) for new filters, sorts, columns and price tracking.
+
+**Status (v1.5.26266.15):** Reader done, not yet consumed - `parseEmbeddedState()`, `fetchPageState()`, `loadProductData({ fresh })`, `getProductData(id)` in the shared core; exposed as `window.injected.debug`. Harness: 100% of items matched on both mocks; local read ~16 ms, fetch + parse ~60 ms (local server).
+
+**Findings:** The wishlist page's embedded state already holds a product summary for every wishlisted item, so one read (no per-item requests) covers the list. Product pages add only extras (additional information, full ratings/reviews). Fetching every product page would mean hundreds of multi-MB requests - slow and likely to trip rate limiting - so per-item fetches should be lazy, cached and throttled, and only for fields the summary lacks.
+
+| Step | Task |
+|------|------|
+| 1 | Live checks: embedded-state script present on the live page after load; a fetched page still contains it |
+| 2 | Decide which fields to surface first (e.g. rating sort, genre filter, release-date sort, "included with Game Pass" filter) |
+| 3 | Decide when to load: on init (cheap, local) vs on demand; `fresh` on Refresh |
+| 4 | Copy chosen fields onto items as `data-ifc-*` in `setContainerData()` so filtering/sorting keep reading data attributes |
+| 5 | Optional: save a product page as a mock to build/test a lazy per-item fetch for the extras |
+
+---
+
 ## Future Features (v2.0+)
 
 ---

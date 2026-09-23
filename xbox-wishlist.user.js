@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         XBOX Wishlist
 // @namespace    https://github.com/zellreid/xbox-wishlist
-// @version      1.5.26266.14
+// @version      1.5.26266.15
 // @description  Advanced filtering and sorting suite with multi-level sort (up to 3 criteria) - Resilient selectors - Public wishlist support
 // @author       ZellReid
 // @homepage     https://github.com/zellreid/xbox-wishlist
@@ -10,7 +10,7 @@
 // @match        https://www.xbox.com/*/wishlist*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=xbox.com
 // @run-at       document-body
-// @resource     CSSFilter https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/styles.css?ver=1.5.26266.14
+// @resource     CSSFilter https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/styles.css?ver=1.5.26266.15
 // @resource     IMGFilter https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/filter.svg
 // @resource     IMGSort https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/sort.svg
 // @resource     IMGExport https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/export.svg
@@ -79,7 +79,9 @@ window.XboxWishlistCore = {
                 ]
             },
             // Named filter combinations (F-23): [{ name, filters }] - see snapshotFilters()
-            savedPresets: []
+            savedPresets: [],
+            // Product summaries by upper-case product id (F-33) - see loadProductData(); not persisted
+            productData: new Map(), productDataLoadedAt: null
         };
         window.injected = state;
 
@@ -675,6 +677,76 @@ window.XboxWishlistCore = {
             btn.setAttribute('aria-expanded', open ? 'true' : 'false');
             btn.classList[open ? 'add' : 'remove'](CONFIG.classes.activeButton);
         }
+
+        // ==================== PRODUCT DATA (F-33) ====================
+        // Xbox pages embed their app state as `window.__PRELOADED_STATE__ = {...}` in an
+        // inline script. The extension's content script runs in an isolated world and
+        // can't read page globals, so the state is parsed from the script's text - the
+        // same code then works on the live page, on a fetched page, and in the userscript.
+        // The wishlist page's state already carries a summary for every wishlisted
+        // product, so one read covers the whole list. Nothing in the UI calls this yet:
+        // which fields to use, and when to load, is decided per feature (F-26+).
+        const STATE_MARKER = '__PRELOADED_STATE__';
+
+        function parseEmbeddedState(doc) {
+            try {
+                const script = Array.from(doc.querySelectorAll('script')).find(s => s.textContent.includes(STATE_MARKER));
+                if (!script) return null;
+                const text = script.textContent;
+                const start = text.indexOf('{', text.indexOf(STATE_MARKER));
+                if (start < 0) return null;
+                // The object may be followed by more statements, so find its matching
+                // closing brace (ignoring braces inside strings) rather than trimming.
+                let depth = 0, inString = false, escaped = false;
+                for (let i = start; i < text.length; i++) {
+                    const c = text[i];
+                    if (inString) {
+                        if (escaped) escaped = false;
+                        else if (c === '\\') escaped = true;
+                        else if (c === '"') inString = false;
+                    } else if (c === '"') inString = true;
+                    else if (c === '{') depth++;
+                    else if (c === '}' && --depth === 0) return JSON.parse(text.slice(start, i + 1));
+                }
+                return null;
+            } catch (ex) { console.error('Failed to parse embedded page state:', ex); return null; }
+        }
+
+        // Any Xbox page that embeds its state (wishlist, product pages, ...). DOMParser
+        // never runs scripts, so fetched markup is inert.
+        async function fetchPageState(url) {
+            const response = await fetch(url, { credentials: 'include' });
+            if (!response.ok) throw new Error(`HTTP ${response.status} for ${url}`);
+            return parseEmbeddedState(new DOMParser().parseFromString(await response.text(), 'text/html'));
+        }
+
+        function productSummariesFrom(pageState) {
+            const summaries = pageState && pageState.core2 && pageState.core2.products && pageState.core2.products.productSummaries;
+            const map = new Map();
+            if (summaries && typeof summaries === 'object') {
+                Object.values(summaries).forEach(p => { if (p && p.productId) map.set(String(p.productId).toUpperCase(), p); });
+            }
+            return map;
+        }
+
+        // fresh: false reads this page as loaded (no network); true re-fetches the
+        // wishlist page for current data. Returns the map (also kept in state).
+        async function loadProductData({ fresh = false } = {}) {
+            try {
+                const pageState = fresh ? await fetchPageState(location.href) : parseEmbeddedState(document);
+                const map = productSummariesFrom(pageState);
+                state.productData = map; state.productDataLoadedAt = Date.now();
+                return map;
+            } catch (ex) { console.error('Failed to load product data:', ex); return state.productData; }
+        }
+
+        // By product id - items carry theirs as data-ifc-product-id (from the store URL)
+        function getProductData(productId) {
+            return productId ? state.productData.get(String(productId).toUpperCase()) || null : null;
+        }
+
+        // Inspection hooks for DevTools / the mock harness until a feature consumes the data
+        state.debug = { loadProductData, getProductData, fetchPageState };
 
         // ==================== REFRESH (F-32 v1) ====================
         // Re-reads the wishlist by reloading the page. Filters, sort and saved filters are
