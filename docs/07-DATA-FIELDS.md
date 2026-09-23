@@ -32,17 +32,18 @@ Verified against the mocks in `mock_examples/#wishlist` (2 captures) and `mock_e
 | Date added to a pass | State | No | Per pass |
 | Deal end date | State | Yes (F-33 badge, sort, export) | Only meaningful on discounted offers; full-price offers carry far-future placeholders |
 | Offer list price / MSRP | State | Stored (`data-ifc-state-price`, `-msrp`) | For a future in-place price update (F-26) |
-| "Just for you" personal offer + reason | State | No (F-34) | Offer type, reason text ("Because of your loyalty to the franchise"), discount, end date |
-| Member-price offer type + message | State | No | Game Pass / PC Game Pass / EA Play |
-| Pre-order | State | No (F-34) | Per edition (SKU) flag + future release date |
-| Platforms | State | No (F-34) | Xbox One, Xbox Series X\|S, PC, Handheld (multi) |
+| "Just for you" personal offer + reason | State | Yes (F-34 pill, quick filter, export) | Deal type `personal`; reason text ("Because of your loyalty to the franchise"), discount, end date |
+| Deal type (personal / sale / member) | State | Yes (F-34 filter, export) | Only for discounts the page shows the viewer |
+| Member-price offer type + message | State | Deal type `member` only | Game Pass / PC Game Pass / EA Play |
+| Pre-order | State | Yes (F-34 pill, quick filter, export) | Per edition (SKU) flag + future release date |
+| Platforms | State | Yes (F-34 filter, export) | Xbox One, Xbox Series X\|S, PC, Handheld (multi) |
 | Age rating | State | No | Board (e.g. PEGI), age text, icon URL, descriptors |
 | Developer | State | No | |
 | Short / full description | State | No | |
 | Max install size | State | No | |
 | Images, videos | State | No | |
 | Has add-ons, product kind / family | State | No | |
-| Feature badges | State - **codes only** | No (F-34) | Numeric codes 0-11; names are only on the product page (see below) |
+| Subscription badge codes | State - codes | Via DOM instead | Numeric codes 0-11 that the store turns into subscription logos (Game Pass tiers, EA Play, Ubisoft+, GTA+) - **not** capabilities (checked against 15 product pages). The Subscriptions filter already reads these logos from the DOM. |
 
 ---
 
@@ -50,7 +51,8 @@ Verified against the mocks in `mock_examples/#wishlist` (2 captures) and `mock_e
 
 | Field | Notes |
 |---|---|
-| **Capabilities (named)** | e.g. 4K Ultra HD, 60 fps+, Single player, PC Game Pad, **Optimized for Xbox Series X\|S**, **Smart Delivery**, **Xbox Play Anywhere** - the names behind the wishlist page's badge codes |
+| **Capabilities (named)** | 24 seen across the `#products` mocks: **Optimized for Xbox Series X\|S**, **Smart Delivery**, **Xbox Play Anywhere**, Xbox One X Enhanced, FPS Boost, 4K Ultra HD, 60 fps+, HDR10, Variable Refresh Rate, Dolby Atmos, Spatial Sound, Single player, online / local / cross-platform co-op and multiplayer, shared/split screen, cross-gen multiplayer, achievements, cloud saves, presence, PC Game Pad. Also not on the deals / browse-games pages. The product page's header tags (X\|S, Smart Delivery, Play Anywhere, cloud, X Enhanced) are driven by these. |
+| Accessibility features | Counted by the product page's accessibility tag |
 | Bundle contents | Product ids included in a bundle |
 | Editions | Other editions of the product |
 | Supported languages | |
@@ -67,7 +69,7 @@ Verified against the mocks in `mock_examples/#wishlist` (2 captures) and `mock_e
 | Deal start date | Record "first seen on sale" ourselves (F-26 price history) |
 | Pass names for most pass ids | Only three ids name their type via member offers; the Subscriptions filter reads names from DOM badges |
 | Reviews text | Product page state has an empty reviews section in the mocks - likely loaded separately |
-| Icons for X\|S / Smart Delivery / Play Anywhere / pre-order / sale badges | Expected in the product page's code - extract from the `#products` mocks (F-34) |
+| Vector icons for X\|S and Smart Delivery | The product page draws both as embedded PNG images of Microsoft branding - use text chips, don't bundle the logos. Pre-order, sale tag, Play Anywhere, new release, bundle and languages icons *are* Xbox SVG icons (see `shared/icons`, catalogue in the scratchpad tooling) |
 
 ---
 
@@ -75,5 +77,5 @@ Verified against the mocks in `mock_examples/#wishlist` (2 captures) and `mock_e
 
 - Prefer the wishlist page state: one free read covers every item.
 - Use the product page only for fields in the second table, loaded lazily, cached per product id and throttled - never for the whole list at once (hundreds of multi-MB requests).
-- The badge codes on the wishlist page can likely be mapped to capability names once, by comparing the `#products` mocks with the same products' wishlist entries; if that mapping is stable, most "feature" indicators need no product page request at all.
-- `mock_examples/#deals` and `#games` have not been examined yet; if they embed the same state, the same reader could drive filters on those pages.
+- Capabilities cannot be derived from the wishlist page (its badge codes are subscription logos). Showing X\|S / Smart Delivery / Play Anywhere per item therefore needs a product page request per item - a design decision (see F-36).
+- `mock_examples/#deals` and `#games` embed the same kind of state (25 products each) but without capabilities, and the deals page carries no personal offers.

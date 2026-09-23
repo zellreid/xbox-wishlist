@@ -49,7 +49,7 @@ The Xbox wishlist page (`xbox.com/*/wishlist`) provides no native filtering, sor
 
 ## Feature List
 
-### ✅ Implemented (v1.5.26266.16 - Current)
+### ✅ Implemented (v1.5.26266.17 - Current)
 
 | ID | Feature | Version Introduced |
 |----|---------|-------------------|
@@ -80,6 +80,7 @@ The Xbox wishlist page (`xbox.com/*/wishlist`) provides no native filtering, sor
 | F-24 | Export the visible (filtered, sorted) items as CSV or JSON | v1.5 |
 | F-32 | Refresh button (v1: persist state + reload) | v1.5 |
 | F-33 | Product data: rating / release date / deal-ends sorts, Genres filter, "In a pass" quick filter, deal-end badges | v1.5 |
+| F-34 | "Just for you" / pre-order pills and quick filters, Platforms filter, deal type | v1.5 |
 
 ### ⚠️ In Progress / Partially Done
 

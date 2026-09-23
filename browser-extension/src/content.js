@@ -10,6 +10,7 @@
         IMGRefresh: 'shared/icons/refresh.svg',
         IMGClose: 'shared/icons/close.svg',
         IMGPlus: 'shared/icons/plus.svg',
+        IMGPreorder: 'shared/icons/preorder.svg',
         IMGExpand: 'shared/icons/expand.svg',
         IMGCollapse: 'shared/icons/collapse.svg',
         CSSFilter: null // already declared in manifest.json's content_scripts.css

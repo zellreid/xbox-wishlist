@@ -215,6 +215,8 @@
 
 **Goal:** Show which deals and product features apply per item ("Just for you" with its reason, On sale with end date, Pre-order, platforms, Optimised for Xbox Series X|S, Smart Delivery, Xbox Play Anywhere), with matching icons.
 
+**Status (v1.5.26266.17):** Done for everything the wishlist page provides - deal type (`personal` / `sale` / `member`), "Just for you" reason, pre-order, platforms; item pills ("Just for you" with reason tooltip, "Pre-order" with Xbox's calendar icon `preorder.svg`); "Just for you" / "Pre-order" quick filters; Platforms filter; export columns; persisted and in saved filters. The badge codes turned out to be subscription logos, not capabilities, so X|S / Smart Delivery / Play Anywhere move to **F-36** (needs product page requests).
+
 **Findings (2026-09-23, wishlist page state):**
 
 | Indicator | From the wishlist page? | Notes |
@@ -238,6 +240,21 @@
 | 2 | Map the wishlist page's badge codes to those names by comparing the same products; extract the badge icons (X\|S, Smart Delivery, Play Anywhere, pre-order, sale tag) from the product pages' code into the icon catalogue |
 | 3 | Add per-item fields: dealType (just-for-you / sale / member), dealReason, preorder, platforms, badges |
 | 4 | UI: small indicator icons on items + quick filters (e.g. "Just for you", "Pre-order") + Platforms filter; export columns |
+
+---
+
+### F-36 - Product Capabilities via Product Page (lazy)
+
+**Goal:** Per-item Optimized for X|S, Smart Delivery, Xbox Play Anywhere (and other capabilities: 4K, 60 fps, co-op, ...) as indicators and filters.
+
+**Constraint:** Only the product page carries capabilities - one multi-MB request per item (~310 on the mocks). Needs a deliberate fetch strategy.
+
+| Step | Task |
+|------|------|
+| 1 | Decide the strategy: (a) on demand per item (click/expand), (b) background fill for visible items, throttled, (c) opt-in "Load details" button - all cached by product id in storage with a TTL |
+| 2 | `fetchPageState(product url)` -> read the page product's capabilities -> cache |
+| 3 | Indicators: Play Anywhere (Xbox sphere icon #19522), X\|S and Smart Delivery as text chips (their store images are Microsoft branding) |
+| 4 | Capabilities filter; harness test against the `#products` mocks |
 
 ---
 

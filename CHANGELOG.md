@@ -14,6 +14,26 @@ for how a version is bumped and published.
 
 ---
 
+## v1.5.26266.17 (Sep 2026) - "Just for you", pre-order, platforms (F-34)
+
+- Each item now knows its deal type from the page's product data: a personal
+  **"Just for you"** offer (with its reason, e.g. "Because of your loyalty to
+  the franchise"), a public sale, or a member price - only for discounts the
+  page actually shows.
+- Items show a magenta **"Just for you"** pill (reason on hover) and a
+  **"Pre-order"** pill with Xbox's own calendar icon (new `preorder.svg`).
+- New quick filters **"Just for you"** and **"Pre-order"**, and a
+  **Platforms** filter (Xbox Series X|S, Xbox One, PC, Handheld; an item
+  matches if it's on any selected platform). All show tags, are cleared by
+  Clear All, persist and are included in saved filters.
+- Export: new columns dealType, dealReason, preorder, platforms.
+- Findings: the wishlist page's numeric badge codes are subscription logos
+  (Game Pass / EA Play / Ubisoft+ / GTA+), not capabilities. Optimized for
+  X|S, Smart Delivery and Play Anywhere exist only on product pages - planned
+  as F-36 (needs a per-item fetch strategy). `docs/07-DATA-FIELDS.md` updated.
+
+---
+
 ## v1.5.26266.16 (Sep 2026) - Product data: rating, genres, release date, deal ends, "In a pass" (F-33)
 
 - Product data from the wishlist page's embedded state is now loaded once on

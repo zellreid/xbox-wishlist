@@ -184,6 +184,47 @@ ul.filter-groups {
     color: #ffb900;
 }
 
+/* ==================== ITEM TAGS (F-34) ==================== */
+/* "Just for you" (Xbox's magenta pill) and "Pre-order" under the item title */
+.ifc-item-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 4px;
+}
+
+.ifc-item-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.ifc-item-tag-jfy {
+    background-color: #e3008c;
+    color: #ffffff;
+    text-transform: uppercase;
+    cursor: help;
+}
+
+.ifc-item-tag-preorder {
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    color: rgba(245, 245, 245, 0.85);
+}
+
+.ifc-item-tag-icon {
+    display: inline-flex;
+}
+
+.ifc-item-tag-icon .ifc-glyph {
+    width: 11px;
+    height: 11px;
+}
+
 /* ==================== GLYPH ICONS (×, +) ==================== */
 /* Inline Xbox icons inside small buttons (setGlyph() in core.js) */
 .ifc-glyph {
