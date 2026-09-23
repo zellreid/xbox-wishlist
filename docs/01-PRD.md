@@ -49,7 +49,7 @@ The Xbox wishlist page (`xbox.com/*/wishlist`) provides no native filtering, sor
 
 ## Feature List
 
-### ✅ Implemented (v1.5.26266.10 - Current)
+### ✅ Implemented (v1.5.26266.11 - Current)
 
 | ID | Feature | Version Introduced |
 |----|---------|-------------------|
@@ -72,18 +72,19 @@ The Xbox wishlist page (`xbox.com/*/wishlist`) provides no native filtering, sor
 | F-31 | Wishlist text search (matches title and publisher) | v1.5 |
 | F-16 | Price slider max derived from actual item prices | v1.5 |
 | F-19 | Quick filter presets (toggle, active state) | v1.5 |
+| F-15 | Accordion header styling (superseded by single-row Xbox-style header) | v1.5 |
+| F-20 | Publisher typeahead search | v1.5 |
 
 ### ⚠️ In Progress / Partially Done
 
 | ID | Feature | Issue | Target |
 |----|---------|-------|--------|
-| F-15 | Accordion label/title styling | Layout built, styling polish unverified | v1.5.x |
+| - | None | - | - |
 
 ### ❌ Planned — Not Yet Started
 
 | ID | Feature | Priority | Notes |
 |----|---------|----------|-------|
-| F-20 | Publisher typeahead search | 🟡 Medium | Text input at top of Publishers accordion to live-filter the list |
 | F-21 | Filtered result count in panel header | 🟡 Medium | Show "Filters (245 / 298)" so user sees impact |
 | F-22 | Active sort indicator badge | 🟡 Medium | Sort button shows green dot when non-default sort is active |
 | F-23 | Save/load filter presets | 🟡 Medium | Persist named filter combos via `GM_setValue` |

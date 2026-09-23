@@ -14,6 +14,18 @@ for how a version is bumped and published.
 
 ---
 
+## v1.5.26266.11 (Sep 2026) - Publisher search (F-20)
+
+- Added a "Search publishers..." box at the top of the Publishers section
+  that live-narrows the publisher checkbox list (case-insensitive). It only
+  narrows the list - it isn't a filter, isn't saved, and Clear All leaves it
+  alone - and it survives the list being rebuilt on every refresh. A ticked
+  publisher hidden by the search still applies (its tag stays visible).
+- F-15 closed as superseded: the planned title-above-button accordion was
+  never built; the shipped single-row header is the final design.
+
+---
+
 ## v1.5.26266.10 (Sep 2026) - "Default" sort keeps the wishlist's own order
 
 - Fixed: the Default sort (`ifcId`, which records the order items were added

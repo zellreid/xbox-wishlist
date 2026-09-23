@@ -20,7 +20,8 @@ window.XboxWishlistCore = {
             ui: {
                 floatButtons: false, lblFilter: false, btnFilter: false, btnSort: false,
                 divFilter: false, divSort: false, divFilterShow: false, divSortShow: false,
-                tagContainer: false, complete: false, lowestItemId: null
+                tagContainer: false, complete: false, lowestItemId: null,
+                publisherSearch: ''
             },
             filters: {
                 totalCount: 0, filteredCount: 0, activeTags: [],
@@ -62,6 +63,7 @@ window.XboxWishlistCore = {
                 tagContainer: 'ifc_tag_container',
                 clearButton: 'ifc_btn_ClearAll',
                 searchInput: 'ifc_input_search',
+                publisherSearch: 'ifc_input_publisher_search',
                 quickFilters: 'ifc_quick_filters',
                 ownedSelect: 'ifc_select_owned',
                 publishersSelect: 'ifc_select_publishers',
@@ -819,6 +821,17 @@ window.XboxWishlistCore = {
                 const fb = createFilterBlock(gn, 'Publishers', true);
                 const cc = fb.querySelector('.ifc-accordion-content');
                 if (cc) {
+                    const sw = document.createElement('div');
+                    sw.className = 'ifc-search-wrapper';
+                    const si = document.createElement('input');
+                    si.type = 'text';
+                    si.id = CONFIG.ids.publisherSearch;
+                    si.className = 'ifc-search-input';
+                    si.placeholder = 'Search publishers...';
+                    si.setAttribute('aria-label', 'Search publishers');
+                    si.value = state.ui.publisherSearch;
+                    si.addEventListener('input', (e) => { state.ui.publisherSearch = e.target.value; applyPublisherSearch(); });
+                    sw.appendChild(si); cc.appendChild(sw);
                     const sc = document.createElement('div');
                     sc.id = CONFIG.ids.publishersSelect;
                     sc.className = 'ifc-checkbox-list ifc-checkbox-list-scrollable';
@@ -843,6 +856,21 @@ window.XboxWishlistCore = {
                 cb.addEventListener('change', () => { state.filters.publishers.selected = getCheckboxValues(CONFIG.ids.publishersSelect); updateScreen(); });
                 const span = document.createElement('span'); span.className = 'ifc-checkbox-label'; span.textContent = `${name} (${count})`;
                 label.appendChild(cb); label.appendChild(span); container.appendChild(label);
+            });
+            // The list is rebuilt on every updateScreen(), so re-apply the typeahead
+            applyPublisherSearch();
+        }
+
+        // Narrows the visible publisher checkboxes only - it is not a filter, so it
+        // doesn't change which items show; a ticked publisher hidden here still applies.
+        function applyPublisherSearch() {
+            const container = document.getElementById(CONFIG.ids.publishersSelect);
+            if (!container) return;
+            const term = state.ui.publisherSearch.trim().toLowerCase();
+            container.querySelectorAll('.ifc-checkbox-item').forEach(label => {
+                const cb = label.querySelector('input[type="checkbox"]');
+                const matches = term === '' || (cb && cb.value.toLowerCase().includes(term));
+                label.classList.toggle('ifc-hidden', !matches);
             });
         }
 

@@ -11,7 +11,7 @@
 
 **Goal:** The title-above-button (Xbox SelectionDropdown style) accordion layout renders correctly but needs final CSS polish.
 
-**Status (v1.5.26266.4):** Unverified - needs a visual pass in Chrome and Edge against the steps below.
+**Status (v1.5.26266.11):** Done (superseded) - the title-above-button layout below was never built (`.ifc-accordion-title-container` does not exist); the shipped accordion is a single-row Xbox-style header (title left, chevron right) that was visually confirmed on live xbox.com in Edge on 2026-09-23. Step 4 (`IMGExpand` ↔ `IMGCollapse` alternation) is implemented in `createFilterBlock()`. The remaining steps are obsolete.
 
 | Step | Task |
 |------|------|
@@ -99,6 +99,8 @@
 ### F-20 — Publisher Typeahead Search
 
 **Goal:** Text input at top of Publishers accordion to live-filter the publisher list.
+
+**Status (v1.5.26266.11):** Done - `applyPublisherSearch()` in the shared core; case-insensitive match on the publisher name, re-applied after every list rebuild. The term lives in `state.ui.publisherSearch`: it only narrows the checkbox list (not a filter), so it isn't saved and Clear All leaves it alone; a ticked publisher hidden by the search still applies.
 
 | Step | Task |
 |------|------|
@@ -211,6 +213,23 @@
 | 2 | For each flagged item (F-25) where price has dropped ≥ 10% |
 | 3 | Fire `GM_notification()` with item name and new price |
 | 4 | Add user-configurable threshold (default 10%) |
+
+---
+
+## Open Issues
+
+---
+
+### T-05 - Items with no price sort among the priced items
+
+With a sort such as Discount % ↓ then Price ↑, un-purchasable items (no price) land between the discounted and the non-discounted items: `applySorting()` reads a missing price as `0` and they carry a 0% discount.
+
+| Step | Task |
+|------|------|
+| 1 | In `applySorting()`, treat a missing value on `ifcPrice`, `ifcPriceDiscountPercent` and `ifcPriceDiscountAmount` (item has no numeric `ifcPrice`) as "missing" |
+| 2 | Missing sorts last regardless of asc/desc, then fall through to the next sort level |
+| 3 | Leave `ifcId`, name and publisher sorting unchanged |
+| 4 | Mock harness: Discount % ↓ + Price ↑ puts every no-price item at the end; Price ↑ and Price ↓ both put them last |
 
 ---
 
