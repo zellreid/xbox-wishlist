@@ -49,7 +49,7 @@ The Xbox wishlist page (`xbox.com/*/wishlist`) provides no native filtering, sor
 
 ## Feature List
 
-### ✅ Implemented (v1.4.26056.5 — Current)
+### ✅ Implemented (v1.5.26266.4 - Current)
 
 | ID | Feature | Version Introduced |
 |----|---------|-------------------|
@@ -67,21 +67,22 @@ The Xbox wishlist page (`xbox.com/*/wishlist`) provides no native filtering, sor
 | F-12 | Xbox-themed styling (dark bg, green accents, Segoe UI) | v1.2+ |
 | F-13 | Accordion sections for filter groups (expand/collapse) | v1.4 |
 | F-14 | SVG icon alternation on accordion expand/collapse | v1.4 |
+| F-17 | Public wishlist button injection (fallback container) | v1.5 |
+| F-18 | Clear All Filters button | v1.5 |
+| F-31 | Wishlist text search (matches title and publisher) | v1.5 |
 
 ### ⚠️ In Progress / Partially Done
 
 | ID | Feature | Issue | Target |
 |----|---------|-------|--------|
-| F-15 | Accordion label/title styling | Layout built, styling polish pending | v1.4.x |
-| F-16 | Price slider dynamic max | Hard-coded at R3,000; should derive from actual item prices | v1.4.x |
+| F-15 | Accordion label/title styling | Layout built, styling polish unverified | v1.5.x |
+| F-16 | Price slider dynamic max | Derived from item prices, but still floored at 3000 | v1.5.x |
+| F-19 | Quick filter presets | Shipped "Owned", "On Sale", "Cheap"; toggle-off, active state and remaining presets pending | v1.5.x |
 
 ### ❌ Planned — Not Yet Started
 
 | ID | Feature | Priority | Notes |
 |----|---------|----------|-------|
-| F-17 | Public wishlist button injection | 🔴 High | Shared URL has no `WishlistPage-module__wishlistMenuButton___` container — need fallback creation |
-| F-18 | Clear All Filters button | 🔴 High | Single click to reset all active filters |
-| F-19 | Quick filter presets | 🟡 Medium | One-click buttons: "On Sale", "Under R500", "Heavily Discounted (≥50%)", "Not Owned" |
 | F-20 | Publisher typeahead search | 🟡 Medium | Text input at top of Publishers accordion to live-filter the list |
 | F-21 | Filtered result count in panel header | 🟡 Medium | Show "Filters (245 / 298)" so user sees impact |
 | F-22 | Active sort indicator badge | 🟡 Medium | Sort button shows green dot when non-default sort is active |

@@ -11,6 +11,8 @@
 
 **Goal:** The title-above-button (Xbox SelectionDropdown style) accordion layout renders correctly but needs final CSS polish.
 
+**Status (v1.5.26266.4):** Unverified - needs a visual pass in Chrome and Edge against the steps below.
+
 | Step | Task |
 |------|------|
 | 1 | Verify `.ifc-accordion-title-container` renders label above chevron button |
@@ -25,6 +27,8 @@
 
 **Goal:** Replace hard-coded `R3,000` max with the actual highest price in the loaded wishlist.
 
+**Status (v1.5.26266.4):** Partial - `calculatePriceRange()` in the shared core derives min/max from item prices (rounded to 10, free/no-price items skipped), but still floors the max at 3000 (`max = Math.max(max, 3000)`), so small wishlists keep a 3000-wide slider. Remaining: remove the floor, keep a fallback for wishlists with no priced items, clamp a restored `priceRange` to the new max.
+
 | Step | Task |
 |------|------|
 | 1 | After `collectItemData()`, compute `Math.ceil(Math.max(...items.map(i => i.price)))` |
@@ -38,6 +42,8 @@
 ### F-17 — Public Wishlist Button Injection
 
 **Goal:** Inject filter/sort buttons on a shared/public wishlist URL where the normal button container doesn't exist.
+
+**Status (v1.5.26266.4):** Done - the shared core creates its own button container when the native menu container is missing ("public wishlist mode").
 
 | Step | Task |
 |------|------|
@@ -54,6 +60,8 @@
 ### F-18 — Clear All Filters Button
 
 **Goal:** Single button to reset all active filters to default state.
+
+**Status (v1.5.26266.4):** Done - `clearAllFilters()` in the shared core; persistence goes through the storage adapter rather than `GM_setValue` directly (step 4).
 
 | Step | Task |
 |------|------|
@@ -72,6 +80,8 @@
 ### F-19 — Quick Filter Presets Bar
 
 **Goal:** One-click preset buttons above/below the main button bar.
+
+**Status (v1.5.26266.4):** Partial - shipped presets are "Owned", "On Sale" and "Cheap" (bottom third of this wishlist's own price spread, replacing the currency-specific "Under R500"). Remaining: decide on "Not Owned" and "≥50% Off", toggle-off on second click (step 8), and an active/filled state for the selected pill (step 3).
 
 | Step | Task |
 |------|------|
@@ -128,6 +138,8 @@
 ### F-23 — Save/Load Filter Presets
 
 **Goal:** Named filter combinations that persist via `GM_setValue`.
+
+**Note:** Since v1.5 all persistence goes through the shared core's storage adapter (`chrome.storage.local` in the extension, `GM_setValue` in the userscript). Read every `GM_setValue` below as "adapter storage". The same applies to F-25 to F-28.
 
 | Step | Task |
 |------|------|
