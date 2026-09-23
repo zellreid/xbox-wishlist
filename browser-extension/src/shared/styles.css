@@ -32,6 +32,12 @@
     pointer-events: none;
 }
 
+/* Shown in place of "Viewing X of Y" when the extension was reloaded under an open tab */
+#ifc_lbl_Filter.ifc-context-lost {
+    color: #ffb900;
+    font-weight: 600;
+}
+
 #ifc_lbl_Filter {
     flex-basis: 100%;
     text-align: right;

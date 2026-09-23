@@ -17,15 +17,25 @@
         CSSFilter: null // already declared in manifest.json's content_scripts.css
     };
 
+    // When the extension is reloaded or updated while a wishlist tab stays open, this
+    // (old) content script keeps running but every chrome.* call throws "Extension context
+    // invalidated". chrome.runtime.id disappears at that point, so check it first and let
+    // the core stop cleanly (see isAlive) instead of throwing on every refresh.
+    const isAlive = () => { try { return !!(chrome.runtime && chrome.runtime.id); } catch (e) { return false; } };
+
     const adapter = {
-        getVersion: () => chrome.runtime.getManifest().version,
+        isAlive,
+        getVersion: () => (isAlive() ? chrome.runtime.getManifest().version : 'unknown'),
         getResourceUrl: (key) => {
             const path = RESOURCE_MAP[key];
-            return path ? chrome.runtime.getURL(path) : null;
+            return path && isAlive() ? chrome.runtime.getURL(path) : null;
         },
         storage: {
-            save: (key, value) => chrome.storage.local.set({ [key]: value }),
-            load: (key, callback) => chrome.storage.local.get([key], (result) => callback(result[key] ?? null))
+            save: (key, value) => { if (isAlive()) chrome.storage.local.set({ [key]: value }); },
+            load: (key, callback) => {
+                if (!isAlive()) { callback(null); return; }
+                chrome.storage.local.get([key], (result) => callback(result[key] ?? null));
+            }
         }
     };
 

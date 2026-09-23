@@ -14,6 +14,22 @@ for how a version is bumped and published.
 
 ---
 
+## v1.5.26266.21 (Sep 2026) - Handle the extension being reloaded under an open tab
+
+- Fixed (extension only): after the extension was reloaded or updated while a
+  wishlist tab stayed open, the tab's old copy kept running and every action
+  (e.g. an item's refresh button) threw "Extension context invalidated" -
+  several errors per click on the extensions page. The adapter now detects the
+  lost connection (`isAlive()`) and makes its chrome.* calls no-ops; the core
+  stops once and cleanly: stops watching the page, cancels a running "Load
+  details", disables its controls, and replaces "Viewing X of Y" with
+  "Xbox Wishlist Manager was updated - reload this page to keep using it".
+  The userscript can't hit this and is unchanged.
+- Mock harness: the fake `chrome` now has `runtime.id` (delete it to simulate
+  an extension reload).
+
+---
+
 ## v1.5.26266.20 (Sep 2026) - Per-item refresh, DLC / Type filter
 
 - Every item's tag row now starts with a small **refresh** button. It reads

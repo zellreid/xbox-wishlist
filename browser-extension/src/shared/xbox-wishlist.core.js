@@ -20,7 +20,7 @@ window.XboxWishlistCore = {
             ui: {
                 floatButtons: false, lblFilter: false, btnFilter: false, btnSort: false, btnExport: false, btnRefresh: false,
                 divFilter: false, divSort: false, divFilterShow: false, divSortShow: false,
-                tagContainer: false, complete: false, lowestItemId: null,
+                tagContainer: false, complete: false, lowestItemId: null, contextLost: false,
                 listSearch: {}   // typeahead text per checkbox list id (Publishers, Genres)
             },
             filters: {
@@ -1831,11 +1831,13 @@ window.XboxWishlistCore = {
         async function loadDetails() {
             const d = state.details;
             if (d.running) return;
+            if (contextLost()) { handleContextLost(); return; }
             const queue = detailsQueue().filter(e => !isCapabilityFresh(e.id));
             Object.assign(d, { running: true, cancel: false, done: 0, total: queue.length, failed: 0, message: '' });
             renderDetailsStatus();
             const delay = typeof state.debug.detailsDelayMs === 'number' ? state.debug.detailsDelayMs : DETAILS_DELAY_MS;
             for (let i = 0; i < queue.length && !d.cancel; i++) {
+                if (contextLost()) { handleContextLost(); break; }   // extension reloaded mid-run
                 const { id, url } = queue[i];
                 try {
                     const summary = productSummariesFrom(await fetchPageState(url)).get(id);
@@ -1867,6 +1869,7 @@ window.XboxWishlistCore = {
         // itself is Xbox's own markup and only changes on a page reload.
         async function refreshItem(productId, url) {
             const id = String(productId || '').toUpperCase(), status = state.details.itemStatus;
+            if (contextLost()) { handleContextLost(); return; }
             if (!id || !url || (status[id] && status[id].busy)) return;
             status[id] = { busy: true };
             updateScreen();
@@ -2513,7 +2516,31 @@ window.XboxWishlistCore = {
             const l = getElement(`#${CONFIG.ids.filterLabel}`);
             if (l) l.textContent = `Viewing ${state.filters.filteredCount} of ${state.filters.totalCount} results`;
         }
+        // ==================== EXTENSION RELOADED UNDER US ====================
+        // If the extension is reloaded/updated while this tab stays open, the extension
+        // adapter reports isAlive() === false (its chrome.* APIs are gone). Stop cleanly once:
+        // no more work, controls disabled, one notice asking for a page reload. Adapters
+        // without isAlive (the userscript) can't hit this and count as always alive.
+        function contextLost() {
+            return typeof adapter.isAlive === 'function' && !adapter.isAlive();
+        }
+        function handleContextLost() {
+            if (state.ui.contextLost) return;
+            state.ui.contextLost = true;
+            state.details.cancel = true;
+            try { observer.disconnect(); } catch (ex) { /* already disconnected */ }
+            try {
+                setExportMenuOpen(false);
+                document.querySelectorAll(`[id^="ifc_btn_"], .ifc-item-refresh, #${CONFIG.ids.filterContainer} input, #${CONFIG.ids.filterContainer} button, #${CONFIG.ids.sortContainer} select, #${CONFIG.ids.sortContainer} button`)
+                    .forEach(el => { el.disabled = true; });
+                const l = getElement(`#${CONFIG.ids.filterLabel}`, false);
+                if (l) { l.textContent = 'Xbox Wishlist Manager was updated - reload this page to keep using it'; l.classList.add('ifc-context-lost'); }
+                console.info('[XBOX Wishlist] Extension was reloaded or updated - reload the page to use it again.');
+            } catch (ex) { /* best effort - nothing else to do */ }
+        }
+
         function updateScreen() {
+            if (contextLost()) { handleContextLost(); return; }
             try { toggleContainers(); updateFilterLabels(); updateActiveTags(); updateQuickFilterStates(); updateSavedPresetStates(); applySorting(); updateSortIndicator(); saveFilterState(); }
             catch (ex) { console.error('Failed to update screen:', ex); }
         }

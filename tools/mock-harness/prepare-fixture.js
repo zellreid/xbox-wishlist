@@ -83,6 +83,7 @@ function buildHarnessBlock(outDir) {
     const persist = () => { try { sessionStorage.setItem(STORE_KEY, JSON.stringify(memoryStore)); } catch (e) { /* memory only */ } };
     window.chrome = {
         runtime: {
+            id: 'harness-extension',   // content.js treats a missing id as "extension reloaded"; delete it to simulate that
             getManifest: () => ({ version: 'harness-test' }),
             getURL: (p) => '${toUrlPath(path.relative(outDir, path.join(REPO_ROOT, 'browser-extension', 'src')))}/' + p
         },
