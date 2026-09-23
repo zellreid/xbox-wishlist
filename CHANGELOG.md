@@ -14,6 +14,18 @@ for how a version is bumped and published.
 
 ---
 
+## v1.5.26266.9 (Sep 2026) - Sort survives a reload
+
+- Fixed: the sort (all levels, field and direction) was never persisted.
+  `saveFilterState()` only saved `state.filters`, and the sort controls
+  called `applySorting()` directly rather than `updateScreen()`, so a sort
+  change never triggered a save at all. The sort criteria are now saved with
+  the filters, every sort control saves via `onSortChanged()`, and
+  `loadFilterState()` restores them - accepting only known fields,
+  `asc`/`desc`, and up to 3 levels, falling back to the default sort otherwise.
+
+---
+
 ## v1.5.26266.8 (Sep 2026) - Filters (and quick filter pills) survive a reload
 
 - Fixed (extension only): saved filters could be wiped on page load.

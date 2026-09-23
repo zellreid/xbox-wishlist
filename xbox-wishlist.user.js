@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         XBOX Wishlist
 // @namespace    https://github.com/zellreid/xbox-wishlist
-// @version      1.5.26266.8
+// @version      1.5.26266.9
 // @description  Advanced filtering and sorting suite with multi-level sort (up to 3 criteria) - Resilient selectors - Public wishlist support
 // @author       ZellReid
 // @homepage     https://github.com/zellreid/xbox-wishlist
@@ -10,7 +10,7 @@
 // @match        https://www.xbox.com/*/wishlist*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=xbox.com
 // @run-at       document-body
-// @resource     CSSFilter https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/styles.css?ver=1.5.26266.8
+// @resource     CSSFilter https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/styles.css?ver=1.5.26266.9
 // @resource     IMGFilter https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/filter.svg
 // @resource     IMGSort https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/sort.svg
 // @resource     IMGExpand https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/expand.svg
@@ -286,7 +286,8 @@ window.XboxWishlistCore = {
                 const saveData = {
                     ...state.filters,
                     publishers: { selected: state.filters.publishers.selected, list: Array.from(state.filters.publishers.list.entries()) },
-                    subscriptions: { selected: state.filters.subscriptions.selected, list: Array.from(state.filters.subscriptions.list.entries()) }
+                    subscriptions: { selected: state.filters.subscriptions.selected, list: Array.from(state.filters.subscriptions.list.entries()) },
+                    sort: { criteria: state.sort.criteria }
                 };
                 adapter.storage.save(CONFIG.storage.key, JSON.stringify(saveData));
             } catch (ex) { console.error('Failed to save filter state:', ex); }
@@ -326,6 +327,15 @@ window.XboxWishlistCore = {
                             if (typeof parsed.totalCount === 'number') state.filters.totalCount = parsed.totalCount;
                             if (typeof parsed.filteredCount === 'number') state.filters.filteredCount = parsed.filteredCount;
                             if (Array.isArray(parsed.activeTags)) state.filters.activeTags = parsed.activeTags;
+                            // Only accept known fields/orders (max 3 levels, as the UI allows);
+                            // labels come from state.sort.fields, not from storage.
+                            if (parsed.sort && Array.isArray(parsed.sort.criteria)) {
+                                const criteria = parsed.sort.criteria.slice(0, 3).map(c => {
+                                    const sf = c && state.sort.fields.find(f => f.value === c.field);
+                                    return sf && (c.order === 'asc' || c.order === 'desc') ? { field: sf.value, order: c.order, label: sf.label } : null;
+                                });
+                                if (criteria.length > 0 && criteria.every(Boolean)) state.sort.criteria = criteria;
+                            }
                         }
                     }
                 } catch (ex) {
@@ -1168,7 +1178,7 @@ window.XboxWishlistCore = {
                     state.sort.criteria[index].field = e.target.value;
                     const sf = state.sort.fields.find(f => f.value === e.target.value);
                     if (sf) state.sort.criteria[index].label = sf.label;
-                    applySorting();
+                    onSortChanged();
                 });
                 const toggleBtn = document.createElement('button'); toggleBtn.className = 'ifc-sort-toggle';
                 toggleBtn.textContent = criterion.order === 'asc' ? '↑' : '↓';
@@ -1177,13 +1187,13 @@ window.XboxWishlistCore = {
                     state.sort.criteria[index].order = criterion.order === 'asc' ? 'desc' : 'asc';
                     toggleBtn.textContent = state.sort.criteria[index].order === 'asc' ? '↑' : '↓';
                     toggleBtn.title = state.sort.criteria[index].order === 'asc' ? 'Ascending' : 'Descending';
-                    applySorting();
+                    onSortChanged();
                 });
                 row.appendChild(select); row.appendChild(toggleBtn);
                 if (index > 0) {
                     const removeBtn = document.createElement('button'); removeBtn.className = 'ifc-sort-remove';
                     removeBtn.textContent = '×'; removeBtn.title = 'Remove sort criterion';
-                    removeBtn.addEventListener('click', () => { state.sort.criteria.splice(index, 1); renderSortCriteria(); applySorting(); });
+                    removeBtn.addEventListener('click', () => { state.sort.criteria.splice(index, 1); renderSortCriteria(); onSortChanged(); });
                     row.appendChild(removeBtn);
                 }
                 container.appendChild(row);
@@ -1194,12 +1204,15 @@ window.XboxWishlistCore = {
                 addBtn.addEventListener('click', () => {
                     if (state.sort.criteria.length < 3) {
                         state.sort.criteria.push({ field: 'ifcName', order: 'asc', label: 'Name' });
-                        renderSortCriteria(); applySorting();
+                        renderSortCriteria(); onSortChanged();
                     }
                 });
                 container.appendChild(addBtn);
             }
         }
+
+        // Sort controls don't go through updateScreen(), so they save explicitly
+        function onSortChanged() { applySorting(); saveFilterState(); }
 
         function applySorting() {
             try {
