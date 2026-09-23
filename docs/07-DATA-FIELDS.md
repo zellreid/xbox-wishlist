@@ -34,6 +34,7 @@ Verified against the mocks in `mock_examples/#wishlist` (2 captures) and `mock_e
 | Offer list price / MSRP | State | Stored (`data-ifc-state-price`, `-msrp`) | For a future in-place price update (F-26) |
 | "Just for you" personal offer + reason | State | Yes (F-34 pill, quick filter, export) | Deal type `personal`; reason text ("Because of your loyalty to the franchise"), discount, end date |
 | Deal type (personal / sale / member) | State | Yes (F-34 filter, export) | Only for discounts the page shows the viewer |
+| Product kind (Game / DLC / Consumable) | State | Yes (Type filter, chip, export) | `Durable` = add-on / DLC, `Consumable` = in-game items |
 | Member-price offer type + message | State | Deal type `member` only | Game Pass / PC Game Pass / EA Play |
 | Pre-order | State | Yes (F-34 pill, quick filter, export) | Per edition (SKU) flag + future release date |
 | Platforms | State | Yes (F-34 filter, export) | Xbox One, Xbox Series X\|S, PC, Handheld (multi) |
@@ -78,5 +79,5 @@ Verified against the mocks in `mock_examples/#wishlist` (2 captures) and `mock_e
 - Prefer the wishlist page state: one free read covers every item.
 - Use the product page only for fields in the second table, loaded lazily, cached per product id and throttled - never for the whole list at once (hundreds of multi-MB requests).
 - Capabilities cannot be derived from the wishlist page (its badge codes are subscription logos). They are loaded per item from the product page on request ("Load details", F-36), cached 7 days per product.
-- The store app also has an internal bulk product lookup (many ids per request), but it is a separate service that attaches the signed-in user's authorization - handling that token is off-limits (TIER 1) and would need a new host permission, so it is deliberately not used.
+- The store app also has an internal bulk product lookup (many ids per request). It is a separate Xbox service; the app attaches the signed-in user's authorization when available but marks it **not required**. Not used yet: it is undocumented and can change without notice, its address isn't in the saved pages (resolved at runtime), a cross-origin call from the content script only works if that service allows the xbox.com origin (unverified), and whether its response includes capabilities is unverified. Reading or forwarding the user's token ourselves stays off-limits (TIER 1). See T-17 for the live check.
 - `mock_examples/#deals` and `#games` embed the same kind of state (25 products each) but without capabilities, and the deals page carries no personal offers.

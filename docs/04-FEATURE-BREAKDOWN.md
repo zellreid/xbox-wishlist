@@ -249,7 +249,18 @@
 
 **Constraint:** Only the product page carries capabilities - one multi-MB request per item (~310 on the mocks). Needs a deliberate fetch strategy.
 
-**Status (v1.5.26266.19):** Done with option (c) - opt-in "Load details" in the Capabilities section: sequential same-origin product page fetches (~2 s apart, shown items first), progress + Cancel, stops on HTTP 429; per-product cache under its own storage key, 7-day expiry, failures retried next run. Capabilities filter (ALL selected must match) with search, tags, persistence, saved filters; X|S / Smart Delivery chips and Play Anywhere chip with Xbox's icon; export column. Harness: fetch pointed at the `#products` mocks (7 of this wishlist's games) - load, cancel, filter, chips, cache-after-reload verified. Other sources checked and rejected: wishlist / deals / browse-games state (no capabilities); the store's bulk product lookup (separate service, needs the user's auth token + new host permission).
+**Status (v1.5.26266.19):** Done with option (c) - opt-in "Load details" in the Capabilities section: sequential same-origin product page fetches (~2 s apart, shown items first), progress + Cancel, stops on HTTP 429; per-product cache under its own storage key, 7-day expiry, failures retried next run. Capabilities filter (ALL selected must match) with search, tags, persistence, saved filters; X|S / Smart Delivery chips and Play Anywhere chip with Xbox's icon; export column. Harness: fetch pointed at the `#products` mocks (7 of this wishlist's games) - load, cancel, filter, chips, cache-after-reload verified. Other sources checked: wishlist / deals / browse-games state (no capabilities). The store's bulk product lookup is a separate, undocumented service (auth attached when available but not required) - not used; live check tracked as T-17. v1.5.26266.20 adds a per-item refresh button (same product page read, updates every item with that product id).
+
+### T-17 - Spike: can the store's bulk product lookup replace per-page "Load details"?
+
+**Why:** One request for many products instead of one multi-MB page per product - seconds instead of ~10 minutes for a full wishlist.
+
+| Step | Task |
+|------|------|
+| 1 | Live, in DevTools Network on a product page or while browsing the store: find the store's bulk "products" request; note whether it is sent with or without an Authorization header |
+| 2 | Check its response for a capabilities field per product |
+| 3 | Check whether a request from the wishlist page's origin is allowed (CORS) without a new host permission |
+| 4 | Decide (HITL): only if capabilities are present, no token handling is needed, and no manifest change is required - otherwise keep the product page approach |
 
 | Step | Task |
 |------|------|

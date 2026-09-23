@@ -38,6 +38,8 @@ window.XboxWishlistCore = {
                 preorder: false,
                 // F-36: capability labels; an item must have ALL selected ones
                 capabilities: { selected: [], list: new Map() },
+                // Item type: Game / DLC / Consumable (any selected matches)
+                types: { selected: [], list: new Map() },
                 priceRange: { min: 0, max: 3000, currentMin: 0, currentMax: 3000, enabled: false },
                 discountRange: { min: 0, max: 100, currentMin: 0, currentMax: 100, enabled: false }
             },
@@ -59,7 +61,8 @@ window.XboxWishlistCore = {
             productData: new Map(), productDataLoadedAt: null,
             // Product-page capabilities by upper-case product id: { caps: { key: label }, at: ms } (F-36)
             capCache: {},
-            details: { running: false, cancel: false, done: 0, total: 0, failed: 0, message: '' }
+            details: { running: false, cancel: false, done: 0, total: 0, failed: 0, message: '',
+                itemStatus: {} }   // per product id: { busy, at, error } for the item refresh buttons
         };
         window.injected = state;
 
@@ -98,6 +101,7 @@ window.XboxWishlistCore = {
                 genresSelect: 'ifc_select_genres',
                 platformsSelect: 'ifc_select_platforms',
                 capabilitiesSelect: 'ifc_select_capabilities',
+                typesSelect: 'ifc_select_types',
                 detailsButton: 'ifc_btn_LoadDetails',
                 detailsStatus: 'ifc_details_status',
                 priceSlider: 'ifc_slider_price',
@@ -299,6 +303,7 @@ window.XboxWishlistCore = {
                     genres: { selected: state.filters.genres.selected },   // list is rebuilt from the items
                     platforms: { selected: state.filters.platforms.selected },
                     capabilities: { selected: state.filters.capabilities.selected },
+                    types: { selected: state.filters.types.selected },
                     sort: { criteria: state.sort.criteria },
                     presets: state.savedPresets
                 };
@@ -342,6 +347,9 @@ window.XboxWishlistCore = {
                             if (typeof parsed.preorder === 'boolean') state.filters.preorder = parsed.preorder;
                             if (parsed.capabilities && Array.isArray(parsed.capabilities.selected)) {
                                 state.filters.capabilities.selected = parsed.capabilities.selected.filter(c => typeof c === 'string');
+                            }
+                            if (parsed.types && Array.isArray(parsed.types.selected)) {
+                                state.filters.types.selected = parsed.types.selected.filter(t => typeof t === 'string');
                             }
                             if (parsed.priceRange && typeof parsed.priceRange === 'object') {
                                 state.filters.priceRange = { ...state.filters.priceRange, ...parsed.priceRange, enabled: parsed.priceRange.enabled === true };
@@ -407,6 +415,10 @@ window.XboxWishlistCore = {
                 const count = state.filters.capabilities.list.get(cap) || 0;
                 tags.push({ type: 'capability', value: cap, label: `${cap} (${count})` });
             });
+            state.filters.types.selected.forEach(t => {
+                const count = state.filters.types.list.get(t) || 0;
+                tags.push({ type: 'itemType', value: t, label: `${t} (${count})` });
+            });
             if (state.filters.priceRange.enabled) {
                 const { currentMin, currentMax } = state.filters.priceRange;
                 tags.push({ type: 'price', value: 'price', label: `Price: ${formatCurrency(currentMin)} - ${formatCurrency(currentMax)}` });
@@ -461,6 +473,9 @@ window.XboxWishlistCore = {
                 case 'capability':
                     state.filters.capabilities.selected = state.filters.capabilities.selected.filter(v => v !== tag.value);
                     updateCheckboxes(CONFIG.ids.capabilitiesSelect, state.filters.capabilities.selected); break;
+                case 'itemType':
+                    state.filters.types.selected = state.filters.types.selected.filter(v => v !== tag.value);
+                    updateCheckboxes(CONFIG.ids.typesSelect, state.filters.types.selected); break;
                 case 'price': state.filters.priceRange.enabled = false; resetPriceSlider(); break;
                 case 'discount': state.filters.discountRange.enabled = false; resetDiscountSlider(); break;
                 case 'search': {
@@ -771,6 +786,8 @@ window.XboxWishlistCore = {
 
         // Store names for the platform codes in the product data (F-34)
         const PLATFORM_LABELS = { XboxSeriesX: 'Xbox Series X|S', XboxOne: 'Xbox One', PC: 'PC', Handheld: 'Handheld' };
+        // Product kinds in the data: Durable = add-on / DLC, Consumable = in-game items
+        const PRODUCT_KIND_LABELS = { Game: 'Game', Durable: 'DLC', Consumable: 'Consumable' };
 
         // fresh: false reads this page as loaded (no network); true re-fetches the
         // wishlist page for current data. Returns the map (also kept in state).
@@ -858,8 +875,14 @@ window.XboxWishlistCore = {
             // Collapse whitespace - some store names have double spaces ("Online multiplayer  (2-4)")
             setDataAttribute(container, 'ifcCapabilities', JSON.stringify(cached ? Object.values(cached).map(v => String(v).replace(/\s+/g, ' ').trim()) : []));
             setDataAttribute(container, 'ifcDetailsLoaded', !!cached);
+            // Item type from the product kind: games, DLC / add-ons, in-game consumables
+            const type = p ? (PRODUCT_KIND_LABELS[p.productKind] || p.productKind || null) : null;
+            setDataAttribute(container, 'ifcType', type);
             injectDealEndBadge(container, dealEnds);
             injectItemTags(container, {
+                productId: (container.dataset.ifcProductId || '').toUpperCase(), url: container.dataset.ifcUri,
+                title: container.dataset.ifcName,
+                kindLabel: type === 'DLC' || type === 'Consumable' ? type : null,
                 personal: dealType === 'personal', reason: offer.dealReason, preorder: !!(p && p.ifcIsPreorder),
                 playAnywhere: capKeys.includes('XPA'), optimizedXS: capKeys.includes('ConsoleGen9Optimized'),
                 smartDelivery: capKeys.includes('ConsoleCrossGen')
@@ -873,7 +896,10 @@ window.XboxWishlistCore = {
         function injectItemTags(container, info) {
             try {
                 let row = container.querySelector('.ifc-item-tags');
-                if (!info.personal && !info.preorder && !info.playAnywhere && !info.optimizedXS && !info.smartDelivery) { if (row) row.remove(); return; }
+                // The row always leads with the per-item refresh button, so every item with a
+                // store page gets one; without a product id / URL there's nothing to refresh
+                const canRefresh = !!(info.productId && info.url && info.url !== 'null');
+                if (!canRefresh && !info.personal && !info.preorder && !info.playAnywhere && !info.optimizedXS && !info.smartDelivery && !info.kindLabel) { if (row) row.remove(); return; }
                 if (!row) {
                     const pd = CONFIG.selectors.productDetails ? safeQuerySelector(container, CONFIG.selectors.productDetails) : null;
                     if (!pd) return;
@@ -881,6 +907,13 @@ window.XboxWishlistCore = {
                     pd.appendChild(row);
                 }
                 row.replaceChildren();
+                if (canRefresh) row.appendChild(createItemRefreshButton(info));
+                if (info.kindLabel) {
+                    const kind = document.createElement('span'); kind.className = 'ifc-item-tag ifc-item-tag-kind';
+                    kind.textContent = info.kindLabel;
+                    kind.title = info.kindLabel === 'DLC' ? 'Add-on / downloadable content - needs the base game' : 'In-game consumable item';
+                    row.appendChild(kind);
+                }
                 if (info.personal) {
                     const jfy = document.createElement('span'); jfy.className = 'ifc-item-tag ifc-item-tag-jfy';
                     jfy.textContent = 'Just for you';
@@ -905,6 +938,27 @@ window.XboxWishlistCore = {
                 if (info.smartDelivery) chip('ifc-item-tag-sd', 'Smart Delivery', 'Smart Delivery');
                 if (info.playAnywhere) chip('ifc-item-tag-xpa', 'Play Anywhere', 'Xbox Play Anywhere', 'IMGPlayAnywhere');
             } catch (ex) { console.error('Failed to inject item tags:', ex); }
+        }
+
+        // Per-item refresh (rebuilt with the row on every updateScreen, so its state comes
+        // from state.details.itemStatus rather than living on the element)
+        function createItemRefreshButton(info) {
+            const st = state.details.itemStatus[info.productId];
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'ifc-item-refresh' + (st && st.busy ? ' ifc-busy' : '') + (st && st.error ? ' ifc-error' : '');
+            btn.dataset.ifcRefreshId = info.productId;
+            btn.disabled = !!(st && st.busy);
+            const label = `Refresh details for ${info.title || 'this game'}`;
+            btn.setAttribute('aria-label', label);
+            btn.title = st && st.busy ? 'Refreshing...'
+                : st && st.error ? `Couldn't refresh (${st.error}) - click to retry`
+                : st && st.at ? `Refreshed ${new Date(st.at).toLocaleTimeString()} - click to refresh again`
+                : `${label} (reads its store page; updates every copy of this game)`;
+            setGlyph(btn, 'IMGRefresh', '↻');
+            // The item card may sit inside Xbox's own link/click handling - keep the click ours
+            btn.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); refreshItem(info.productId, info.url); });
+            return btn;
         }
 
         // "Ends 24 Sep" next to the discount badge; "Ends in 5h" (amber) inside 24 hours
@@ -975,13 +1029,14 @@ window.XboxWishlistCore = {
                 preorder: c.dataset.ifcPreorder === 'true', platforms: getItemJsonList(c, 'ifcPlatforms'),
                 // F-36: empty unless "Load details" has fetched this item's product page
                 capabilities: getItemJsonList(c, 'ifcCapabilities'),
+                type: text(c.dataset.ifcType) || null,   // Game | DLC | Consumable
                 url: text(c.dataset.ifcUri)
             };
         }
 
         function toCsv(rows) {
             const cols = ['title', 'publisher', 'price', 'originalPrice', 'discountPercent', 'owned', 'unpurchasable',
-                'rating', 'ratingCount', 'genres', 'releaseDate', 'dealEnds', 'inPass', 'dealType', 'dealReason', 'preorder', 'platforms', 'capabilities', 'url'];
+                'rating', 'ratingCount', 'genres', 'releaseDate', 'dealEnds', 'inPass', 'dealType', 'dealReason', 'preorder', 'platforms', 'capabilities', 'type', 'url'];
             const cell = v => {
                 if (v === null || v === undefined) return '';
                 if (Array.isArray(v)) v = v.join('; ');
@@ -1209,6 +1264,7 @@ window.XboxWishlistCore = {
                 state.filters.justForYou = false;
                 state.filters.preorder = false;
                 state.filters.capabilities.selected = [];
+                state.filters.types.selected = [];
                 state.filters.search.term = '';
                 updateCheckboxes(CONFIG.ids.ownedSelect, []);
                 updateCheckboxes(CONFIG.ids.publishersSelect, []);
@@ -1216,6 +1272,7 @@ window.XboxWishlistCore = {
                 updateCheckboxes(CONFIG.ids.genresSelect, []);
                 updateCheckboxes(CONFIG.ids.platformsSelect, []);
                 updateCheckboxes(CONFIG.ids.capabilitiesSelect, []);
+                updateCheckboxes(CONFIG.ids.typesSelect, []);
                 const searchInput = getElement(`#${CONFIG.ids.searchInput}`);
                 if (searchInput) searchInput.value = '';
                 resetPriceSlider();
@@ -1238,7 +1295,7 @@ window.XboxWishlistCore = {
                 owned: [...f.owned.selected], publishers: [...f.publishers.selected], subscriptions: [...f.subscriptions.selected],
                 genres: [...f.genres.selected], inPass: f.inPass === true,
                 platforms: [...f.platforms.selected], justForYou: f.justForYou === true, preorder: f.preorder === true,
-                capabilities: [...f.capabilities.selected],
+                capabilities: [...f.capabilities.selected], types: [...f.types.selected],
                 priceRange: snapshotRange(f.priceRange), discountRange: snapshotRange(f.discountRange)
             };
         }
@@ -1258,6 +1315,7 @@ window.XboxWishlistCore = {
                     genres: list(f.genres), inPass: f.inPass === true,   // absent in presets saved before F-33
                     platforms: list(f.platforms), justForYou: f.justForYou === true, preorder: f.preorder === true,   // before F-34
                     capabilities: list(f.capabilities),   // before F-36
+                    types: list(f.types),                 // before the Type filter
                     priceRange: range(f.priceRange), discountRange: range(f.discountRange)
                 }
             };
@@ -1266,7 +1324,7 @@ window.XboxWishlistCore = {
             const f = state.filters;
             return f.owned.selected.length > 0 || f.publishers.selected.length > 0 || f.subscriptions.selected.length > 0
                 || f.genres.selected.length > 0 || f.inPass || f.platforms.selected.length > 0 || f.justForYou || f.preorder
-                || f.capabilities.selected.length > 0
+                || f.capabilities.selected.length > 0 || f.types.selected.length > 0
                 || f.priceRange.enabled || f.discountRange.enabled;
         }
         // A saved range re-applied to this page's slider bounds (same rules as a restore)
@@ -1286,7 +1344,7 @@ window.XboxWishlistCore = {
                 && sameSet(f.subscriptions.selected, pf.subscriptions)
                 && sameSet(f.genres.selected, pf.genres) && f.inPass === pf.inPass
                 && sameSet(f.platforms.selected, pf.platforms) && f.justForYou === pf.justForYou && f.preorder === pf.preorder
-                && sameSet(f.capabilities.selected, pf.capabilities)
+                && sameSet(f.capabilities.selected, pf.capabilities) && sameSet(f.types.selected, pf.types)
                 && rangeIs(f.priceRange, pf.priceRange) && rangeIs(f.discountRange, pf.discountRange);
         }
         // Replaces the current filter selections with the preset's (search text is left alone)
@@ -1296,13 +1354,14 @@ window.XboxWishlistCore = {
                 f.owned.selected = [...pf.owned]; f.publishers.selected = [...pf.publishers]; f.subscriptions.selected = [...pf.subscriptions];
                 f.genres.selected = [...pf.genres]; f.inPass = pf.inPass;
                 f.platforms.selected = [...pf.platforms]; f.justForYou = pf.justForYou; f.preorder = pf.preorder;
-                f.capabilities.selected = [...pf.capabilities];
+                f.capabilities.selected = [...pf.capabilities]; f.types.selected = [...pf.types];
                 updateCheckboxes(CONFIG.ids.ownedSelect, f.owned.selected);
                 updateCheckboxes(CONFIG.ids.publishersSelect, f.publishers.selected);
                 updateCheckboxes(CONFIG.ids.subscriptionsSelect, f.subscriptions.selected);
                 updateCheckboxes(CONFIG.ids.genresSelect, f.genres.selected);
                 updateCheckboxes(CONFIG.ids.platformsSelect, f.platforms.selected);
                 updateCheckboxes(CONFIG.ids.capabilitiesSelect, f.capabilities.selected);
+                updateCheckboxes(CONFIG.ids.typesSelect, f.types.selected);
                 f.priceRange = presetRangeOnPage(pf.priceRange, f.priceRange);
                 f.discountRange = presetRangeOnPage(pf.discountRange, f.discountRange);
                 syncPriceSliderUI(); syncDiscountSliderUI();
@@ -1675,6 +1734,56 @@ window.XboxWishlistCore = {
             });
         }
 
+        // ==================== TYPE (Game / DLC / Consumable) ====================
+        // From the product kind in the page's data (free, no requests); fixed display order
+        const TYPE_ORDER = ['Game', 'DLC', 'Consumable'];
+        function collectTypes() {
+            const types = new Map();
+            Array.from(document.getElementsByClassName(CONFIG.selectors.items)).forEach(c => {
+                const t = c.dataset.ifcType;
+                if (t && t !== 'null') types.set(t, (types.get(t) || 0) + 1);
+            });
+            const rank = t => { const i = TYPE_ORDER.indexOf(t); return i < 0 ? TYPE_ORDER.length : i; };
+            state.filters.types.list = new Map(Array.from(types.entries()).sort((a, b) => rank(a[0]) - rank(b[0]) || a[0].localeCompare(b[0])));
+            return state.filters.types.list;
+        }
+
+        async function addFilterContainerTypes() {
+            if (!state.ui.divFilter) return;
+            const gn = 'Types';
+            try {
+                if (getElement(`#ifc_group_${gn}`, false)) { updateTypesCheckboxes(); return; }
+                const fg = getElement(`#${CONFIG.ids.filterContainer} ${CONFIG.selectors.filterGroups}`);
+                if (!fg) return;
+                const fb = createFilterBlock(gn, 'Type', true);
+                const cc = fb.querySelector('.ifc-accordion-content');
+                if (cc) {
+                    const list = document.createElement('div');
+                    list.id = CONFIG.ids.typesSelect;
+                    list.className = 'ifc-checkbox-list';
+                    cc.appendChild(list);
+                }
+                fg.appendChild(fb);
+                updateTypesCheckboxes();
+            } catch (ex) { console.error('Failed to add type filter:', ex); }
+        }
+
+        function updateTypesCheckboxes() {
+            const types = collectTypes();
+            const container = document.getElementById(CONFIG.ids.typesSelect);
+            if (!container) return;
+            container.innerHTML = '';
+            types.forEach((count, name) => {
+                const label = document.createElement('label'); label.className = 'ifc-checkbox-item';
+                const cb = document.createElement('input');
+                cb.type = 'checkbox'; cb.value = name; cb.checked = state.filters.types.selected.includes(name);
+                cb.className = 'ifc-checkbox';
+                cb.addEventListener('change', () => { state.filters.types.selected = getCheckboxValues(CONFIG.ids.typesSelect); updateScreen(); });
+                const span = document.createElement('span'); span.className = 'ifc-checkbox-label'; span.textContent = `${name} (${count})`;
+                label.appendChild(cb); label.appendChild(span); container.appendChild(label);
+            });
+        }
+
         // ==================== CAPABILITIES / LOAD DETAILS (F-36) ====================
         // Capabilities (Optimized for X|S, Smart Delivery, Play Anywhere, 4K, co-op, ...) exist
         // only in each game's own store page - not in the wishlist page's data. They're fetched
@@ -1749,6 +1858,33 @@ window.XboxWishlistCore = {
                 : `Loaded ${d.done - d.failed} of ${d.total}${d.failed ? `, ${d.failed} failed` : ''}.`;
             d.running = false;
             saveCapabilityCache(); updateScreen();
+        }
+
+        // Refreshes ONE product from its store page: its capabilities (cached like "Load
+        // details") and, for this session, its product data (rating, deal, pre-order,
+        // platforms, type) - the store page carries the same summary plus more. Every item
+        // sharing the product id picks it up on the updateScreen() below. The shown price
+        // itself is Xbox's own markup and only changes on a page reload.
+        async function refreshItem(productId, url) {
+            const id = String(productId || '').toUpperCase(), status = state.details.itemStatus;
+            if (!id || !url || (status[id] && status[id].busy)) return;
+            status[id] = { busy: true };
+            updateScreen();
+            try {
+                const summary = productSummariesFrom(await fetchPageState(url)).get(id);
+                if (!summary) throw new Error('no data on its store page');
+                state.productData.set(id, summary);
+                const caps = {};
+                if (summary.capabilities && typeof summary.capabilities === 'object') {
+                    Object.entries(summary.capabilities).forEach(([k, v]) => { if (typeof v === 'string' && v.trim()) caps[k] = v.trim(); });
+                }
+                state.capCache[id] = { caps, at: Date.now() };
+                saveCapabilityCache();
+                status[id] = { busy: false, at: Date.now() };
+            } catch (ex) {
+                status[id] = { busy: false, error: (ex.message || 'failed').replace(/ for https?:\S+/, '') };
+            }
+            updateScreen();
         }
 
         function renderDetailsStatus() {
@@ -1995,7 +2131,7 @@ window.XboxWishlistCore = {
                 addFilterContainer(); addSortContainer();
                 addSearchFilter(); addQuickFilters();
                 await addFilterContainerOwned(); await addFilterContainerPublishers(); await addFilterContainerSubscriptions();
-                await addFilterContainerGenres(); await addFilterContainerPlatforms(); await addFilterContainerCapabilities();
+                await addFilterContainerGenres(); await addFilterContainerPlatforms(); await addFilterContainerTypes(); await addFilterContainerCapabilities();
                 addPriceRangeFilter(); addDiscountRangeFilter();
                 addSavedPresets();
             } catch (ex) { console.error('Failed to add filter controls:', ex); }
@@ -2326,6 +2462,7 @@ window.XboxWishlistCore = {
                 const caps = getItemJsonList(container, 'ifcCapabilities');
                 if (!state.filters.capabilities.selected.every(c => caps.includes(c))) return false;
             }
+            if (state.filters.types.selected.length > 0 && !state.filters.types.selected.includes(container.dataset.ifcType)) return false;
             if (state.filters.priceRange.enabled) {
                 // No price data at all (e.g. un-purchasable items) can't be "in range" - exclude.
                 if (isNaN(price)) return false;
@@ -2352,7 +2489,7 @@ window.XboxWishlistCore = {
             unnumbered.forEach(c => { c.dataset.ifcId = nextId--; });
             state.ui.lowestItemId = nextId + 1;
             Array.from(containers).forEach(c => setContainerData(c, c.dataset.ifcId));
-            collectPublishers(); updatePublishersCheckboxes(); updateSubscriptionsCheckboxes(); updateGenresCheckboxes(); updatePlatformsCheckboxes(); updateCapabilitiesCheckboxes(); updatePriceSlider(); updateDiscountSlider();
+            collectPublishers(); updatePublishersCheckboxes(); updateSubscriptionsCheckboxes(); updateGenresCheckboxes(); updatePlatformsCheckboxes(); updateTypesCheckboxes(); updateCapabilitiesCheckboxes(); updatePriceSlider(); updateDiscountSlider();
             Array.from(containers).forEach(c => {
                 try {
                     if (shouldShowContainer(c)) {

@@ -14,6 +14,26 @@ for how a version is bumped and published.
 
 ---
 
+## v1.5.26266.20 (Sep 2026) - Per-item refresh, DLC / Type filter
+
+- Every item's tag row now starts with a small **refresh** button. It reads
+  that game's store page and updates **every item with the same product id**:
+  capabilities (cached like "Load details") plus, for this session, rating,
+  deal, pre-order, platforms and type. Busy spinner while loading; the tooltip
+  says when it last refreshed or why it failed (click to retry). The click
+  never triggers Xbox's own item link. The shown price is Xbox's markup and
+  still only changes on a page reload.
+- New **Type** filter (Game / DLC / Consumable, from the product kind in the
+  page's data - no extra requests), with a **DLC** / **Consumable** chip on
+  those items. Tags, Clear All, persistence and saved filters as usual; export
+  gets a `type` column.
+- Correction to v1.5.26266.19's notes: the store's internal bulk product
+  lookup attaches the signed-in user's authorization *when available* but does
+  not require it. It remains unused - it's an undocumented separate service -
+  pending a live check of whether it returns capabilities (T-17).
+
+---
+
 ## v1.5.26266.19 (Sep 2026) - Capabilities via "Load details" (F-36)
 
 - New **Capabilities** filter section (Optimized for Xbox Series X|S, Smart

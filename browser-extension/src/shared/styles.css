@@ -220,6 +220,65 @@ ul.filter-groups {
     display: inline-flex;
 }
 
+/* Item type chip (DLC / Consumable) */
+.ifc-item-tag-kind {
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    color: #f5f5f5;
+    background-color: rgba(255, 255, 255, 0.08);
+}
+
+/* Per-item refresh button - first in the tag row */
+.ifc-item-refresh {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 18px;
+    padding: 0;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: 3px;
+    background: transparent;
+    color: rgba(245, 245, 245, 0.8);
+    cursor: pointer;
+}
+
+.ifc-item-refresh:hover {
+    background-color: rgba(255, 255, 255, 0.12);
+    color: #ffffff;
+}
+
+.ifc-item-refresh:focus-visible {
+    outline: 2px solid #9dd85c;
+    outline-offset: 1px;
+}
+
+.ifc-item-refresh .ifc-glyph {
+    width: 10px;
+    height: 10px;
+}
+
+.ifc-item-refresh.ifc-busy {
+    cursor: progress;
+    opacity: 0.7;
+}
+
+.ifc-item-refresh.ifc-busy .ifc-glyph {
+    animation: ifc-spin 0.9s linear infinite;
+}
+
+.ifc-item-refresh.ifc-error {
+    border-color: #ffb900;
+    color: #ffb900;
+}
+
+@keyframes ifc-spin {
+    to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ifc-item-refresh.ifc-busy .ifc-glyph { animation: none; }
+}
+
 /* Capability chips (F-36) - quiet, so deal pills stay the loudest */
 .ifc-item-tag-cap {
     border: 1px solid rgba(157, 216, 92, 0.45);
