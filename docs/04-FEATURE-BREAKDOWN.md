@@ -260,9 +260,18 @@
 | Step | Task |
 |------|------|
 | 1 | Live: reload the extension and the wishlist tab; open any game from the wishlist in the SAME tab, then press Back (the store app loads product data meanwhile, which the watcher records) |
-| 2 | Filters > Capabilities > "Run test"; if it reports "no bulk product request seen", paste a request URL from DevTools > Network (filter "products") and run again |
-| 3 | Copy the report and share it (it's redacted) |
-| 4 | Decide (HITL): switch "Load details" to the bulk lookup only if the verdict is USABLE (capabilities returned, no Authorization header, allowed by the browser, no manifest change) - otherwise keep the store page approach; then remove the diagnostic |
+| 2 | Filters > Capabilities > "Run test"; if it reports "no product-data request seen", paste the full product-details request URL from DevTools > Network (filter "productDetails") and run again |
+| 3 | Copy the report and share it (it's redacted) - not DevTools screenshots of request headers |
+| 4 | Decide (HITL): switch "Load details" to the service only if the verdict is USABLE (capabilities returned, no Authorization header, allowed by the browser, no manifest change) - otherwise keep the store page approach; then remove the diagnostic |
+
+**First live run (2026-09-23) - NOT USABLE *as tested*, but likely fixable:**
+- The store app fetches product data from a separate Xbox service with a **per-product** product-details request (GET, JSON, ~0.3 MB with full detail vs a multi-MB store page), not a bulk one on that page.
+- CORS is fine: the service allows the `https://www.xbox.com` origin and the headers we need, so the content script can call it without a new host permission (`allowedByBrowser: true` on every attempt).
+- Our replay failed with **400 UnsupportedApiVersion**: the site sends an API-version request header (the service advertises version 2.0 for product details). The POST attempts got 405 - the service only allows GET.
+- Open question: whether it answers **without** an Authorization header (the app marks auth optional for product info; product details are public).
+- The watcher missed the request because it only matched bulk-style paths - extend it to product-details paths.
+
+**Diagnostic v2 (v1.5.26266.24) - built, waiting on the live run:** "Test: faster lookup (T-17 v2, temporary)". The watcher now also records product-details requests (and prefers them). The test re-uses the seen request's shape for games on this wishlist (games already known from "Load details" to have capabilities go first, since many games have none; the id's letter case is kept): GET with API-version header 2.0, never an Authorization header, first without cookies, then with cookies (1.0 tried only if both fail); then 3 more games back to back (averages); then two clearly labelled GUESSES for a many-ids form (same path with `productIds`, sibling products path with `productIds`); then the same game's store page as baseline (time, size, capability count). Verdicts: USABLE MANY AT ONCE / USABLE ONE GAME PER REQUEST (with a service-vs-store-page comparison) / UNCLEAR (answered but no capabilities recognised - the report lists where capability-like fields sit) / NOT USABLE. Redaction tightened: addresses in error text are masked too (the service echoes its own address in errors), id-like strings are masked in any case, and pasted input must be a full https address. Harness-tested against a stand-in service on another port (CORS preflight, 400 without the version header, 405 for POST, logs any Authorization header): per-game, many-ids, version-rejected and bad-paste scenarios all gave the expected verdicts; the service log confirmed GET only, header present, no Authorization header ever sent.
 
 | Step | Task |
 |------|------|
@@ -282,6 +291,8 @@
 | 1 | Prepare a harness for the light-mode mock `mock_examples/#wishlist/20260923_1603.html`; screenshot every panel, pill, tag, chip, badge and the export menu to list the clashes |
 | 2 | Move `styles.css` colours into CSS variables on our own root, with a dark set (current values) and a light set, chosen from the page's theme attribute |
 | 3 | Re-check both mocks (dark `20260923_1032`, light `20260923_1603`) visually |
+
+Note (2026-09-23): the light mock was saved with our panel already injected (old version), and the harness re-uses those saved `ifc_` elements, so it shows the old UI. Fine for the style comparison; for behaviour tests, have `prepare-fixture.js` strip saved `ifc_` elements (or re-save the page with the extension off).
 
 ---
 

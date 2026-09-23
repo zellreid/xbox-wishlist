@@ -14,6 +14,20 @@ for how a version is bumped and published.
 
 ---
 
+## v1.5.26266.24 (Sep 2026) - Lookup test v2 (T-17, temporary)
+
+- The temporary "Test: faster lookup" in the Capabilities section is now v2,
+  based on the first live run: it recognises the store app's per-game
+  product-data request, and repeats it for games on your wishlist with the
+  API-version header the service requires, GET only, and never an
+  Authorization header (first without cookies, then with). It then times
+  3 more games, tries two clearly labelled guesses at a many-games-at-once
+  request, and compares size, time and capability count with the same game's
+  store page. Games already known (from "Load details") to have capabilities
+  are tested first.
+- The report is stricter about privacy: addresses inside error messages are
+  masked too, and a pasted request must be a full https address.
+
 ## v1.5.26266.23 (Sep 2026) - Survive in-app navigation (open a game, then Back)
 
 - Fixed: opening a game from the wishlist in the same tab and pressing Back
