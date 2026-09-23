@@ -17,7 +17,8 @@ updated: 2026-09-23
 > Never put credentials, keys, connection strings or secrets in this file.
 
 ## Now
-- Live at v1.5.26266.22. T-16 and T-18 confirmed on live Edge.
+- Live at v1.5.26266.23. T-16 and T-18 confirmed on live Edge.
+- Fixed: the extension vanished after opening a game in the same tab and pressing Back (store app re-render + stale element cache) - it now re-attaches automatically; mock harness verified, needs a live check (it is also T-17 step 3).
 - T-17 diagnostic built ("Test: faster lookup" in the Capabilities section); waiting on the live run.
 - Newly logged (not started): T-19 light mode styling (mock 20260923_1603), F-39 light/dark toggle, F-38 run on product pages (manifest change - HITL), F-40 DLC indicator / count / link for wishlist games (has-DLC flag and link are free; count needs the add-ons page).
 
@@ -38,8 +39,8 @@ updated: 2026-09-23
 + 6 more in docs/04-FEATURE-BREAKDOWN.md and docs/01-PRD.md (E-06, T-02, F-28 to F-30, Firefox/Safari support)
 
 ## Recent sessions
+- 2026-09-23: Re-attach after in-app navigation (v1.5.26266.23), found at T-17 step 3; mock harness PASS on both mocks incl. simulated leave / rebuild / Back round-trip
 - 2026-09-23: Logged T-19 light mode, F-39 theme toggle, F-38 product-page support, F-40 DLC indicator (researched DOA6 mocks: has-add-ons flag free, add-ons page gives total); no code changed
 - 2026-09-23: T-17 lookup diagnostic (v1.5.26266.22); T-18 confirmed live; mock harness PASS on both mocks, diagnostic tested against a stand-in service (found / not found / 404 / redaction)
 - 2026-09-23: Extension-reloaded-under-open-tab handling (v1.5.26266.21) for the live "Extension context invalidated" errors; mock harness PASS on both mocks incl. simulated reload during item refresh and during Load details
 - 2026-09-23: Per-item refresh + Type (DLC) filter (v1.5.26266.20); bulk-lookup finding corrected, T-17 spike logged; T-16 confirmed live; mock harness PASS on both mocks incl. same-id refresh, error path, ?persist reload
-- 2026-09-23: F-36 capabilities via opt-in Load details (v1.5.26266.19) + icon-cache fix; T-12/T-15 confirmed live; mock harness PASS on both mocks, Load details tested via #products mocks incl. cancel and ?persist cache reload

@@ -239,7 +239,13 @@ window.XboxWishlistCore = {
         // ==================== UTILITY FUNCTIONS ====================
         function getElement(selector, useCache = true) {
             if (!selector) return null;
-            if (useCache && state.elementCache.has(selector)) return state.elementCache.get(selector);
+            // Only reuse a cached element while it's still in the page - the store app re-renders
+            // the wishlist on in-app navigation, which detaches (e.g.) the toolbar we cached
+            if (useCache && state.elementCache.has(selector)) {
+                const cached = state.elementCache.get(selector);
+                if (cached && cached.isConnected) return cached;
+                state.elementCache.delete(selector);
+            }
             const element = document.querySelector(selector);
             if (element && useCache) state.elementCache.set(selector, element);
             return element;
@@ -670,7 +676,11 @@ window.XboxWishlistCore = {
             if (state.ui.btnFilter) return;
             try {
                 const bc = getElement(`#${CONFIG.ids.buttonContainer}`); if (!bc) return;
-                bc.appendChild(createImageButton('Filter', adapter.getResourceUrl('IMGFilter'), 'Filter', 'svg'));
+                const btn = createImageButton('Filter', adapter.getResourceUrl('IMGFilter'), 'Filter', 'svg');
+                // Wired here (not with the panel) so a toolbar re-created after the store app
+                // re-renders the wishlist still opens the panel that survived in <body>
+                btn.addEventListener('click', toggleFilterContainer);
+                bc.appendChild(btn);
                 state.ui.btnFilter = true;
             } catch (ex) { console.error('Failed to add filter button:', ex); }
         }
@@ -678,7 +688,9 @@ window.XboxWishlistCore = {
             if (state.ui.btnSort) return;
             try {
                 const bc = getElement(`#${CONFIG.ids.buttonContainer}`); if (!bc) return;
-                bc.appendChild(createImageButton('Sort', adapter.getResourceUrl('IMGSort'), 'Sort', 'svg'));
+                const btn = createImageButton('Sort', adapter.getResourceUrl('IMGSort'), 'Sort', 'svg');
+                btn.addEventListener('click', toggleSortContainer);   // see addFilterButton
+                bc.appendChild(btn);
                 state.ui.btnSort = true;
             } catch (ex) { console.error('Failed to add sort button:', ex); }
         }
@@ -702,8 +714,16 @@ window.XboxWishlistCore = {
                     menu.appendChild(item);
                 });
                 btn.addEventListener('click', (e) => { e.stopPropagation(); setExportMenuOpen(menu.classList.contains('ifc-hidden')); });
-                document.addEventListener('click', (e) => { if (!menu.contains(e.target)) setExportMenuOpen(false); });
-                document.addEventListener('keydown', (e) => { if (e.key === 'Escape') setExportMenuOpen(false); });
+                // Page-wide listeners once only, looking the menu up each time - the toolbar (and
+                // this menu) is re-created after the store app re-renders the wishlist
+                if (!state.ui.exportDocListeners) {
+                    document.addEventListener('click', (e) => {
+                        const m = getElement(`#${CONFIG.ids.exportMenu}`, false);
+                        if (m && !m.contains(e.target)) setExportMenuOpen(false);
+                    });
+                    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') setExportMenuOpen(false); });
+                    state.ui.exportDocListeners = true;
+                }
                 bc.appendChild(btn); bc.appendChild(menu);
                 state.ui.btnExport = true;
             } catch (ex) { console.error('Failed to add export button:', ex); }
@@ -1096,8 +1116,7 @@ window.XboxWishlistCore = {
                 fg.classList.add('filter-groups', 'SortAndFilters-module__filterList___T81LH');
                 fl.appendChild(headerRow); fl.appendChild(tc); fl.appendChild(fg); fc.appendChild(fl);
                 document.body.appendChild(fc);
-                const fb = getElement(`#${CONFIG.ids.filterButton}`);
-                if (fb) fb.addEventListener('click', toggleFilterContainer);
+                // (the Filter button wires its own click in addFilterButton - see reinitAfterRerender)
                 state.ui.divFilter = true; state.ui.tagContainer = true;
             } catch (ex) { console.error('Failed to add filter container:', ex); }
         }
@@ -2323,8 +2342,7 @@ window.XboxWishlistCore = {
                 scc.id = 'ifc_sort_criteria_container'; scc.className = 'ifc-sort-criteria-container';
                 sl.appendChild(h); sl.appendChild(scc); sc.appendChild(sl);
                 document.body.appendChild(sc);
-                const sb = getElement(`#${CONFIG.ids.sortButton}`);
-                if (sb) sb.addEventListener('click', toggleSortContainer);
+                // (the Sort button wires its own click in addSortButton - see reinitAfterRerender)
                 renderSortCriteria();
                 state.ui.divSort = true;
             } catch (ex) { console.error('Failed to add sort container:', ex); }
@@ -2694,10 +2712,50 @@ window.XboxWishlistCore = {
             catch (ex) { console.error('Failed to remove unwanted controls:', ex); }
         }
 
+        // ==================== IN-APP NAVIGATION (store app re-renders) ====================
+        // Opening a game from the wishlist in the same tab doesn't load a new page: the store
+        // app swaps the content, and on Back it rebuilds the wishlist from scratch - a new
+        // toolbar (our buttons lived inside Xbox's) and new item elements (without our data or
+        // tags). Our panels live in <body> and survive. A light once-a-second check re-runs the
+        // normal setup when that happens, and closes our panels while we're away from the list.
+        function isWishlistPage() { return /wishlist/i.test(location.pathname); }
+
+        function hidePanelsAwayFromWishlist() {
+            [[CONFIG.ids.filterContainer, 'divFilterShow'], [CONFIG.ids.sortContainer, 'divSortShow']].forEach(([id, flag]) => {
+                const panel = document.getElementById(id);
+                if (panel && !panel.classList.contains('ifc-hidden')) panel.classList.add('ifc-hidden');
+                state.ui[flag] = false;
+            });
+        }
+
+        function reinitAfterRerender() {
+            ['floatButtons', 'lblFilter', 'btnFilter', 'btnSort', 'btnExport', 'btnRefresh'].forEach(k => { state.ui[k] = false; });
+            state.ui.complete = false;
+            state.ui.lowestItemId = null;   // every item is a new element: number them from page order again
+            onDOMReady();
+        }
+
+        function startRouteWatch() {
+            const timer = setInterval(() => {
+                try {
+                    if (contextLost()) { clearInterval(timer); handleContextLost(); return; }
+                    if (!isWishlistPage()) { hidePanelsAwayFromWishlist(); return; }
+                    if (!state.ui.complete || !CONFIG.selectors.items) return;
+                    const items = document.getElementsByClassName(CONFIG.selectors.items);
+                    if (!items.length) return;
+                    if (!document.getElementById(CONFIG.ids.filterButton)) { reinitAfterRerender(); return; }
+                    // Toolbar survived (e.g. public wishlist, where it's our own container) but the
+                    // list was rebuilt: re-scrape the new items in page order
+                    if (Array.from(items).every(c => !c.dataset.ifcId)) { state.ui.lowestItemId = null; updateScreen(); }
+                } catch (ex) { console.error('Failed to check for a re-rendered wishlist:', ex); }
+            }, 1000);
+        }
+
         // ==================== START ====================
         const observer = new MutationObserver(onDOMReady);
         initialize().then(() => {
             onDOMReady();
+            startRouteWatch();
             // SPA retry: items may not be rendered yet when the script starts
             let attempts = 0;
             const retry = setInterval(() => {

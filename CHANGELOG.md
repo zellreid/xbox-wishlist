@@ -14,6 +14,26 @@ for how a version is bumped and published.
 
 ---
 
+## v1.5.26266.23 (Sep 2026) - Survive in-app navigation (open a game, then Back)
+
+- Fixed: opening a game from the wishlist in the same tab and pressing Back
+  left the plain Xbox wishlist - no toolbar buttons, filters or badges. Not
+  caching: the store app switches pages without a reload and rebuilds the
+  wishlist from scratch on Back (new toolbar, new item elements), while our
+  one-time setup had already finished. A light once-a-second check now re-runs
+  the normal setup when the toolbar is missing on a wishlist page (filters,
+  sort, saved filters and cached details all re-apply; items are re-numbered
+  from page order so Default sort stays correct), and closes our panels while
+  you're on another page.
+- Fixed underneath it: the element lookup cache could hand back an element
+  the page had since removed (here the old toolbar), so new buttons went into
+  a detached element. Cached elements are now reused only while still attached.
+- Filter / Sort buttons now wire their own clicks (the panels survive the
+  rebuild); the Export menu's page-wide click / Escape handlers are registered
+  once and no longer point at an old menu.
+
+---
+
 ## v1.5.26266.22 (Sep 2026) - T-17 lookup test (temporary diagnostic)
 
 - Added a temporary **"Test: faster lookup (T-17)"** block at the bottom of the
