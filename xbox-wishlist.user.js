@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         XBOX Wishlist
 // @namespace    https://github.com/zellreid/xbox-wishlist
-// @version      1.5.26266.1
+// @version      1.5.26266.2
 // @description  Advanced filtering and sorting suite with multi-level sort (up to 3 criteria) - Resilient selectors - Public wishlist support
 // @author       ZellReid
 // @homepage     https://github.com/zellreid/xbox-wishlist
@@ -10,7 +10,7 @@
 // @match        https://www.xbox.com/*/wishlist*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=xbox.com
 // @run-at       document-body
-// @resource     CSSFilter https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/styles.css?ver=1.5.26266.1
+// @resource     CSSFilter https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/styles.css?ver=1.5.26266.2
 // @resource     IMGFilter https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/filter.svg
 // @resource     IMGSort https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/sort.svg
 // @resource     IMGExpand https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/expand.svg
@@ -1134,7 +1134,9 @@ window.XboxWishlistCore = {
             const searchTerm = state.filters.search.term.trim().toLowerCase();
             if (searchTerm !== '') {
                 const name = container.dataset.ifcName;
-                if (!name || name === 'null' || !name.toLowerCase().includes(searchTerm)) return false;
+                const nameMatches = name && name !== 'null' && name.toLowerCase().includes(searchTerm);
+                const publisherMatches = publisher && publisher !== 'null' && publisher.toLowerCase().includes(searchTerm);
+                if (!nameMatches && !publisherMatches) return false;
             }
             if (state.filters.owned.selected.length > 0) {
                 let m = false;

@@ -1101,7 +1101,9 @@ window.XboxWishlistCore = {
             const searchTerm = state.filters.search.term.trim().toLowerCase();
             if (searchTerm !== '') {
                 const name = container.dataset.ifcName;
-                if (!name || name === 'null' || !name.toLowerCase().includes(searchTerm)) return false;
+                const nameMatches = name && name !== 'null' && name.toLowerCase().includes(searchTerm);
+                const publisherMatches = publisher && publisher !== 'null' && publisher.toLowerCase().includes(searchTerm);
+                if (!nameMatches && !publisherMatches) return false;
             }
             if (state.filters.owned.selected.length > 0) {
                 let m = false;
