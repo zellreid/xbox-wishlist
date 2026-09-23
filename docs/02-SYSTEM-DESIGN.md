@@ -15,8 +15,6 @@ xbox-wishlist/
 │   └── src/
 │       ├── manifest.json
 │       ├── content.js             # Thin adapter: builds chrome.* adapter, calls XboxWishlistCore.init()
-│       ├── background.js
-│       ├── popup.html / popup.js
 │       ├── icons/                 # Toolbar action icon only
 │       └── shared/                # Shared with the userscript build
 │           ├── xbox-wishlist.core.js   # All filtering/sorting/DOM logic - the single source of truth

@@ -14,6 +14,29 @@ for how a version is bumped and published.
 
 ---
 
+## v1.5.26266.4 (Sep 2026) — Remove dead popup/service worker; slider reset bug fix
+
+- Removed `popup.html`, `popup.js`, and `background.js` entirely, along
+  with `manifest.json`'s `background` and `action.default_popup` keys.
+  They implemented "Quick Filter" presets and a "remember filters" toggle
+  that never actually worked (the presets messaged a listener that didn't
+  exist; the toggle was saved/read but never consulted), and became fully
+  redundant once equivalent Quick Filters/Clear All/persistence landed in
+  the shared core - which works in both the extension and the userscript,
+  unlike a popup ever could.
+- Fixed a real bug: after dragging the price or discount range slider,
+  clicking a tag's × or Clear All would not actually remove that filter.
+  `createRangeSlider()`'s `isUserInteraction` flag was set true on
+  `mousedown`/`touchstart` and never reset, so it latched permanently after
+  the first real drag - every later *programmatic* slider sync (a reset, a
+  quick filter, Clear All) also dispatches an `input` event to move the
+  thumb visually, and with the flag stuck true that re-fired the slider's
+  own `onChange`, which set `enabled` back to `true` and undid the reset.
+  Fixed by scoping the flag to the actual drag gesture
+  (`mousedown`/`touchstart` → `mouseup`/`touchend`).
+
+---
+
 ## v1.5.26265.2 (Sep 2026) — Shared core, both channels unified
 
 - Extracted all filtering/sorting/DOM logic out of both the userscript and

@@ -145,8 +145,7 @@ description: >
   Analyses for CSP violations, MV3 compliance issues, prohibited patterns,
   storage discipline, and style regressions before any commit.
   Run before every commit on changes touching the shared core, either
-  platform adapter (content.js / xbox-wishlist.user.js), popup.js, or
-  manifest.json.
+  platform adapter (content.js / xbox-wishlist.user.js), or manifest.json.
 ```
 
 <skill_definition name="skill-review">
@@ -187,9 +186,11 @@ they enter the repository. You report findings — you do not silently fix them.
 - `manifest.json` fields that differ between Chrome and Edge MV3 spec
 
 **Pass 3 — Architectural Integrity (AGENTS.md Section 2.3)**
-- Filtering or sorting logic placed in `popup.js`, `background.js`, or either
-  platform adapter (`content.js`, `xbox-wishlist.user.js`) instead of
+- Filtering or sorting logic placed in either platform adapter
+  (`content.js`, `xbox-wishlist.user.js`) instead of
   `shared/xbox-wishlist.core.js`
+- A reintroduced `popup.js`/`popup.html` or `background.js` — both were
+  removed as dead weight; new UI/messaging belongs in the shared core
 - Hard-coded Xbox CSS class names bypassing `resolveClass()`
 - DOM queries inside filter evaluation loops (should be `dataset.ifcXxx` reads)
 - New files added to `browser-extension/src/` without `web_accessible_resources` update
@@ -309,8 +310,7 @@ design document **before** any implementation code is written.
 
 1. Restate the feature request in your own words to confirm understanding.
 2. Identify which files will be affected (shared/xbox-wishlist.core.js /
-   content.js / xbox-wishlist.user.js / popup.js / background.js /
-   manifest.json / shared/styles.css).
+   content.js / xbox-wishlist.user.js / manifest.json / shared/styles.css).
 3. Identify any HITL triggers this feature will invoke (AGENTS.md Section 2.7).
 4. Flag any ambiguities that need human clarification before design proceeds.
    If any exist, halt here and ask.
@@ -504,11 +504,14 @@ Reply APPROVE to close the skill, or REVISE [feedback] to adjust.
 
 ## Skill: Fix ISSUE-001 Storage Split
 
-**✅ RESOLVED.** ISSUE-001 (the `chrome.storage.sync`/`chrome.storage.local`
-split between `popup.js` and the core) has been fixed — `popup.js` now uses
-`chrome.storage.local` throughout, same as the shared core. This skill
-definition is kept for reference in case a similar storage-consolidation
-task comes up again; don't run it expecting ISSUE-001 to still be open.
+**✅ RESOLVED, and now moot.** ISSUE-001 (the `chrome.storage.sync`/
+`chrome.storage.local` split between `popup.js` and the core) was fixed by
+switching `popup.js` to `chrome.storage.local`. `popup.js`/`popup.html`/
+`background.js` have since been deleted entirely (unused, dead-on-arrival
+feature), so there's no longer a second storage-writing file to drift out
+of sync in the first place. This skill definition is kept below purely as
+a template for any future storage-consolidation task; don't run it
+expecting these files to exist.
 
 ```yaml
 name: skill-fix-storage

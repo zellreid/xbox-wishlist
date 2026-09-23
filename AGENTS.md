@@ -237,9 +237,20 @@ support planned.
 **✅ RESOLVED — storage split (ISSUE-001):**
 `popup.js` previously used `chrome.storage.sync` for the `persistFilters`
 setting while the core used `chrome.storage.local` for all filter state
-(key: `ifc_xbox_wishlist`). `popup.js` now uses `chrome.storage.local` for
-`persistFilters` too, so all storage in this project goes through
-`chrome.storage.local`. Do not reintroduce `chrome.storage.sync` in new code.
+(key: `ifc_xbox_wishlist`). `popup.js` (and `popup.html`/`background.js`)
+have since been removed entirely — see below — so this no longer applies to
+any file in the project. All storage goes through `chrome.storage.local`.
+Do not reintroduce `chrome.storage.sync` in new code.
+
+**Removed: the extension popup and its service worker.** `popup.html`,
+`popup.js`, and `background.js` were deleted — they implemented "Quick
+Filter" preset buttons and a "remember filters" toggle that were never
+actually wired up (the presets sent a `chrome.tabs.sendMessage` nothing
+ever listened for; the toggle was saved/read but never consulted), and
+became fully redundant once equivalent Quick Filters/Clear All/persistence
+landed in the shared core itself — which works identically in the
+extension and the userscript, unlike a popup ever could. `manifest.json` no
+longer declares `"background"` or `action.default_popup`.
 
 </agent_profile>
 
@@ -267,9 +278,10 @@ setting while the core used `chrome.storage.local` for all filter state
 - Do not introduce a `package.json`, bundler, or build pipeline without
   explicit HITL approval (see Section 2.7, Trigger #2).
 - Do not use `chrome.storage.sync` for any new storage calls — use
-  `chrome.storage.local` exclusively until ISSUE-001 is resolved.
-- Firefox MV3 does not support service workers the same way Chrome/Edge does.
-  Any change to `background.js` must be verified for cross-browser
+  `chrome.storage.local` exclusively.
+- There is no service worker in this project (`background.js` was removed).
+  If one is ever reintroduced, note that Firefox MV3 does not support
+  service workers the same way Chrome/Edge does — verify cross-browser
   compatibility before committing.
 - **Forbidden:** `document.write`, synchronous XHR, inline event handlers
   on injected elements (use `addEventListener` only — CSP compliance).
@@ -286,8 +298,6 @@ setting while the core used `chrome.storage.local` for all filter state
 |---|---|---|
 | Shared Core | `browser-extension/src/shared/xbox-wishlist.core.js` | Platform-agnostic IIFE-in-a-function: DOM injection, selector resolution, filtering, sorting, state management. Takes an `adapter` (storage + resource URL callbacks) so it never calls `chrome.*` or `GM_*` directly. Consumed by both the extension and the userscript — this is the single source of truth for wishlist logic. |
 | Extension Adapter | `browser-extension/src/content.js` | Thin wrapper: builds the `chrome.storage`/`chrome.runtime.getURL` adapter and calls `XboxWishlistCore.init(adapter)` |
-| Popup UI | `browser-extension/src/popup.js` + `popup.html` | Extension popup: preset filter triggers, persist-state toggle |
-| Service Worker | `browser-extension/src/background.js` | Minimal messaging relay between popup and content script |
 | Shared Styles | `browser-extension/src/shared/styles.css` | Injected UI styles — Xbox-themed, dark mode, custom scrollbars. Loaded via `manifest.json` for the extension and via `@resource` for the userscript. |
 | Shared Icons | `browser-extension/src/shared/icons/` | SVG icons (filter/sort/expand/collapse) used by both platforms |
 | Toolbar Icons | `browser-extension/src/icons/` | PNG icons for the extension toolbar/action button only |
@@ -298,25 +308,22 @@ setting while the core used `chrome.storage.local` for all filter state
 #### Dependency Direction
 
 ```
-popup.js → (chrome.tabs.sendMessage) → content.js
-popup.js → chrome.storage.local
 content.js → XboxWishlistCore.init(adapter) → chrome.storage.local
 xbox-wishlist.user.js → XboxWishlistCore.init(adapter) → GM_setValue/GM_getValue
-background.js → chrome.runtime.onMessage (passive relay only)
 XboxWishlistCore → DOM (xbox.com wishlist page)
 ```
 
 #### Architectural Violations — Rejected Immediately
 
 - Business logic (filtering, sorting, selector resolution) placed in
-  `popup.js`, `background.js`, or either platform adapter (`content.js`,
-  `xbox-wishlist.user.js`) — all logic lives in
-  `shared/xbox-wishlist.core.js`, which neither of those files may bypass by
-  calling `chrome.*`/`GM_*` directly.
-- Direct DOM manipulation from `background.js` — service workers have no
-  DOM access in MV3.
-- `chrome.storage.sync` calls in new code — use `chrome.storage.local` only
-  until ISSUE-001 is formally resolved via HITL.
+  either platform adapter (`content.js`, `xbox-wishlist.user.js`) — all
+  logic lives in `shared/xbox-wishlist.core.js`, which neither of those
+  files may bypass by calling `chrome.*`/`GM_*` directly.
+- Reintroducing a service worker (`background.js`) or popup
+  (`popup.html`/`popup.js`) - both were removed as dead weight (see 2.1);
+  any UI or messaging feature belongs in the shared core instead, so it
+  works in both the extension and the userscript.
+- `chrome.storage.sync` calls in new code — use `chrome.storage.local` only.
 - Inline `onclick=` or other inline event handlers in injected HTML — CSP
   violation; always use `addEventListener`.
 - Hard-coded Xbox CSS class names (e.g. `WishlistProductItem-module__itemContainer___abc123`) —
@@ -482,11 +489,11 @@ proceeding in **any** of the following cases:
 | 2 | **Dependency / permission change** — adding npm packages, new manifest permissions, or new host_permissions | Build breakage, Web Store rejection, security surface expansion |
 | 3 | **Test failure loop** — 3 consecutive failures on the same command | Infinite loop, wasted context |
 | 4 | **Architectural deviation** — any action requiring violation of Section 2.3 layer boundaries | Logic fragmentation across wrong files |
-| 5 | **Breaking API contract** — changing `chrome.runtime.sendMessage` action names or message shapes between popup and content script | Silent messaging failures |
+| 5 | **Introducing `chrome.runtime.sendMessage` messaging** — there is no popup or service worker to message; a new one implies reintroducing either | Reopens the architecture this project deliberately moved away from |
 | 6 | **Destructive operation** — irreversible file deletion or manifest permission removal | Loss of extension functionality |
-| 7 | **New cross-module coupling** — popup.js or background.js taking on filtering/sorting logic | Architectural violation |
+| 7 | **New cross-module coupling** — any file other than `shared/xbox-wishlist.core.js` taking on filtering/sorting logic | Architectural violation |
 | 8 | **Conflict with this document** — user instruction contradicts a rule in AGENTS.md | Governance breach |
-| 9 | **Reintroducing `chrome.storage.sync`** — ISSUE-001 (sync/local split) is resolved; any new `.sync` call in `popup.js` or `content.js` regresses it | Reopening the sync/local split |
+| 9 | **Reintroducing `chrome.storage.sync`** — ISSUE-001 (sync/local split) is resolved; any new `.sync` call regresses it | Reopening the sync/local split |
 | 10 | **Manifest changes** — any edit to `manifest.json` (CSP, permissions, content_scripts config) | Extension breakage, Web Store policy violation |
 | 11 | **Build pipeline introduction** — adding `package.json`, a bundler (Vite/esbuild), or transpilation step | Changes how all source files are loaded and deployed |
 
@@ -534,9 +541,10 @@ Awaiting your approval to proceed.
 - A build step (Vite or esbuild) is planned. When introduced, the load path
   will change from `browser-extension/src/` to a `dist/` output directory.
   This requires HITL approval (Trigger #11) before implementation.
-- Firefox support is planned but requires a separate manifest or shim —
-  MV3 service workers are not fully supported in Firefox. Do not assume
-  `background.js` is cross-browser compatible until this work is done.
+- Firefox support is planned but requires a separate manifest or shim.
+  There is no service worker in this project currently (`background.js`
+  was removed) - if one is ever reintroduced, note that MV3 service
+  workers are not fully supported in Firefox.
 
 </deployment_context>
 
@@ -569,8 +577,9 @@ Awaiting your approval to proceed.
                  If scope is unclear — trigger HITL before proceeding.
 2. ARCHITECTURE→ For any change touching manifest.json or introducing a new
                  chrome API: draft a brief design note and await confirmation.
-3. IMPLEMENT   → Build in content.js first; wire popup.js messaging second;
-                 update manifest.json last (HITL required).
+3. IMPLEMENT   → Build in shared/xbox-wishlist.core.js first, so it lands
+                 in both the extension and the userscript; update
+                 manifest.json last (HITL required).
 4. VALIDATE    → Load unpacked in Chrome and Edge. Verify feature and
                  confirm no regressions on filtering/sorting/UI.
 5. HYGIENE     → Verify workspace hygiene (1.6). Check git status.

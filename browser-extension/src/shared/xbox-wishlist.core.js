@@ -432,10 +432,24 @@ window.XboxWishlistCore = {
                 if (onChange && isUserInteraction) onChange(minVal, maxVal);
             };
             const enableUserTracking = () => { isUserInteraction = true; };
+            // Without this, isUserInteraction latches true forever after the
+            // first real drag: every later PROGRAMMATIC sync (resetPriceSlider,
+            // Clear All, quick filters, ...) also dispatches 'input' to move the
+            // thumbs visually, and with the flag stuck true that re-fires
+            // onChange - which sets enabled back to true, undoing the reset and
+            // leaving the tag stuck in the tag bar. Scoping the flag to the
+            // actual drag gesture (mousedown/touchstart -> mouseup/touchend)
+            // fixes this without affecting real dragging, since a drag's
+            // 'input' events all land between those two.
+            const disableUserTracking = () => { isUserInteraction = false; };
             minSlider.addEventListener('mousedown', enableUserTracking);
             minSlider.addEventListener('touchstart', enableUserTracking);
             maxSlider.addEventListener('mousedown', enableUserTracking);
             maxSlider.addEventListener('touchstart', enableUserTracking);
+            minSlider.addEventListener('mouseup', disableUserTracking);
+            minSlider.addEventListener('touchend', disableUserTracking);
+            maxSlider.addEventListener('mouseup', disableUserTracking);
+            maxSlider.addEventListener('touchend', disableUserTracking);
             minSlider.addEventListener('input', updateSlider);
             maxSlider.addEventListener('input', updateSlider);
             updateSlider();

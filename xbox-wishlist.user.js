@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         XBOX Wishlist
 // @namespace    https://github.com/zellreid/xbox-wishlist
-// @version      1.5.26266.3
+// @version      1.5.26266.4
 // @description  Advanced filtering and sorting suite with multi-level sort (up to 3 criteria) - Resilient selectors - Public wishlist support
 // @author       ZellReid
 // @homepage     https://github.com/zellreid/xbox-wishlist
@@ -10,7 +10,7 @@
 // @match        https://www.xbox.com/*/wishlist*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=xbox.com
 // @run-at       document-body
-// @resource     CSSFilter https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/styles.css?ver=1.5.26266.3
+// @resource     CSSFilter https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/styles.css?ver=1.5.26266.4
 // @resource     IMGFilter https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/filter.svg
 // @resource     IMGSort https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/sort.svg
 // @resource     IMGExpand https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/expand.svg
@@ -465,10 +465,24 @@ window.XboxWishlistCore = {
                 if (onChange && isUserInteraction) onChange(minVal, maxVal);
             };
             const enableUserTracking = () => { isUserInteraction = true; };
+            // Without this, isUserInteraction latches true forever after the
+            // first real drag: every later PROGRAMMATIC sync (resetPriceSlider,
+            // Clear All, quick filters, ...) also dispatches 'input' to move the
+            // thumbs visually, and with the flag stuck true that re-fires
+            // onChange - which sets enabled back to true, undoing the reset and
+            // leaving the tag stuck in the tag bar. Scoping the flag to the
+            // actual drag gesture (mousedown/touchstart -> mouseup/touchend)
+            // fixes this without affecting real dragging, since a drag's
+            // 'input' events all land between those two.
+            const disableUserTracking = () => { isUserInteraction = false; };
             minSlider.addEventListener('mousedown', enableUserTracking);
             minSlider.addEventListener('touchstart', enableUserTracking);
             maxSlider.addEventListener('mousedown', enableUserTracking);
             maxSlider.addEventListener('touchstart', enableUserTracking);
+            minSlider.addEventListener('mouseup', disableUserTracking);
+            minSlider.addEventListener('touchend', disableUserTracking);
+            maxSlider.addEventListener('mouseup', disableUserTracking);
+            maxSlider.addEventListener('touchend', disableUserTracking);
             minSlider.addEventListener('input', updateSlider);
             maxSlider.addEventListener('input', updateSlider);
             updateSlider();
