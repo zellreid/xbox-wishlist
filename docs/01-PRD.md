@@ -49,7 +49,7 @@ The Xbox wishlist page (`xbox.com/*/wishlist`) provides no native filtering, sor
 
 ## Feature List
 
-### ✅ Implemented (v1.5.26266.18 - Current)
+### ✅ Implemented (v1.5.26266.19 - Current)
 
 | ID | Feature | Version Introduced |
 |----|---------|-------------------|
@@ -81,6 +81,7 @@ The Xbox wishlist page (`xbox.com/*/wishlist`) provides no native filtering, sor
 | F-32 | Refresh button (v1: persist state + reload) | v1.5 |
 | F-33 | Product data: rating / release date / deal-ends sorts, Genres filter, "In a pass" quick filter, deal-end badges | v1.5 |
 | F-34 | "Just for you" / pre-order pills and quick filters, Platforms filter, deal type | v1.5 |
+| F-36 | Capabilities filter + X\|S / Smart Delivery / Play Anywhere chips via opt-in "Load details" (cached 7 days) | v1.5 |
 
 ### ⚠️ In Progress / Partially Done
 

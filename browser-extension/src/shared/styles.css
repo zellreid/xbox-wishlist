@@ -220,6 +220,27 @@ ul.filter-groups {
     display: inline-flex;
 }
 
+/* Capability chips (F-36) - quiet, so deal pills stay the loudest */
+.ifc-item-tag-cap {
+    border: 1px solid rgba(157, 216, 92, 0.45);
+    color: #9dd85c;
+    font-weight: 600;
+}
+
+/* "Load details" bar at the top of the Capabilities section */
+.ifc-details-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 6px;
+}
+
+.ifc-details-status {
+    font-size: 0.75rem;
+    color: rgba(245, 245, 245, 0.7);
+}
+
 .ifc-item-tag-icon .ifc-glyph {
     width: 11px;
     height: 11px;

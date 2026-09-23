@@ -14,6 +14,30 @@ for how a version is bumped and published.
 
 ---
 
+## v1.5.26266.19 (Sep 2026) - Capabilities via "Load details" (F-36)
+
+- New **Capabilities** filter section (Optimized for Xbox Series X|S, Smart
+  Delivery, Xbox Play Anywhere, 4K, 60 fps+, HDR, co-op / multiplayer modes,
+  ...). These exist only on each game's store page, so they're loaded on
+  request: **"Load details"** reads the store pages one at a time (about every
+  2 seconds, shown games first), with progress and Cancel, and stops if Xbox
+  rate-limits. Results are cached per product for 7 days (own storage key), so
+  they show immediately on later visits; failed pages are retried next time.
+- An item must have **all** selected capabilities; items without loaded
+  details don't match. Tags, Clear All, persistence and saved filters as usual;
+  the section has its own search box.
+- Items with loaded details show **X|S**, **Smart Delivery** and **Play
+  Anywhere** (Xbox's icon, new `play-anywhere.svg` - exported with the new
+  icon catalogue tool) chips. Export: new `capabilities` column.
+- Fixed: a failed icon download was cached as the icon (the error page's
+  text), so the icon stayed broken until reload. Failures are no longer cached.
+- Confirmed the product page is the only usable source: the wishlist, deals
+  and browse-games pages don't carry capabilities, and the store's own bulk
+  product lookup is a separate service that needs the signed-in user's token
+  (not something the extension should handle) plus a new host permission.
+
+---
+
 ## v1.5.26266.18 (Sep 2026) - Genre search
 
 - The Genres section now has a "Search genres..." box, like Publishers: it

@@ -9,7 +9,7 @@
 |---|---|---|
 | **Wishlist page DOM** | Free - already rendered | `setContainerData()` scrapes each item via resolved class names |
 | **Wishlist page embedded state** | Free - already in the page (~2.4 MB JSON in an inline script) | `loadProductData()` (F-33), once on start, ~20 ms, no network |
-| **Product page embedded state** | One request per item (multi-MB page each) | `fetchPageState(url)` exists; not called per item yet |
+| **Product page embedded state** | One request per item (multi-MB page each) | `loadDetails()` (F-36): opt-in, sequential, cached 7 days per product |
 
 The embedded state is Xbox's own app data. It is personal to the signed-in viewer (member prices, "Just for you" offers, ownership), so it is read live and never stored beyond the filter/sort/preset settings.
 
@@ -77,5 +77,6 @@ Verified against the mocks in `mock_examples/#wishlist` (2 captures) and `mock_e
 
 - Prefer the wishlist page state: one free read covers every item.
 - Use the product page only for fields in the second table, loaded lazily, cached per product id and throttled - never for the whole list at once (hundreds of multi-MB requests).
-- Capabilities cannot be derived from the wishlist page (its badge codes are subscription logos). Showing X\|S / Smart Delivery / Play Anywhere per item therefore needs a product page request per item - a design decision (see F-36).
+- Capabilities cannot be derived from the wishlist page (its badge codes are subscription logos). They are loaded per item from the product page on request ("Load details", F-36), cached 7 days per product.
+- The store app also has an internal bulk product lookup (many ids per request), but it is a separate service that attaches the signed-in user's authorization - handling that token is off-limits (TIER 1) and would need a new host permission, so it is deliberately not used.
 - `mock_examples/#deals` and `#games` embed the same kind of state (25 products each) but without capabilities, and the deals page carries no personal offers.

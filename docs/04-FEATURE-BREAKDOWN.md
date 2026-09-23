@@ -249,6 +249,8 @@
 
 **Constraint:** Only the product page carries capabilities - one multi-MB request per item (~310 on the mocks). Needs a deliberate fetch strategy.
 
+**Status (v1.5.26266.19):** Done with option (c) - opt-in "Load details" in the Capabilities section: sequential same-origin product page fetches (~2 s apart, shown items first), progress + Cancel, stops on HTTP 429; per-product cache under its own storage key, 7-day expiry, failures retried next run. Capabilities filter (ALL selected must match) with search, tags, persistence, saved filters; X|S / Smart Delivery chips and Play Anywhere chip with Xbox's icon; export column. Harness: fetch pointed at the `#products` mocks (7 of this wishlist's games) - load, cancel, filter, chips, cache-after-reload verified. Other sources checked and rejected: wishlist / deals / browse-games state (no capabilities); the store's bulk product lookup (separate service, needs the user's auth token + new host permission).
+
 | Step | Task |
 |------|------|
 | 1 | Decide the strategy: (a) on demand per item (click/expand), (b) background fill for visible items, throttled, (c) opt-in "Load details" button - all cached by product id in storage with a TTL |
