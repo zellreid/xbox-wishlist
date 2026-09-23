@@ -27,7 +27,7 @@
 
 **Goal:** Replace hard-coded `R3,000` max with the actual highest price in the loaded wishlist.
 
-**Status (v1.5.26266.4):** Partial - `calculatePriceRange()` in the shared core derives min/max from item prices (rounded to 10, free/no-price items skipped), but still floors the max at 3000 (`max = Math.max(max, 3000)`), so small wishlists keep a 3000-wide slider. Remaining: remove the floor, keep a fallback for wishlists with no priced items, clamp a restored `priceRange` to the new max.
+**Status (v1.5.26266.5):** Done - max derives from item prices with no 3000 floor (3000 kept only as the no-priced-items fallback); the slider re-ranges live as items render, keeping an active selection clamped. A saved `priceRange` never reaches the slider (`addPriceRangeFilter()` recalculates on build), so no restore clamp was needed. Follow-up (T-03): `calculateDiscountRange()` has no equivalent `max <= min` guard, so a wishlist where every discount rounds to the same value gets a zero-width discount slider (NaN fill).
 
 | Step | Task |
 |------|------|

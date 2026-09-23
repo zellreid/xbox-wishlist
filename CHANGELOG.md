@@ -14,6 +14,23 @@ for how a version is bumped and published.
 
 ---
 
+## v1.5.26266.5 (Sep 2026) - Price slider max follows the wishlist (F-16)
+
+- The price slider's max is now the wishlist's highest price (rounded up to
+  10) instead of being floored at 3000. 3000 remains only as the fallback
+  when no item has a price; a single-price wishlist gets a 10-wide range
+  instead of a zero-width slider.
+- As more items render, an untouched price filter now follows the full new
+  range (thumbs, step and label all update); an active selection is kept and
+  clamped inside it. Previously the label went stale and the fill bar was
+  drawn against the slider's original range.
+- Fixed: when the range isn't a multiple of the slider step, the browser caps
+  the max thumb one partial step short of the true max (e.g. 1950 of 1960),
+  so dragging to the end silently hid the most expensive items. The last
+  thumb position now counts as the true max. Applies to the discount slider too.
+
+---
+
 ## v1.5.26266.4 (Sep 2026) — Remove dead popup/service worker; slider reset bug fix
 
 - Removed `popup.html`, `popup.js`, and `background.js` entirely, along

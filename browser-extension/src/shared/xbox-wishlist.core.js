@@ -425,9 +425,15 @@ window.XboxWishlistCore = {
             let isUserInteraction = false;
             const updateSlider = () => {
                 let minVal = parseFloat(minSlider.value), maxVal = parseFloat(maxSlider.value);
-                if (minVal > maxVal - (max - min) * 0.01) { minVal = maxVal - (max - min) * 0.01; minSlider.value = minVal; }
-                const minPercent = ((minVal - min) / (max - min)) * 100;
-                const maxPercent = ((maxVal - min) / (max - min)) * 100;
+                // Read the live bounds - updatePriceSlider()/updateDiscountSlider() move them after creation
+                const lo = parseFloat(minSlider.min), hi = parseFloat(minSlider.max);
+                // When (hi - lo) isn't a multiple of step, the browser caps the thumb one
+                // partial step short of hi - treat that last position as hi so the priciest
+                // item isn't silently excluded when the thumb is dragged to the end.
+                if (maxVal > hi - (parseFloat(maxSlider.step) || 1)) maxVal = hi;
+                if (minVal > maxVal - (hi - lo) * 0.01) { minVal = maxVal - (hi - lo) * 0.01; minSlider.value = minVal; }
+                const minPercent = ((minVal - lo) / (hi - lo)) * 100;
+                const maxPercent = ((maxVal - lo) / (hi - lo)) * 100;
                 range.style.left = `${minPercent}%`; range.style.width = `${maxPercent - minPercent}%`;
                 if (onChange && isUserInteraction) onChange(minVal, maxVal);
             };
@@ -834,12 +840,13 @@ window.XboxWishlistCore = {
                 const price = parseFloat(c.dataset.ifcPrice);
                 if (!isNaN(price) && price > 0) { min = Math.min(min, price); max = Math.max(max, price); }
             });
-            if (min === Infinity) min = 0;
+            // No priced items (all free/Game Pass/unavailable): keep the old default span
+            if (min === Infinity) { min = 0; max = 3000; }
             if (max < min) max = min;
-            // FIX: Ensure slider always reaches at least 3000
-            max = Math.max(max, 3000);
             min = Math.floor(min / 10) * 10;
             max = Math.ceil(max / 10) * 10;
+            // A single price (or all prices within one rounding bucket) would give a zero-width slider
+            if (max <= min) max = min + 10;
             return { min, max };
         }
 
@@ -887,16 +894,19 @@ window.XboxWishlistCore = {
         function updatePriceSlider() {
             const { min, max } = calculatePriceRange();
             if (state.filters.priceRange.min !== min || state.filters.priceRange.max !== max) {
-                state.filters.priceRange = {
-                    ...state.filters.priceRange, min, max,
-                    currentMin: Math.max(state.filters.priceRange.currentMin, min),
-                    currentMax: Math.min(state.filters.priceRange.currentMax, max)
-                };
+                // The range moves as more items render. An inactive filter tracks the full
+                // new range; an active one keeps the user's selection, clamped inside it.
+                const pr = state.filters.priceRange;
+                const currentMin = pr.enabled ? Math.min(Math.max(pr.currentMin, min), max) : min;
+                const currentMax = pr.enabled ? Math.max(Math.min(pr.currentMax, max), currentMin) : max;
+                state.filters.priceRange = { ...pr, min, max, currentMin, currentMax };
                 const mn = getElement(`#${CONFIG.ids.priceSlider}_min`), mx = getElement(`#${CONFIG.ids.priceSlider}_max`);
                 if (mn && mx) {
-                    mn.min = min; mn.max = max; mx.min = min; mx.max = max;
-                    mn.value = state.filters.priceRange.currentMin; mx.value = state.filters.priceRange.currentMax;
-                    mn.dispatchEvent(new Event('input'));
+                    // Same step formula as createRangeSlider() - a stale step from a wider
+                    // range could make the new max unreachable by dragging.
+                    const step = Math.max(1, Math.round((max - min) / 100));
+                    mn.min = min; mn.max = max; mx.min = min; mx.max = max; mn.step = step; mx.step = step;
+                    syncPriceSliderUI();
                 }
             }
         }

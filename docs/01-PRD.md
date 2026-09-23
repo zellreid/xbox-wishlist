@@ -49,7 +49,7 @@ The Xbox wishlist page (`xbox.com/*/wishlist`) provides no native filtering, sor
 
 ## Feature List
 
-### ✅ Implemented (v1.5.26266.4 - Current)
+### ✅ Implemented (v1.5.26266.5 - Current)
 
 | ID | Feature | Version Introduced |
 |----|---------|-------------------|
@@ -70,13 +70,13 @@ The Xbox wishlist page (`xbox.com/*/wishlist`) provides no native filtering, sor
 | F-17 | Public wishlist button injection (fallback container) | v1.5 |
 | F-18 | Clear All Filters button | v1.5 |
 | F-31 | Wishlist text search (matches title and publisher) | v1.5 |
+| F-16 | Price slider max derived from actual item prices | v1.5 |
 
 ### ⚠️ In Progress / Partially Done
 
 | ID | Feature | Issue | Target |
 |----|---------|-------|--------|
 | F-15 | Accordion label/title styling | Layout built, styling polish unverified | v1.5.x |
-| F-16 | Price slider dynamic max | Derived from item prices, but still floored at 3000 | v1.5.x |
 | F-19 | Quick filter presets | Shipped "Owned", "On Sale", "Cheap"; toggle-off, active state and remaining presets pending | v1.5.x |
 
 ### ❌ Planned — Not Yet Started
