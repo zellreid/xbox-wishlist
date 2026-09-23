@@ -151,6 +151,7 @@ window.XboxWishlistCore = {
                 await loadProductData();
                 // Capabilities fetched on earlier visits via "Load details" (F-36)
                 await loadCapabilityCache();
+                startRequestWatch();   // T-17 spike - temporary
                 const ce = getElement(`#${CONFIG.selectors.content}`, false);
                 const target = ce || document.body;
                 observer.observe(target, { childList: true, subtree: true });
@@ -1938,10 +1939,152 @@ window.XboxWishlistCore = {
                     list.id = CONFIG.ids.capabilitiesSelect;
                     list.className = 'ifc-checkbox-list ifc-checkbox-list-scrollable';
                     cc.appendChild(list);
+                    cc.appendChild(createBulkLookupDiagnostic());   // T-17 spike - temporary
                 }
                 fg.appendChild(fb);
                 updateCapabilitiesCheckboxes();
             } catch (ex) { console.error('Failed to add capabilities filter:', ex); }
+        }
+
+        // ==================== DIAGNOSTICS: BULK LOOKUP SPIKE (T-17) - TEMPORARY ====================
+        // Answers, on the live site: can the store app's own bulk product lookup (many ids per
+        // request) replace per-page "Load details"? The service address is never hard-coded -
+        // it's discovered from the page's own request log (resource timing), or pasted by the
+        // user from DevTools - and the report is redacted: no addresses, product ids, titles or
+        // tokens (we never read the user's token; replays send no Authorization header).
+        // Remove this section, its UI block and startRequestWatch() once T-17 is decided.
+        const t17 = { seen: [] };
+
+        function isBulkCandidate(url) {
+            try {
+                const u = new URL(url, location.href);
+                if (/\/games\/store\//i.test(u.pathname)) return false;
+                return /\/products\/?$/i.test(u.pathname) || u.searchParams.has('productIds') || /bulk/i.test(u.pathname);
+            } catch (ex) { return false; }
+        }
+        // Started at init, so requests the store app makes while you browse inside this tab
+        // (it switches pages without a full reload) are still on record when you come back.
+        function startRequestWatch() {
+            try {
+                if (performance.setResourceTimingBufferSize) performance.setResourceTimingBufferSize(1000);
+                const add = e => { if (isBulkCandidate(e.name) && !t17.seen.includes(e.name)) t17.seen.push(e.name); };
+                performance.getEntriesByType('resource').forEach(add);
+                new PerformanceObserver(list => list.getEntries().forEach(add)).observe({ type: 'resource', buffered: true });
+            } catch (ex) { /* diagnostics only */ }
+        }
+
+        // Redacted description of a URL: where it points in general terms, never the address
+        function describeRequestUrl(url) {
+            const u = new URL(url, location.href);
+            return {
+                host: u.hostname === location.hostname ? 'this page\'s own host (www.xbox.com)' : 'another Xbox service host (not www.xbox.com)',
+                sameOrigin: u.origin === location.origin,
+                pathEndsWith: '/' + (u.pathname.split('/').filter(Boolean).pop() || ''),
+                queryParameterNames: [...new Set([...u.searchParams.keys()])]
+            };
+        }
+
+        // Summarises a JSON response: product entries found anywhere in it, and how many carry
+        // capabilities - field names and counts only
+        function analyseLookupResponse(text) {
+            let json;
+            try { json = JSON.parse(text); } catch (ex) { return { json: false }; }
+            const products = [];
+            (function walk(o, depth) {
+                if (!o || typeof o !== 'object' || depth > 8) return;
+                if (!Array.isArray(o) && typeof o.productId === 'string') { products.push(o); return; }
+                Object.values(o).forEach(v => walk(v, depth + 1));
+            })(json, 0);
+            const withCaps = products.filter(p => p.capabilities && typeof p.capabilities === 'object' && Object.keys(p.capabilities).length);
+            return {
+                json: true, topLevelKeys: Array.isArray(json) ? ['(array)'] : Object.keys(json).slice(0, 15),
+                productsFound: products.length, productsWithCapabilities: withCaps.length,
+                productFieldNames: products[0] ? Object.keys(products[0]).sort().slice(0, 40) : [],
+                sampleCapabilityNames: withCaps[0] ? Object.values(withCaps[0].capabilities).slice(0, 8) : []
+            };
+        }
+
+        async function timedFetch(label, input, init) {
+            const t0 = performance.now();
+            try {
+                const r = await fetch(input, init);
+                const text = await r.text();
+                const res = { attempt: label, allowedByBrowser: true, status: r.status, ok: r.ok, ms: Math.round(performance.now() - t0), bytes: text.length, contentType: r.headers.get('content-type') };
+                if (r.ok) Object.assign(res, analyseLookupResponse(text));
+                // Error text can help (e.g. a required header) - masked of long ids, truncated
+                else res.errorSnippet = text.slice(0, 160).replace(/[A-Z0-9]{10,}/g, '<id>');
+                return res;
+            } catch (ex) {
+                // A TypeError here usually means CORS blocked it (or the network failed)
+                return { attempt: label, allowedByBrowser: false, error: `${ex.name}: ${ex.message}`, ms: Math.round(performance.now() - t0) };
+            }
+        }
+
+        async function runBulkLookupDiagnostic(pastedUrl) {
+            const report = { test: 'T-17 bulk product lookup', extensionVersion: adapter.getVersion(), at: new Date().toISOString(),
+                bulkRequestsSeenInThisTab: t17.seen.length, steps: [] };
+            const url = (pastedUrl || '').trim() || t17.seen[t17.seen.length - 1];
+            if (!url) {
+                report.steps.push({ step: 'discover', found: false,
+                    hint: 'No bulk product request seen in this tab yet. Open any game from this wishlist in THIS tab, then use the browser Back button and run the test again - or paste a request URL copied from DevTools > Network.' });
+                return report;
+            }
+            try { report.steps.push({ step: 'discover', found: true, source: pastedUrl ? 'pasted' : 'seen in this tab', ...describeRequestUrl(url) }); }
+            catch (ex) { report.steps.push({ step: 'discover', found: false, error: 'not a valid URL' }); return report; }
+
+            const ids = detailsQueue().slice(0, 20).map(e => e.id);
+            const post = (credentials) => ({ method: 'POST', credentials, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ productIds: ids }) });
+            report.steps.push({ step: 'replay-as-seen (GET, no cookies, no auth)', ...(await timedFetch('GET as seen', url, { credentials: 'omit' })) });
+            report.steps.push({ step: `batch of ${ids.length} ids (POST, no cookies, no auth)`, ...(await timedFetch('POST ids, no cookies', url, post('omit'))) });
+            report.steps.push({ step: `batch of ${ids.length} ids (POST, cookies, no auth header)`, ...(await timedFetch('POST ids, cookies', url, post('include'))) });
+
+            // Baseline: the current approach for one product
+            const first = detailsQueue()[0];
+            if (first) {
+                const t0 = performance.now();
+                try {
+                    const summary = productSummariesFrom(await fetchPageState(first.url)).get(first.id);
+                    report.steps.push({ step: 'baseline: one store page (current "Load details")', ok: true, ms: Math.round(performance.now() - t0),
+                        hasCapabilities: !!(summary && summary.capabilities && Object.keys(summary.capabilities).length) });
+                } catch (ex) { report.steps.push({ step: 'baseline: one store page (current "Load details")', ok: false, error: ex.message.replace(/ for https?:\S+/, '') }); }
+            }
+            const winner = report.steps.find(s => s.productsWithCapabilities > 0);
+            report.verdict = winner
+                ? `USABLE: "${winner.attempt}" returned capabilities for ${winner.productsWithCapabilities} of ${winner.productsFound} products in ${winner.ms} ms, without an Authorization header.`
+                : 'NOT USABLE AS TESTED: no attempt returned capabilities without an Authorization header - keep the store page approach (see steps for why).';
+            return report;
+        }
+
+        function createBulkLookupDiagnostic() {
+            const box = document.createElement('div'); box.className = 'ifc-diag';
+            const title = document.createElement('div'); title.className = 'ifc-diag-title';
+            title.textContent = 'Test: faster lookup (T-17, temporary)';
+            const input = document.createElement('input'); input.type = 'text'; input.className = 'ifc-search-input';
+            input.placeholder = 'Optional: paste a request URL from DevTools';
+            input.setAttribute('aria-label', 'Optional request URL for the lookup test');
+            const run = document.createElement('button'); run.type = 'button'; run.className = 'ifc-quick-filter-btn'; run.textContent = 'Run test';
+            const out = document.createElement('textarea'); out.className = 'ifc-diag-output ifc-hidden'; out.readOnly = true;
+            out.setAttribute('aria-label', 'Lookup test report');
+            const copy = document.createElement('button'); copy.type = 'button'; copy.className = 'ifc-quick-filter-btn ifc-hidden'; copy.textContent = 'Copy report';
+            run.addEventListener('click', async () => {
+                if (contextLost()) { handleContextLost(); return; }
+                run.disabled = true; run.textContent = 'Testing...';
+                const report = await runBulkLookupDiagnostic(input.value);
+                out.value = JSON.stringify(report, null, 2);
+                out.classList.remove('ifc-hidden'); copy.classList.remove('ifc-hidden');
+                console.info('[XBOX Wishlist][T-17]', report);
+                run.disabled = false; run.textContent = 'Run test again';
+            });
+            copy.addEventListener('click', () => {
+                out.select();
+                try { navigator.clipboard.writeText(out.value); copy.textContent = 'Copied'; }
+                catch (ex) { document.execCommand && document.execCommand('copy'); copy.textContent = 'Copied'; }
+                setTimeout(() => { copy.textContent = 'Copy report'; }, 1500);
+            });
+            const row = document.createElement('div'); row.className = 'ifc-saved-presets-row';
+            row.append(input, run);
+            box.append(title, row, out, copy);
+            return box;
         }
 
         function updateCapabilitiesCheckboxes() {

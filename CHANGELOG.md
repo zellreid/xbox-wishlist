@@ -14,6 +14,22 @@ for how a version is bumped and published.
 
 ---
 
+## v1.5.26266.22 (Sep 2026) - T-17 lookup test (temporary diagnostic)
+
+- Added a temporary **"Test: faster lookup (T-17)"** block at the bottom of the
+  Capabilities section. It answers whether the store app's own bulk product
+  lookup could replace per-page "Load details": it discovers the request from
+  the page's own request log (or a URL pasted from DevTools), replays it three
+  ways without any Authorization header (as seen; POST with 20 product ids, no
+  cookies; the same with cookies), checks whether the browser allows it, how
+  many products come back and how many carry capabilities, times one store
+  page fetch for comparison, and gives a verdict. The report is shown in a box
+  with **Copy report** and logged to the console - redacted by design (no
+  addresses, product ids, titles or tokens).
+- To be removed once T-17 is decided (section marked in the core).
+
+---
+
 ## v1.5.26266.21 (Sep 2026) - Handle the extension being reloaded under an open tab
 
 - Fixed (extension only): after the extension was reloaded or updated while a

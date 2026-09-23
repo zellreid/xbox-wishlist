@@ -255,12 +255,14 @@
 
 **Why:** One request for many products instead of one multi-MB page per product - seconds instead of ~10 minutes for a full wishlist.
 
+**Status (v1.5.26266.22):** Diagnostic built - "Test: faster lookup (T-17, temporary)" at the bottom of the Capabilities section (`runBulkLookupDiagnostic()` in the core). It discovers the bulk request from the page's own request log (resource timing, watched from page load) or a pasted URL, replays it without an Authorization header (GET as seen; POST 20 ids without / with cookies), reports CORS / status / products / capabilities / timing plus a one-store-page baseline, and gives a verdict. Redacted report (no addresses, ids, titles, tokens), with Copy. Harness-tested against a stand-in service.
+
 | Step | Task |
 |------|------|
-| 1 | Live, in DevTools Network on a product page or while browsing the store: find the store's bulk "products" request; note whether it is sent with or without an Authorization header |
-| 2 | Check its response for a capabilities field per product |
-| 3 | Check whether a request from the wishlist page's origin is allowed (CORS) without a new host permission |
-| 4 | Decide (HITL): only if capabilities are present, no token handling is needed, and no manifest change is required - otherwise keep the product page approach |
+| 1 | Live: reload the extension and the wishlist tab; open any game from the wishlist in the SAME tab, then press Back (the store app loads product data meanwhile, which the watcher records) |
+| 2 | Filters > Capabilities > "Run test"; if it reports "no bulk product request seen", paste a request URL from DevTools > Network (filter "products") and run again |
+| 3 | Copy the report and share it (it's redacted) |
+| 4 | Decide (HITL): switch "Load details" to the bulk lookup only if the verdict is USABLE (capabilities returned, no Authorization header, allowed by the browser, no manifest change) - otherwise keep the store page approach; then remove the diagnostic |
 
 | Step | Task |
 |------|------|
