@@ -900,6 +900,8 @@ window.XboxWishlistCore = {
             if (max < min) max = min;
             if (min === 0 && max === 0) max = 100;
             min = Math.floor(min / 5) * 5; max = Math.ceil(max / 5) * 5;
+            // All discounts in one rounding bucket would give a zero-width slider (NaN fill)
+            if (max <= min) max = min + 5;
             return { min, max };
         }
 
@@ -935,9 +937,12 @@ window.XboxWishlistCore = {
             if (state.filters.priceRange.min !== min || state.filters.priceRange.max !== max) {
                 // The range moves as more items render. An inactive filter tracks the full
                 // new range; an active one keeps the user's selection, clamped inside it.
+                // A selection edge left at the old end means "no limit" on that side
+                // (e.g. "≥50% Off"), so it stays pinned to the new end instead.
                 const pr = state.filters.priceRange;
-                const currentMin = pr.enabled ? Math.min(Math.max(pr.currentMin, min), max) : min;
-                const currentMax = pr.enabled ? Math.max(Math.min(pr.currentMax, max), currentMin) : max;
+                const pinnedMin = !pr.enabled || pr.currentMin === pr.min, pinnedMax = !pr.enabled || pr.currentMax === pr.max;
+                const currentMin = pinnedMin ? min : Math.min(Math.max(pr.currentMin, min), max);
+                const currentMax = pinnedMax ? max : Math.max(Math.min(pr.currentMax, max), currentMin);
                 state.filters.priceRange = { ...pr, min, max, currentMin, currentMax };
                 const mn = getElement(`#${CONFIG.ids.priceSlider}_min`), mx = getElement(`#${CONFIG.ids.priceSlider}_max`);
                 if (mn && mx) {
@@ -998,16 +1003,19 @@ window.XboxWishlistCore = {
         function updateDiscountSlider() {
             const { min, max } = calculateDiscountRange();
             if (state.filters.discountRange.min !== min || state.filters.discountRange.max !== max) {
-                state.filters.discountRange = {
-                    ...state.filters.discountRange, min, max,
-                    currentMin: Math.max(state.filters.discountRange.currentMin, min),
-                    currentMax: Math.min(state.filters.discountRange.currentMax, max)
-                };
+                // Same rules as updatePriceSlider(): an inactive filter tracks the full new
+                // range (e.g. the 0-100 fallback built before discount badges rendered),
+                // an active one keeps the user's selection, clamped inside it.
+                const dr = state.filters.discountRange;
+                const pinnedMin = !dr.enabled || dr.currentMin === dr.min, pinnedMax = !dr.enabled || dr.currentMax === dr.max;
+                const currentMin = pinnedMin ? min : Math.min(Math.max(dr.currentMin, min), max);
+                const currentMax = pinnedMax ? max : Math.max(Math.min(dr.currentMax, max), currentMin);
+                state.filters.discountRange = { ...dr, min, max, currentMin, currentMax };
                 const mn = getElement(`#${CONFIG.ids.discountSlider}_min`), mx = getElement(`#${CONFIG.ids.discountSlider}_max`);
                 if (mn && mx) {
-                    mn.min = min; mn.max = max; mx.min = min; mx.max = max;
-                    mn.value = state.filters.discountRange.currentMin; mx.value = state.filters.discountRange.currentMax;
-                    mn.dispatchEvent(new Event('input'));
+                    const step = Math.max(1, Math.round((max - min) / 100));
+                    mn.min = min; mn.max = max; mx.min = min; mx.max = max; mn.step = step; mx.step = step;
+                    syncDiscountSliderUI();
                 }
             }
         }

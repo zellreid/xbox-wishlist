@@ -27,7 +27,7 @@
 
 **Goal:** Replace hard-coded `R3,000` max with the actual highest price in the loaded wishlist.
 
-**Status (v1.5.26266.5):** Done - max derives from item prices with no 3000 floor (3000 kept only as the no-priced-items fallback); the slider re-ranges live as items render, keeping an active selection clamped. A saved `priceRange` never reaches the slider (`addPriceRangeFilter()` recalculates on build), so no restore clamp was needed. Follow-up (T-03): `calculateDiscountRange()` has no equivalent `max <= min` guard, so a wishlist where every discount rounds to the same value gets a zero-width discount slider (NaN fill).
+**Status (v1.5.26266.5):** Done - max derives from item prices with no 3000 floor (3000 kept only as the no-priced-items fallback); the slider re-ranges live as items render, keeping an active selection clamped. A saved `priceRange` never reaches the slider (`addPriceRangeFilter()` recalculates on build), so no restore clamp was needed. The discount slider got the same live re-ranging and a `max <= min` guard (T-03) in v1.5.26266.7; on both sliders an active selection edge left at the old min/max stays pinned to the new one.
 
 | Step | Task |
 |------|------|

@@ -14,6 +14,22 @@ for how a version is bumped and published.
 
 ---
 
+## v1.5.26266.7 (Sep 2026) - Discount slider label fix; range edges stay pinned
+
+- Fixed: the discount slider label could stay at "0% - 100%" while the
+  real range was e.g. 10% - 85%. When the filter panel is built before the
+  discount badges render, the slider starts on the 0-100 fallback; the later
+  re-range updated the bounds but not the label or step. The discount slider
+  now re-ranges the same way the price slider does since F-16.
+- Both sliders: when the range changes while a filter is active, a selection
+  edge that sat at the old min/max now stays pinned to the new one (so
+  "≥50% Off" still means 50% and up after a bigger discount appears);
+  edges inside the range are still kept and clamped.
+- Fixed (T-03): a wishlist where every discount rounds to the same value
+  produced a zero-width discount slider (NaN fill); it now gets a 5-wide range.
+
+---
+
 ## v1.5.26266.6 (Sep 2026) - Quick filters toggle and show their state (F-19)
 
 - Quick filters are now toggles: clicking an active one clears just that
