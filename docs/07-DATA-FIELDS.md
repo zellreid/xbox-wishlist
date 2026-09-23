@@ -69,7 +69,7 @@ Verified against the mocks in `mock_examples/#wishlist` (2 captures) and `mock_e
 | Deal start date | Record "first seen on sale" ourselves (F-26 price history) |
 | Pass names for most pass ids | Only three ids name their type via member offers; the Subscriptions filter reads names from DOM badges |
 | Reviews text | Product page state has an empty reviews section in the mocks - likely loaded separately |
-| Vector icons for X\|S and Smart Delivery | The product page draws both as embedded PNG images of Microsoft branding - use text chips, don't bundle the logos. Pre-order, sale tag, Play Anywhere, new release, bundle and languages icons *are* Xbox SVG icons (see `shared/icons`, catalogue in the scratchpad tooling) |
+| Vector icons for X\|S and Smart Delivery | The product page draws both as embedded PNG images of Microsoft branding - use text chips, don't bundle the logos. Pre-order, sale tag, Play Anywhere, new release, bundle and languages icons *are* Xbox SVG icons (see `shared/icons`; browse / export all of them with `tools/icons/catalogue.js`) |
 
 ---
 

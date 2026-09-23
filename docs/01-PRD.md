@@ -49,7 +49,7 @@ The Xbox wishlist page (`xbox.com/*/wishlist`) provides no native filtering, sor
 
 ## Feature List
 
-### ✅ Implemented (v1.5.26266.17 - Current)
+### ✅ Implemented (v1.5.26266.18 - Current)
 
 | ID | Feature | Version Introduced |
 |----|---------|-------------------|
@@ -73,7 +73,7 @@ The Xbox wishlist page (`xbox.com/*/wishlist`) provides no native filtering, sor
 | F-16 | Price slider max derived from actual item prices | v1.5 |
 | F-19 | Quick filter presets (toggle, active state) | v1.5 |
 | F-15 | Accordion header styling (superseded by single-row Xbox-style header) | v1.5 |
-| F-20 | Publisher typeahead search | v1.5 |
+| F-20 | Publisher typeahead search (also on Genres since v1.5.26266.18) | v1.5 |
 | F-21 | Filtered result count (met by the existing "Viewing X of Y results" label) | v1.5 |
 | F-22 | Active sort indicator dot on the sort button | v1.5 |
 | F-23 | Save/load named filter presets | v1.5 |

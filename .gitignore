@@ -4,3 +4,7 @@
 # browsing data - never commit; drop your own "Save As Complete" snapshots
 # here and run tools/mock-harness/prepare-fixture.js)
 /mock_examples/
+
+# Generated icon catalogue (tools/icons/catalogue.js build) - built from the
+# local mocks above and contains Xbox's full icon set; rebuild any time
+/tools/icons/out/

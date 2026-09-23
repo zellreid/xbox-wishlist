@@ -14,6 +14,18 @@ for how a version is bumped and published.
 
 ---
 
+## v1.5.26266.18 (Sep 2026) - Genre search
+
+- The Genres section now has a "Search genres..." box, like Publishers: it
+  narrows the genre checkboxes as you type (case-insensitive), survives the
+  list being rebuilt, and isn't a filter itself - a ticked genre hidden by
+  the search still applies; not saved, and Clear All leaves it alone.
+- Publishers and Genres now share one typeahead helper
+  (`createListSearch()` / `applyListSearch()`); publisher search behaves as
+  before.
+
+---
+
 ## v1.5.26266.17 (Sep 2026) - "Just for you", pre-order, platforms (F-34)
 
 - Each item now knows its deal type from the page's product data: a personal

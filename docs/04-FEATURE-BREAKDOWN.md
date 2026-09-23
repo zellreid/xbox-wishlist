@@ -100,7 +100,7 @@
 
 **Goal:** Text input at top of Publishers accordion to live-filter the publisher list.
 
-**Status (v1.5.26266.11):** Done - `applyPublisherSearch()` in the shared core; case-insensitive match on the publisher name, re-applied after every list rebuild. The term lives in `state.ui.publisherSearch`: it only narrows the checkbox list (not a filter), so it isn't saved and Clear All leaves it alone; a ticked publisher hidden by the search still applies.
+**Status (v1.5.26266.18):** Done - generic `createListSearch()` / `applyListSearch()` in the shared core, used by Publishers and (since v1.5.26266.18) Genres; case-insensitive match, re-applied after every list rebuild. Terms live in `state.ui.listSearch` per list: they only narrow the checkbox list (not a filter), so they aren't saved and Clear All leaves them alone; a ticked option hidden by the search still applies.
 
 | Step | Task |
 |------|------|
@@ -253,7 +253,7 @@
 |------|------|
 | 1 | Decide the strategy: (a) on demand per item (click/expand), (b) background fill for visible items, throttled, (c) opt-in "Load details" button - all cached by product id in storage with a TTL |
 | 2 | `fetchPageState(product url)` -> read the page product's capabilities -> cache |
-| 3 | Indicators: Play Anywhere (Xbox sphere icon #19522), X\|S and Smart Delivery as text chips (their store images are Microsoft branding) |
+| 3 | Indicators: Play Anywhere (Xbox sphere icon #19522 - `node tools/icons/catalogue.js export 19522 play-anywhere`), X\|S and Smart Delivery as text chips (their store images are Microsoft branding) |
 | 4 | Capabilities filter; harness test against the `#products` mocks |
 
 ---

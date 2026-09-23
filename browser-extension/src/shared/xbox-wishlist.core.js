@@ -21,7 +21,7 @@ window.XboxWishlistCore = {
                 floatButtons: false, lblFilter: false, btnFilter: false, btnSort: false, btnExport: false, btnRefresh: false,
                 divFilter: false, divSort: false, divFilterShow: false, divSortShow: false,
                 tagContainer: false, complete: false, lowestItemId: null,
-                publisherSearch: ''
+                listSearch: {}   // typeahead text per checkbox list id (Publishers, Genres)
             },
             filters: {
                 totalCount: 0, filteredCount: 0, activeTags: [],
@@ -81,6 +81,7 @@ window.XboxWishlistCore = {
                 clearButton: 'ifc_btn_ClearAll',
                 searchInput: 'ifc_input_search',
                 publisherSearch: 'ifc_input_publisher_search',
+                genreSearch: 'ifc_input_genre_search',
                 quickFilters: 'ifc_quick_filters',
                 savedPresets: 'ifc_saved_presets',
                 savedPresetsList: 'ifc_saved_presets_list',
@@ -1407,17 +1408,7 @@ window.XboxWishlistCore = {
                 const fb = createFilterBlock(gn, 'Publishers', true);
                 const cc = fb.querySelector('.ifc-accordion-content');
                 if (cc) {
-                    const sw = document.createElement('div');
-                    sw.className = 'ifc-search-wrapper';
-                    const si = document.createElement('input');
-                    si.type = 'text';
-                    si.id = CONFIG.ids.publisherSearch;
-                    si.className = 'ifc-search-input';
-                    si.placeholder = 'Search publishers...';
-                    si.setAttribute('aria-label', 'Search publishers');
-                    si.value = state.ui.publisherSearch;
-                    si.addEventListener('input', (e) => { state.ui.publisherSearch = e.target.value; applyPublisherSearch(); });
-                    sw.appendChild(si); cc.appendChild(sw);
+                    cc.appendChild(createListSearch(CONFIG.ids.publishersSelect, CONFIG.ids.publisherSearch, 'publishers'));
                     const sc = document.createElement('div');
                     sc.id = CONFIG.ids.publishersSelect;
                     sc.className = 'ifc-checkbox-list ifc-checkbox-list-scrollable';
@@ -1444,15 +1435,32 @@ window.XboxWishlistCore = {
                 label.appendChild(cb); label.appendChild(span); container.appendChild(label);
             });
             // The list is rebuilt on every updateScreen(), so re-apply the typeahead
-            applyPublisherSearch();
+            applyListSearch(CONFIG.ids.publishersSelect);
         }
 
-        // Narrows the visible publisher checkboxes only - it is not a filter, so it
-        // doesn't change which items show; a ticked publisher hidden here still applies.
-        function applyPublisherSearch() {
-            const container = document.getElementById(CONFIG.ids.publishersSelect);
+        // Typeahead above a checkbox list (Publishers, Genres). It only narrows the visible
+        // checkboxes - not a filter, so it doesn't change which items show, and a ticked
+        // option hidden by it still applies. Not persisted; Clear All leaves it alone.
+        function createListSearch(listId, inputId, noun) {
+            const sw = document.createElement('div');
+            sw.className = 'ifc-search-wrapper';
+            const si = document.createElement('input');
+            si.type = 'text';
+            si.id = inputId;
+            si.className = 'ifc-search-input';
+            si.placeholder = `Search ${noun}...`;
+            si.setAttribute('aria-label', `Search ${noun}`);
+            si.value = state.ui.listSearch[listId] || '';
+            si.addEventListener('input', (e) => { state.ui.listSearch[listId] = e.target.value; applyListSearch(listId); });
+            sw.appendChild(si);
+            return sw;
+        }
+
+        // Lists are rebuilt on every updateScreen(), so their update functions re-apply this
+        function applyListSearch(listId) {
+            const container = document.getElementById(listId);
             if (!container) return;
-            const term = state.ui.publisherSearch.trim().toLowerCase();
+            const term = (state.ui.listSearch[listId] || '').trim().toLowerCase();
             container.querySelectorAll('.ifc-checkbox-item').forEach(label => {
                 const cb = label.querySelector('input[type="checkbox"]');
                 const matches = term === '' || (cb && cb.value.toLowerCase().includes(term));
@@ -1535,6 +1543,7 @@ window.XboxWishlistCore = {
                 const fb = createFilterBlock(gn, 'Genres', true);
                 const cc = fb.querySelector('.ifc-accordion-content');
                 if (cc) {
+                    cc.appendChild(createListSearch(CONFIG.ids.genresSelect, CONFIG.ids.genreSearch, 'genres'));
                     const gc = document.createElement('div');
                     gc.id = CONFIG.ids.genresSelect;
                     gc.className = 'ifc-checkbox-list ifc-checkbox-list-scrollable';
@@ -1559,6 +1568,7 @@ window.XboxWishlistCore = {
                 const span = document.createElement('span'); span.className = 'ifc-checkbox-label'; span.textContent = `${name} (${count})`;
                 label.appendChild(cb); label.appendChild(span); container.appendChild(label);
             });
+            applyListSearch(CONFIG.ids.genresSelect);
         }
 
         // ==================== PLATFORMS (F-34) ====================
