@@ -14,6 +14,19 @@ for how a version is bumped and published.
 
 ---
 
+## v1.5.26266.25 (Sep 2026) - Lookup test v3 (T-17, temporary)
+
+- The v2 live run showed the product-data service wants one more header: a
+  request-tracing id (MS-CV). It's a random id the site makes up for each
+  request, not a login, so the test now makes its own. Still GET only, still
+  never an Authorization header.
+- Added a labelled guess that POSTs a list of games to the service's
+  "products" address (v2 showed that address exists but refuses GET).
+- Added one probe of Microsoft's public product catalogue, which answers
+  up to 20 games per request without sign-in. It only counts as usable if
+  it has every capability the store page shows for the same game, and the
+  report lists anything missing.
+
 ## v1.5.26266.24 (Sep 2026) - Lookup test v2 (T-17, temporary)
 
 - The temporary "Test: faster lookup" in the Capabilities section is now v2,

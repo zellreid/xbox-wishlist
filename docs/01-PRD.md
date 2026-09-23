@@ -49,7 +49,7 @@ The Xbox wishlist page (`xbox.com/*/wishlist`) provides no native filtering, sor
 
 ## Feature List
 
-### ✅ Implemented (v1.5.26266.24 - Current)
+### ✅ Implemented (v1.5.26266.25 - Current)
 
 | ID | Feature | Version Introduced |
 |----|---------|-------------------|

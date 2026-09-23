@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         XBOX Wishlist
 // @namespace    https://github.com/zellreid/xbox-wishlist
-// @version      1.5.26266.24
+// @version      1.5.26266.25
 // @description  Advanced filtering and sorting suite with multi-level sort (up to 3 criteria) - Resilient selectors - Public wishlist support
 // @author       ZellReid
 // @homepage     https://github.com/zellreid/xbox-wishlist
@@ -10,7 +10,7 @@
 // @match        https://www.xbox.com/*/wishlist*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=xbox.com
 // @run-at       document-body
-// @resource     CSSFilter https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/styles.css?ver=1.5.26266.24
+// @resource     CSSFilter https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/styles.css?ver=1.5.26266.25
 // @resource     IMGFilter https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/filter.svg
 // @resource     IMGSort https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/sort.svg
 // @resource     IMGExport https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/export.svg
@@ -2010,12 +2010,21 @@ window.XboxWishlistCore = {
         // allows GET only, allows calls from this page, and rejects requests without an
         // API-version header. v2 replays it for products on this wishlist WITH that header and
         // WITHOUT any Authorization header, compares it with the store page, and probes (as a
-        // labelled guess) for a many-ids form. The service address is never hard-coded - it's
+        // labelled guess) for a many-ids form. v3 adds the tracing header v2 was refused for
+        // (MS-CV, not a credential), a POST guess, and one probe of Microsoft's public product
+        // catalogue (the only fixed address here). The service address is never hard-coded - it's
         // discovered from the page's own request log (resource timing), or pasted by the user
         // from DevTools - and the report is redacted: no addresses, product ids, titles or
         // tokens (we never read the user's token).
         // Remove this section, its UI block and startRequestWatch() once T-17 is decided.
         const t17 = { seen: [] };
+        // MS-CV is a request-tracing id ("correlation vector") the service insists on - not a
+        // credential. We make our own random one per test run and count up per request.
+        function newCorrelationVector() {
+            const base = btoa(String.fromCharCode(...crypto.getRandomValues(new Uint8Array(12))));
+            let n = 0;
+            return () => `${base}.${n++}`;
+        }
         const T17_DETAILS_PATH = /\/productDetails\/[^/]+\/?$/i;
 
         function isBulkCandidate(url) {
@@ -2059,43 +2068,59 @@ window.XboxWishlistCore = {
                 .filter(v => typeof v === 'string' && v);
         }
 
+        // Capability keys (e.g. XPA, ConsoleGen9Optimized) from either shape: the store's
+        // { key: 'Name' } map, or the public catalogue's product attributes [{ Name }]
+        function capabilityKeys(p) {
+            const caps = p && p.capabilities;
+            if (caps && typeof caps === 'object') {
+                const keys = Array.isArray(caps) ? capabilityNames(caps) : Object.keys(caps);
+                if (keys.length) return keys;
+            }
+            const attrs = p && p.Properties && p.Properties.Attributes;
+            return Array.isArray(attrs) ? attrs.map(a => a && a.Name).filter(v => typeof v === 'string' && v) : [];
+        }
+        const productIdOf = p => (p && typeof (p.productId || p.ProductId) === 'string') ? (p.productId || p.ProductId) : null;
+
         // Summarises a JSON response: product entries found anywhere in it, how many carry
-        // capabilities, and where capability-like fields sit - field names and counts only
-        function analyseLookupResponse(text) {
+        // capabilities, and where capability-like fields sit - field names and counts only.
+        // focusId (never reported) picks the game whose capability keys are listed.
+        function analyseLookupResponse(text, focusId) {
             let json;
             try { json = JSON.parse(text); } catch (ex) { return { json: false }; }
             const products = [], capPaths = new Set();
             (function walk(o, depth) {
                 if (!o || typeof o !== 'object' || depth > 8) return;
-                if (!Array.isArray(o) && typeof o.productId === 'string') { products.push(o); return; }
+                if (!Array.isArray(o) && productIdOf(o)) { products.push(o); return; }
                 Object.values(o).forEach(v => walk(v, depth + 1));
             })(json, 0);
             (function paths(o, trail, depth) {
                 if (!o || typeof o !== 'object' || depth > 8 || capPaths.size >= 10) return;
                 Object.keys(o).forEach(k => {
                     const step = Array.isArray(o) ? '[]' : maskIds(k), here = trail ? `${trail}.${step}` : step;
-                    if (/capabilit/i.test(k)) capPaths.add(here);
+                    if (/capabilit|attribute/i.test(k)) capPaths.add(here);
                     paths(o[k], here, depth + 1);
                 });
             })(json, '', 0);
-            const withCaps = products.filter(p => capabilityNames(p.capabilities).length);
+            const withCaps = products.filter(p => capabilityKeys(p).length);
+            const focus = focusId ? products.find(p => productIdOf(p).toUpperCase() === String(focusId).toUpperCase()) : null;
             return {
                 json: true, topLevelKeys: Array.isArray(json) ? ['(array)'] : Object.keys(json).slice(0, 15).map(maskIds),
                 productsFound: products.length, productsWithCapabilities: withCaps.length,
-                capabilityCount: withCaps[0] ? capabilityNames(withCaps[0].capabilities).length : 0,
+                capabilityCount: withCaps[0] ? capabilityKeys(withCaps[0]).length : 0,
                 productFieldNames: products[0] ? Object.keys(products[0]).sort().slice(0, 40).map(maskIds) : [],
-                sampleCapabilityNames: withCaps[0] ? capabilityNames(withCaps[0].capabilities).slice(0, 8) : [],
-                capabilityFieldPaths: [...capPaths]
+                sampleCapabilityNames: withCaps[0] ? capabilityKeys(withCaps[0]).slice(0, 8) : [],
+                capabilityFieldPaths: [...capPaths],
+                ...(focusId ? { firstGameFound: !!focus, firstGameCapabilityKeys: focus ? capabilityKeys(focus).slice(0, 60) : [] } : {})
             };
         }
 
-        async function timedFetch(label, input, init) {
+        async function timedFetch(label, input, init, focusId) {
             const t0 = performance.now();
             try {
                 const r = await fetch(input, init);
                 const text = await r.text();
                 const res = { attempt: label, allowedByBrowser: true, status: r.status, ok: r.ok, ms: Math.round(performance.now() - t0), bytes: text.length, contentType: r.headers.get('content-type') };
-                if (r.ok) Object.assign(res, analyseLookupResponse(text));
+                if (r.ok) Object.assign(res, analyseLookupResponse(text, focusId));
                 // Error text can help (e.g. a required header) - masked of addresses and ids, truncated
                 else res.errorSnippet = maskIds(text.slice(0, 200).replace(/https?:\/\/[^\s'"]+/g, '<address>'));
                 return res;
@@ -2106,7 +2131,7 @@ window.XboxWishlistCore = {
         }
 
         async function runBulkLookupDiagnostic(pastedUrl) {
-            const report = { test: 'T-17 v2 product lookup', extensionVersion: adapter.getVersion(), at: new Date().toISOString(),
+            const report = { test: 'T-17 v3 product lookup', extensionVersion: adapter.getVersion(), at: new Date().toISOString(),
                 lookupRequestsSeenInThisTab: t17.seen.length, steps: [] };
             const isDetails = s => { try { return T17_DETAILS_PATH.test(new URL(s, location.href).pathname); } catch (ex) { return false; } };
             // Prefer a per-product request: it's the one the store app is known to use
@@ -2126,8 +2151,9 @@ window.XboxWishlistCore = {
             if (!queue.length) { report.steps.push({ step: 'products', found: false, hint: 'No games with a store link on this page.' }); return report; }
             const first = queue[0];
             report.firstGameKnownToHaveCapabilities = known.length > 0;
-            // Version header only - never an Authorization header, never the user's token
-            const get = (apiVersion, credentials) => ({ method: 'GET', credentials, headers: { 'x-ms-api-version': apiVersion } });
+            // Version + tracing headers only - never an Authorization header, never the user's token
+            const cv = newCorrelationVector();
+            const get = (apiVersion, credentials) => ({ method: 'GET', credentials, headers: { 'x-ms-api-version': apiVersion, 'MS-CV': cv() } });
             const seenUrl = new URL(url, location.href);
             let service = null;
 
@@ -2140,9 +2166,9 @@ window.XboxWishlistCore = {
                 const urlFor = id => { const u = new URL(seenUrl.href); u.pathname = u.pathname.replace(/\/[^/]+(\/?)$/, `/${encodeURIComponent(idFor(id))}$1`); return u.href; };
 
                 const tries = [];
-                tries.push({ apiVersion: '2.0', cookies: false, ...(await timedFetch('one game, API version 2.0, no cookies, no auth', urlFor(first.id), get('2.0', 'omit'))) });
-                tries.push({ apiVersion: '2.0', cookies: true, ...(await timedFetch('one game, API version 2.0, cookies, no auth header', urlFor(first.id), get('2.0', 'include'))) });
-                if (!tries.some(t => t.ok)) tries.push({ apiVersion: '1.0', cookies: false, ...(await timedFetch('one game, API version 1.0, no cookies, no auth', urlFor(first.id), get('1.0', 'omit'))) });
+                tries.push({ apiVersion: '2.0', cookies: false, ...(await timedFetch('one game, API version 2.0, no cookies, no auth', urlFor(first.id), get('2.0', 'omit'), first.id)) });
+                tries.push({ apiVersion: '2.0', cookies: true, ...(await timedFetch('one game, API version 2.0, cookies, no auth header', urlFor(first.id), get('2.0', 'include'), first.id)) });
+                if (!tries.some(t => t.ok)) tries.push({ apiVersion: '1.0', cookies: false, ...(await timedFetch('one game, API version 1.0, no cookies, no auth', urlFor(first.id), get('1.0', 'omit'), first.id)) });
                 tries.forEach(t => report.steps.push({ step: 'single game lookup', ...t }));
                 service = tries.find(t => t.productsWithCapabilities > 0) || tries.find(t => t.ok) || null;
 
@@ -2160,10 +2186,24 @@ window.XboxWishlistCore = {
                 const ids = queue.slice(0, 10).map(e => idFor(e.id)).join(',');
                 const detailsBase = seenUrl.pathname.replace(/\/[^/]+\/?$/, ''), serviceBase = detailsBase.replace(/\/[^/]+$/, '');
                 const guessUrl = pathname => { const u = new URL(seenUrl.href); u.pathname = pathname; u.searchParams.set('productIds', ids); return u.href; };
-                const guessInit = get(service ? service.apiVersion : '2.0', service && service.cookies ? 'include' : 'omit');
-                report.steps.push({ step: `GUESS: many ids in one request (${queue.slice(0, 10).length} ids, same path without the id)`, ...(await timedFetch('GUESS productDetails?productIds', guessUrl(detailsBase), guessInit)) });
-                report.steps.push({ step: `GUESS: many ids in one request (${queue.slice(0, 10).length} ids, sibling "products" path)`, ...(await timedFetch('GUESS products?productIds', guessUrl(`${serviceBase}/products`), guessInit)) });
+                const guessVersion = service ? service.apiVersion : '2.0', guessCredentials = service && service.cookies ? 'include' : 'omit';
+                report.steps.push({ step: `GUESS: many ids in one request (${queue.slice(0, 10).length} ids, same path without the id)`, ...(await timedFetch('GUESS productDetails?productIds', guessUrl(detailsBase), get(guessVersion, guessCredentials))) });
+                report.steps.push({ step: `GUESS: many ids in one request (${queue.slice(0, 10).length} ids, sibling "products" path)`, ...(await timedFetch('GUESS products?productIds', guessUrl(`${serviceBase}/products`), get(guessVersion, guessCredentials))) });
+                // That path refused GET with 405 in v2, which usually means it exists for another method
+                const postUrl = new URL(seenUrl.href); postUrl.pathname = `${serviceBase}/products`;
+                const post = get(guessVersion, guessCredentials);
+                Object.assign(post, { method: 'POST', body: JSON.stringify({ productIds: queue.slice(0, 10).map(e => idFor(e.id)) }) });
+                post.headers['Content-Type'] = 'application/json';
+                report.steps.push({ step: `GUESS: many ids in one request (${queue.slice(0, 10).length} ids, POSTed to the sibling "products" path)`, ...(await timedFetch('GUESS POST products', postUrl.href, post)) });
             }
+
+            // PUBLIC CATALOGUE: Microsoft's long-standing product catalogue answers many ids per
+            // request with no sign-in. Do its product attributes carry the same capabilities?
+            const localeMatch = location.pathname.match(/^\/([a-z]{2})-([a-z]{2})\//i);
+            const catalogueUrl = 'https://displaycatalog.mp.microsoft.com/v7.0/products?bigIds=' + queue.slice(0, 20).map(e => e.id).join(',')
+                + `&market=${localeMatch ? localeMatch[2].toUpperCase() : 'US'}&languages=${localeMatch ? localeMatch[0].replace(/\//g, '') : 'en-US'}`;
+            const catalogue = { step: `public catalogue: ${queue.slice(0, 20).length} ids in one request (GET, no cookies, no auth)`, ...(await timedFetch('public catalogue', catalogueUrl, { method: 'GET', credentials: 'omit' }, first.id)) };
+            report.steps.push(catalogue);
 
             // Baseline: the current approach, for the same game
             let baseline = null;
@@ -2175,7 +2215,8 @@ window.XboxWishlistCore = {
                 const ms = Math.round(performance.now() - t0);
                 const summary = productSummariesFrom(parseEmbeddedState(new DOMParser().parseFromString(text, 'text/html'))).get(first.id);
                 const capabilityCount = summary ? capabilityNames(summary.capabilities).length : 0;
-                baseline = { step: 'baseline: the same game\'s store page (current "Load details")', ok: true, ms, bytes: text.length, hasCapabilities: capabilityCount > 0, capabilityCount };
+                baseline = { step: 'baseline: the same game\'s store page (current "Load details")', ok: true, ms, bytes: text.length, hasCapabilities: capabilityCount > 0, capabilityCount,
+                    capabilityKeys: summary ? capabilityKeys(summary) : [] };
             } catch (ex) { baseline = { step: 'baseline: the same game\'s store page (current "Load details")', ok: false, error: maskIds(ex.message) }; }
             report.steps.push(baseline);
 
@@ -2184,10 +2225,23 @@ window.XboxWishlistCore = {
             const perGame = service && (service.productsWithCapabilities > 0 || moreWithCaps) ? service : null;
             if (perGame && baseline.ok) report.comparison = {
                 sameCapabilityCountAsStorePage: perGame.capabilityCount === baseline.capabilityCount,
+                storePageCapabilitiesFoundInService: baseline.capabilityKeys.filter(k => (perGame.firstGameCapabilityKeys || []).includes(k)).length + ' of ' + baseline.capabilityKeys.length,
                 timeServiceVsStorePage: `${perGame.ms} ms vs ${baseline.ms} ms`,
                 sizeServiceVsStorePage: `${Math.round(perGame.bytes / 1024)} KB vs ${Math.round(baseline.bytes / 1024)} KB`
             };
-            report.verdict = bulk
+            // The catalogue lists many attributes; it only counts if it has every capability the
+            // store page shows for the same game
+            const catalogueKeys = catalogue.firstGameCapabilityKeys || [];
+            const catalogueMatched = baseline.ok ? baseline.capabilityKeys.filter(k => catalogueKeys.includes(k)) : [];
+            if (catalogue.ok && baseline.ok) report.catalogueComparison = {
+                storePageCapabilitiesFoundInCatalogue: `${catalogueMatched.length} of ${baseline.capabilityKeys.length}`,
+                missingFromCatalogue: baseline.capabilityKeys.filter(k => !catalogueKeys.includes(k)),
+                timeCatalogueForAllVsOneStorePage: `${catalogue.ms} ms for ${catalogue.productsFound} games vs ${baseline.ms} ms for 1`
+            };
+            const catalogueUsable = catalogue.ok && catalogue.productsFound > 1 && baseline.ok && baseline.capabilityKeys.length > 0 && catalogueMatched.length === baseline.capabilityKeys.length;
+            report.verdict = catalogueUsable
+                ? `USABLE, MANY AT ONCE (public catalogue): ${catalogue.productsFound} games in one request (${catalogue.ms} ms), no cookies, no Authorization header, and it has all ${baseline.capabilityKeys.length} of the first game's store-page capabilities.`
+                : bulk
                 ? `USABLE, MANY AT ONCE: "${bulk.attempt}" returned capabilities for ${bulk.productsWithCapabilities} of ${bulk.productsFound} games in ${bulk.ms} ms, without an Authorization header.`
                 : perGame
                     ? `USABLE, ONE GAME PER REQUEST: API version ${perGame.apiVersion}, ${perGame.cookies ? 'with' : 'without'} cookies, no Authorization header - first game: ${perGame.capabilityCount} capabilities in ${perGame.ms} ms (${Math.round(perGame.bytes / 1024)} KB)`
@@ -2202,7 +2256,7 @@ window.XboxWishlistCore = {
         function createBulkLookupDiagnostic() {
             const box = document.createElement('div'); box.className = 'ifc-diag';
             const title = document.createElement('div'); title.className = 'ifc-diag-title';
-            title.textContent = 'Test: faster lookup (T-17 v2, temporary)';
+            title.textContent = 'Test: faster lookup (T-17 v3, temporary)';
             const input = document.createElement('input'); input.type = 'text'; input.className = 'ifc-search-input';
             input.placeholder = 'Optional: paste a request URL from DevTools';
             input.setAttribute('aria-label', 'Optional request URL for the lookup test');
