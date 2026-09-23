@@ -116,6 +116,8 @@
 
 **Goal:** Show active filter impact in the panel title, e.g. "Filters (245 / 298)".
 
+**Status (v1.5.26266.12):** Done (already met) - the "Viewing X of Y results" label (`updateFilterLabels()`) updates on every refresh and sits directly above the open panel, so a second count in the panel heading would duplicate it. Not built; reopen if the heading count is still wanted.
+
 | Step | Task |
 |------|------|
 | 1 | After each `applyFilters()`, count visible items (`items.filter(i => i.element.style.display !== 'none').length`) |
@@ -127,6 +129,8 @@
 ### F-22 — Active Sort Indicator Badge
 
 **Goal:** Sort button shows a green dot when a non-default sort is active.
+
+**Status (v1.5.26266.12):** Done - `updateSortIndicator()` (from `updateScreen()` and every sort control) shows a `span.ifc-badge-dot` when the sort isn't exactly Default ↓, including a sort restored on load; the button's label becomes "Sort (custom sort active)". A real element rather than `::after` (step 3), because Xbox's button classes use `::after` for their keyboard focus ring.
 
 | Step | Task |
 |------|------|
@@ -140,6 +144,8 @@
 ### F-23 — Save/Load Filter Presets
 
 **Goal:** Named filter combinations that persist via `GM_setValue`.
+
+**Status (v1.5.26266.12):** Done - a "Saved filters" block at the bottom of the filter panel: name input + Save (Enter also saves), saved presets as pills with ×. A preset stores Owned/Publishers/Subscriptions and the price/discount ranges (not the search text or the sort); saved in the same storage record as the filters (`presets`). Applying replaces the current filters, with ranges re-fit to the page via `rerangeSelection()`; a pill is green while the filters match it and a second click clears them. Same name (case-insensitive) overwrites; max 20 presets, 30-char names; malformed stored presets are cleaned or dropped on load.
 
 **Note:** Since v1.5 all persistence goes through the shared core's storage adapter (`chrome.storage.local` in the extension, `GM_setValue` in the userscript). Read every `GM_setValue` below as "adapter storage". The same applies to F-25 to F-28.
 
@@ -221,6 +227,8 @@
 ---
 
 ### T-05 - Items with no price sort among the priced items
+
+**Status (v1.5.26266.12):** Done - `applySorting()` sorts items with no price last on the Price, Discount % and Discount Amount levels in either direction, then falls through to the next level.
 
 With a sort such as Discount % ↓ then Price ↑, un-purchasable items (no price) land between the discounted and the non-discounted items: `applySorting()` reads a missing price as `0` and they carry a 0% discount.
 

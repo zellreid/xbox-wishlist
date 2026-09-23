@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         XBOX Wishlist
 // @namespace    https://github.com/zellreid/xbox-wishlist
-// @version      1.5.26266.11
+// @version      1.5.26266.12
 // @description  Advanced filtering and sorting suite with multi-level sort (up to 3 criteria) - Resilient selectors - Public wishlist support
 // @author       ZellReid
 // @homepage     https://github.com/zellreid/xbox-wishlist
@@ -10,7 +10,7 @@
 // @match        https://www.xbox.com/*/wishlist*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=xbox.com
 // @run-at       document-body
-// @resource     CSSFilter https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/styles.css?ver=1.5.26266.11
+// @resource     CSSFilter https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/styles.css?ver=1.5.26266.12
 // @resource     IMGFilter https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/filter.svg
 // @resource     IMGSort https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/sort.svg
 // @resource     IMGExpand https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/expand.svg
@@ -73,7 +73,9 @@ window.XboxWishlistCore = {
                     { value: 'ifcPriceDiscountPercent', label: 'Discount %' },
                     { value: 'ifcPriceDiscountAmount', label: 'Discount Amount' }
                 ]
-            }
+            },
+            // Named filter combinations (F-23): [{ name, filters }] - see snapshotFilters()
+            savedPresets: []
         };
         window.injected = state;
 
@@ -98,6 +100,10 @@ window.XboxWishlistCore = {
                 searchInput: 'ifc_input_search',
                 publisherSearch: 'ifc_input_publisher_search',
                 quickFilters: 'ifc_quick_filters',
+                savedPresets: 'ifc_saved_presets',
+                savedPresetsList: 'ifc_saved_presets_list',
+                savedPresetName: 'ifc_input_preset_name',
+                savedPresetSave: 'ifc_btn_SavePreset',
                 ownedSelect: 'ifc_select_owned',
                 publishersSelect: 'ifc_select_publishers',
                 subscriptionsSelect: 'ifc_select_subscriptions',
@@ -289,7 +295,8 @@ window.XboxWishlistCore = {
                     ...state.filters,
                     publishers: { selected: state.filters.publishers.selected, list: Array.from(state.filters.publishers.list.entries()) },
                     subscriptions: { selected: state.filters.subscriptions.selected, list: Array.from(state.filters.subscriptions.list.entries()) },
-                    sort: { criteria: state.sort.criteria }
+                    sort: { criteria: state.sort.criteria },
+                    presets: state.savedPresets
                 };
                 adapter.storage.save(CONFIG.storage.key, JSON.stringify(saveData));
             } catch (ex) { console.error('Failed to save filter state:', ex); }
@@ -337,6 +344,9 @@ window.XboxWishlistCore = {
                                     return sf && (c.order === 'asc' || c.order === 'desc') ? { field: sf.value, order: c.order, label: sf.label } : null;
                                 });
                                 if (criteria.length > 0 && criteria.every(Boolean)) state.sort.criteria = criteria;
+                            }
+                            if (Array.isArray(parsed.presets)) {
+                                state.savedPresets = parsed.presets.map(normalizePreset).filter(Boolean).slice(0, MAX_SAVED_PRESETS);
                             }
                         }
                     }
@@ -792,6 +802,165 @@ window.XboxWishlistCore = {
             } catch (ex) { console.error('Failed to clear filters:', ex); }
         }
 
+        // ==================== SAVED FILTER PRESETS (F-23) ====================
+        // A preset stores the filter selections only - not the search text (typed per
+        // visit) and not the sort. Saved alongside the filters by saveFilterState().
+        const MAX_SAVED_PRESETS = 20, MAX_PRESET_NAME = 30;
+
+        function snapshotRange(r) {
+            return { enabled: r.enabled === true, min: r.min, max: r.max, currentMin: r.currentMin, currentMax: r.currentMax };
+        }
+        function snapshotFilters() {
+            const f = state.filters;
+            return {
+                owned: [...f.owned.selected], publishers: [...f.publishers.selected], subscriptions: [...f.subscriptions.selected],
+                priceRange: snapshotRange(f.priceRange), discountRange: snapshotRange(f.discountRange)
+            };
+        }
+        // Validates a stored preset; anything malformed is dropped (returns null)
+        function normalizePreset(p) {
+            if (!p || typeof p.name !== 'string' || !p.name.trim() || !p.filters || typeof p.filters !== 'object') return null;
+            const list = v => Array.isArray(v) ? v.filter(x => typeof x === 'string') : [];
+            const range = r => {
+                const ok = r && typeof r === 'object' && ['min', 'max', 'currentMin', 'currentMax'].every(k => typeof r[k] === 'number');
+                return ok ? snapshotRange(r) : { enabled: false, min: 0, max: 0, currentMin: 0, currentMax: 0 };
+            };
+            const f = p.filters;
+            return {
+                name: p.name.trim().slice(0, MAX_PRESET_NAME),
+                filters: { owned: list(f.owned), publishers: list(f.publishers), subscriptions: list(f.subscriptions), priceRange: range(f.priceRange), discountRange: range(f.discountRange) }
+            };
+        }
+        function hasPresetableFilters() {
+            const f = state.filters;
+            return f.owned.selected.length > 0 || f.publishers.selected.length > 0 || f.subscriptions.selected.length > 0
+                || f.priceRange.enabled || f.discountRange.enabled;
+        }
+        // A saved range re-applied to this page's slider bounds (same rules as a restore)
+        function presetRangeOnPage(saved, current) {
+            return rerangeSelection({ ...current, ...saved }, current.min, current.max);
+        }
+        function isPresetActive(p) {
+            const f = state.filters, pf = p.filters;
+            const sameSet = (a, b) => a.length === b.length && a.every(x => b.includes(x));
+            const rangeIs = (cur, saved) => {
+                if (!saved.enabled) return !cur.enabled;
+                if (!cur.enabled) return false;
+                const e = presetRangeOnPage(saved, cur);
+                return cur.currentMin === e.currentMin && cur.currentMax === e.currentMax;
+            };
+            return sameSet(f.owned.selected, pf.owned) && sameSet(f.publishers.selected, pf.publishers)
+                && sameSet(f.subscriptions.selected, pf.subscriptions)
+                && rangeIs(f.priceRange, pf.priceRange) && rangeIs(f.discountRange, pf.discountRange);
+        }
+        // Replaces the current filter selections with the preset's (search text is left alone)
+        function applyPreset(p) {
+            try {
+                const f = state.filters, pf = p.filters;
+                f.owned.selected = [...pf.owned]; f.publishers.selected = [...pf.publishers]; f.subscriptions.selected = [...pf.subscriptions];
+                updateCheckboxes(CONFIG.ids.ownedSelect, f.owned.selected);
+                updateCheckboxes(CONFIG.ids.publishersSelect, f.publishers.selected);
+                updateCheckboxes(CONFIG.ids.subscriptionsSelect, f.subscriptions.selected);
+                f.priceRange = presetRangeOnPage(pf.priceRange, f.priceRange);
+                f.discountRange = presetRangeOnPage(pf.discountRange, f.discountRange);
+                syncPriceSliderUI(); syncDiscountSliderUI();
+                updateScreen();
+            } catch (ex) { console.error('Failed to apply saved filters:', ex); }
+        }
+
+        function saveCurrentAsPreset() {
+            try {
+                const input = getElement(`#${CONFIG.ids.savedPresetName}`, false);
+                const name = input ? input.value.trim().slice(0, MAX_PRESET_NAME) : '';
+                if (!name || !hasPresetableFilters()) return;
+                const preset = { name, filters: snapshotFilters() };
+                const i = state.savedPresets.findIndex(p => p.name.toLowerCase() === name.toLowerCase());
+                if (i >= 0) state.savedPresets[i] = preset;               // same name overwrites
+                else if (state.savedPresets.length < MAX_SAVED_PRESETS) state.savedPresets.push(preset);
+                else return;
+                if (input) input.value = '';
+                saveFilterState(); renderSavedPresets();
+            } catch (ex) { console.error('Failed to save filters:', ex); }
+        }
+        function deletePreset(name) {
+            state.savedPresets = state.savedPresets.filter(p => p.name !== name);
+            saveFilterState(); renderSavedPresets();
+        }
+
+        function addSavedPresets() {
+            if (!state.ui.divFilter) return;
+            try {
+                if (getElement(`#${CONFIG.ids.savedPresets}`, false)) return;
+                const fg = getElement(`#${CONFIG.ids.filterContainer} ${CONFIG.selectors.filterGroups}`, false);
+                if (!fg || !fg.parentNode) return;
+                const box = document.createElement('div');
+                box.id = CONFIG.ids.savedPresets; box.className = 'ifc-saved-presets';
+                const heading = document.createElement('div');
+                heading.className = 'ifc-saved-presets-heading'; heading.textContent = 'Saved filters';
+                const list = document.createElement('div');
+                list.id = CONFIG.ids.savedPresetsList; list.className = 'ifc-quick-filters';
+                const row = document.createElement('div'); row.className = 'ifc-saved-presets-row';
+                const input = document.createElement('input');
+                input.type = 'text'; input.id = CONFIG.ids.savedPresetName; input.className = 'ifc-search-input';
+                input.maxLength = MAX_PRESET_NAME; input.placeholder = 'Name these filters...';
+                input.setAttribute('aria-label', 'Name for saved filters');
+                input.addEventListener('input', updateSavedPresetStates);
+                input.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); saveCurrentAsPreset(); } });
+                const saveBtn = document.createElement('button');
+                saveBtn.type = 'button'; saveBtn.id = CONFIG.ids.savedPresetSave; saveBtn.className = 'ifc-quick-filter-btn';
+                saveBtn.textContent = 'Save';
+                saveBtn.addEventListener('click', saveCurrentAsPreset);
+                row.appendChild(input); row.appendChild(saveBtn);
+                box.appendChild(heading); box.appendChild(list); box.appendChild(row);
+                fg.parentNode.appendChild(box);
+                renderSavedPresets();
+            } catch (ex) { console.error('Failed to add saved filters:', ex); }
+        }
+
+        function renderSavedPresets() {
+            const list = getElement(`#${CONFIG.ids.savedPresetsList}`, false);
+            if (!list) return;
+            list.innerHTML = '';
+            state.savedPresets.forEach(p => {
+                const wrap = document.createElement('span'); wrap.className = 'ifc-saved-preset';
+                const btn = document.createElement('button');
+                btn.type = 'button'; btn.className = 'ifc-quick-filter-btn'; btn.textContent = p.name;
+                btn.dataset.ifcSavedPreset = p.name;
+                btn.addEventListener('click', () => {
+                    const cur = state.savedPresets.find(q => q.name === p.name);
+                    if (!cur) return;
+                    if (isPresetActive(cur)) clearAllFilters(); else applyPreset(cur);
+                });
+                const del = document.createElement('button');
+                del.type = 'button'; del.className = 'ifc-saved-preset-remove'; del.textContent = '×';
+                del.title = `Delete "${p.name}"`; del.setAttribute('aria-label', `Delete saved filters ${p.name}`);
+                del.addEventListener('click', () => deletePreset(p.name));
+                wrap.appendChild(btn); wrap.appendChild(del); list.appendChild(wrap);
+            });
+            list.classList.toggle('ifc-hidden', state.savedPresets.length === 0);
+            updateSavedPresetStates();
+        }
+
+        function updateSavedPresetStates() {
+            try {
+                const list = getElement(`#${CONFIG.ids.savedPresetsList}`, false);
+                if (list) list.querySelectorAll('[data-ifc-saved-preset]').forEach(btn => {
+                    const p = state.savedPresets.find(q => q.name === btn.dataset.ifcSavedPreset);
+                    const active = !!p && isPresetActive(p);
+                    btn.classList.toggle('ifc-Active', active);
+                    btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+                });
+                const saveBtn = getElement(`#${CONFIG.ids.savedPresetSave}`, false);
+                const input = getElement(`#${CONFIG.ids.savedPresetName}`, false);
+                if (saveBtn) {
+                    const name = input ? input.value.trim() : '';
+                    const full = state.savedPresets.length >= MAX_SAVED_PRESETS && !state.savedPresets.some(p => p.name.toLowerCase() === name.toLowerCase());
+                    saveBtn.disabled = !name || !hasPresetableFilters() || full;
+                    saveBtn.title = !hasPresetableFilters() ? 'Set some filters first' : full ? `At most ${MAX_SAVED_PRESETS} saved filters` : !name ? 'Enter a name first' : 'Save the current filters';
+                }
+            } catch (ex) { console.error('Failed to update saved filter states:', ex); }
+        }
+
         async function addFilterContainerOwned() {
             if (!state.ui.divFilter) return;
             const gn = 'Owned';
@@ -1123,6 +1292,7 @@ window.XboxWishlistCore = {
                 addSearchFilter(); addQuickFilters();
                 await addFilterContainerOwned(); await addFilterContainerPublishers(); await addFilterContainerSubscriptions();
                 addPriceRangeFilter(); addDiscountRangeFilter();
+                addSavedPresets();
             } catch (ex) { console.error('Failed to add filter controls:', ex); }
         }
 
@@ -1240,7 +1410,33 @@ window.XboxWishlistCore = {
         }
 
         // Sort controls don't go through updateScreen(), so they save explicitly
-        function onSortChanged() { applySorting(); saveFilterState(); }
+        function onSortChanged() { applySorting(); updateSortIndicator(); saveFilterState(); }
+
+        function isDefaultSort() {
+            const c = state.sort.criteria;
+            return c.length === 1 && c[0].field === 'ifcId' && c[0].order === 'desc';
+        }
+
+        // Dot on the sort button while a non-default sort is active - including one
+        // restored on load, which would otherwise be easy to miss.
+        function updateSortIndicator() {
+            try {
+                const btn = getElement(`#${CONFIG.ids.sortButton}`, false);
+                if (!btn) return;
+                const custom = !isDefaultSort();
+                btn.classList.toggle('ifc-badge-active', custom);
+                let dot = btn.querySelector('.ifc-badge-dot');
+                if (!dot) {
+                    dot = document.createElement('span');
+                    dot.className = 'ifc-badge-dot';
+                    dot.setAttribute('aria-hidden', 'true');
+                    btn.appendChild(dot);
+                }
+                dot.classList.toggle('ifc-hidden', !custom);
+                const label = custom ? 'Sort (custom sort active)' : 'Sort';
+                btn.title = label; btn.setAttribute('aria-label', label);
+            } catch (ex) { console.error('Failed to update sort indicator:', ex); }
+        }
 
         function applySorting() {
             try {
@@ -1248,6 +1444,14 @@ window.XboxWishlistCore = {
                 const parent = containers[0]?.parentElement; if (!parent) return;
                 containers.sort((a, b) => {
                     for (const c of state.sort.criteria) {
+                        // Items with no price (un-purchasable, unreadable) have no meaningful
+                        // price or discount - sort them last in either direction instead of
+                        // reading them as 0, which put them among the cheapest/undiscounted.
+                        if (['ifcPrice', 'ifcPriceDiscountPercent', 'ifcPriceDiscountAmount'].includes(c.field)) {
+                            const aMissing = isNaN(parseFloat(a.dataset.ifcPrice)), bMissing = isNaN(parseFloat(b.dataset.ifcPrice));
+                            if (aMissing !== bMissing) return aMissing ? 1 : -1;
+                            if (aMissing) continue;
+                        }
                         const aVal = a.dataset[c.field], bVal = b.dataset[c.field];
                         let cmp = 0;
                         if (['ifcId', 'ifcPrice', 'ifcPriceDiscountPercent', 'ifcPriceDiscountAmount'].includes(c.field)) {
@@ -1439,7 +1643,7 @@ window.XboxWishlistCore = {
             if (l) l.textContent = `Viewing ${state.filters.filteredCount} of ${state.filters.totalCount} results`;
         }
         function updateScreen() {
-            try { toggleContainers(); updateFilterLabels(); updateActiveTags(); updateQuickFilterStates(); applySorting(); saveFilterState(); }
+            try { toggleContainers(); updateFilterLabels(); updateActiveTags(); updateQuickFilterStates(); updateSavedPresetStates(); applySorting(); updateSortIndicator(); saveFilterState(); }
             catch (ex) { console.error('Failed to update screen:', ex); }
         }
 

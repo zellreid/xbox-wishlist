@@ -14,6 +14,26 @@ for how a version is bumped and published.
 
 ---
 
+## v1.5.26266.12 (Sep 2026) - No-price items sort last, sort indicator, saved filters
+
+- Fixed (T-05): items with no price (un-purchasable or unreadable) were read
+  as price 0 by the sort, so with e.g. Discount % ↓ then Price ↑ they landed
+  between the discounted and undiscounted items. On the Price, Discount % and
+  Discount Amount levels they now sort last in either direction.
+- Added (F-22): a dot on the sort button whenever the sort isn't Default ↓ -
+  including a sort restored on load - and the button's label reads "Sort
+  (custom sort active)". It's a real element, not `::after`, which Xbox's
+  button classes use for their keyboard focus ring.
+- Added (F-23): "Saved filters" at the bottom of the filter panel. Name the
+  current filters and Save (or press Enter); saved sets appear as buttons that
+  apply them, turn green while the filters match, clear them on a second
+  click, and have a × to delete. Saves Owned/Publishers/Subscriptions and the
+  price/discount ranges (not the search text or sort); stored with the
+  filters, so they persist across reloads. Same name overwrites; max 20.
+- F-21 closed as already met by the "Viewing X of Y results" label.
+
+---
+
 ## v1.5.26266.11 (Sep 2026) - Publisher search (F-20)
 
 - Added a "Search publishers..." box at the top of the Publishers section
