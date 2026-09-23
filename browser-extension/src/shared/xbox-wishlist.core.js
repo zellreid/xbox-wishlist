@@ -20,7 +20,7 @@ window.XboxWishlistCore = {
             ui: {
                 floatButtons: false, lblFilter: false, btnFilter: false, btnSort: false,
                 divFilter: false, divSort: false, divFilterShow: false, divSortShow: false,
-                tagContainer: false, complete: false
+                tagContainer: false, complete: false, lowestItemId: null
             },
             filters: {
                 totalCount: 0, filteredCount: 0, activeTags: [],
@@ -1342,7 +1342,17 @@ window.XboxWishlistCore = {
 
         function toggleContainers() {
             const containers = document.getElementsByClassName(CONFIG.selectors.items);
-            Array.from(containers).forEach((c, i) => setContainerData(c, containers.length - i));
+            // ifcId records the wishlist's own order (the order items were added - the
+            // page exposes no date-added). Number each item once, the first time it is
+            // seen, while the list is still in page order: re-deriving it from DOM
+            // position on every update picked up whatever sort was applied last, so
+            // "Default" no longer restored the original order. Items that appear later
+            // continue below the lowest id, so they sort after the ones already seen.
+            const unnumbered = Array.from(containers).filter(c => !c.dataset.ifcId);
+            let nextId = (state.ui.lowestItemId ?? unnumbered.length + 1) - 1;
+            unnumbered.forEach(c => { c.dataset.ifcId = nextId--; });
+            state.ui.lowestItemId = nextId + 1;
+            Array.from(containers).forEach(c => setContainerData(c, c.dataset.ifcId));
             collectPublishers(); updatePublishersCheckboxes(); updateSubscriptionsCheckboxes(); updatePriceSlider(); updateDiscountSlider();
             Array.from(containers).forEach(c => {
                 try {

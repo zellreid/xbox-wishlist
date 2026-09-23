@@ -14,6 +14,21 @@ for how a version is bumped and published.
 
 ---
 
+## v1.5.26266.10 (Sep 2026) - "Default" sort keeps the wishlist's own order
+
+- Fixed: the Default sort (`ifcId`, which records the order items were added
+  to the wishlist - the page exposes no date-added) could stop restoring that
+  order. `toggleContainers()` re-numbered `ifcId` from each item's current DOM
+  position on every `updateScreen()`, so once another sort had reordered the
+  list, the next refresh baked that order into the ids. It already happened
+  after "sort, then touch any filter"; v1.5.26266.9's sort persistence made it
+  happen on every load with a saved non-default sort. Each item is now
+  numbered once, the first time it's seen (while the list is still in page
+  order); items that appear later continue below the lowest id so they sort
+  after the rest.
+
+---
+
 ## v1.5.26266.9 (Sep 2026) - Sort survives a reload
 
 - Fixed: the sort (all levels, field and direction) was never persisted.
