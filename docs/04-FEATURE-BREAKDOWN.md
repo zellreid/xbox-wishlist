@@ -176,6 +176,21 @@
 
 ---
 
+### F-32 - Refresh Wishlist Data
+
+**Goal:** Re-read the wishlist without a manual page reload.
+
+**Findings (2026-09-23):** The wishlist page HTML embeds a large preloaded-state JSON (`window.__PRELOADED_STATE__`, about 2.4 MB) that includes the wishlist and per-product data - structured data, independent of Xbox's hashed CSS classes. Swapping fetched item markup into the live list is not viable: that list is owned by Xbox's React app, and foreign nodes would lose React's event handling (BUY/DETAILS) and be undone on the next re-render.
+
+| Step | Task |
+|------|------|
+| 1 | Live check first: confirm `fetch(location.href)` from the page returns HTML that still contains the preloaded state (the mocks are saved post-render) |
+| 2 | v1 Refresh button = persist state (already automatic) + `location.reload()` - zero risk, filters/sort/presets survive |
+| 3 | Later, as the data layer for F-26 to F-28: fetch the page, extract and parse the preloaded state, read wishlist + prices, compare with stored prices (no DOM swapping) |
+| 4 | Icon: Xbox refresh icon (bundle module #17915) |
+
+---
+
 ## Future Features (v2.0+)
 
 ---
@@ -240,6 +255,18 @@ With a sort such as Discount % ↓ then Price ↑, un-purchasable items (no pric
 | 2 | Missing sorts last regardless of asc/desc, then fall through to the next sort level |
 | 3 | Leave `ifcId`, name and publisher sorting unchanged |
 | 4 | Mock harness: Discount % ↓ + Price ↑ puts every no-price item at the end; Price ↑ and Price ↓ both put them last |
+
+---
+
+### T-10 - Icon set: adopt Xbox icons where they add value
+
+A consolidated catalogue (custom `shared/icons` + icons extracted from both mocks' Xbox bundles and rendered pages) showed no Xbox equivalents for filter, sort or export, so those stay custom; expand/collapse already are Xbox's.
+
+| Step | Task |
+|------|------|
+| 1 | Decide which generic Xbox icons to adopt (candidates: refresh for F-32, close/× for tag and preset removal, plus for "+ Add Sort Level") |
+| 2 | Brand badges (Game Pass, EA Play): do not bundle - clone the badge the page already renders at runtime (no redistribution of trademarked artwork, always current) |
+| 3 | Add each adopted icon as `shared/icons/<name>.svg` + extension `RESOURCE_MAP` + userscript `@resource`; no manifest change (glob covers it) |
 
 ---
 
