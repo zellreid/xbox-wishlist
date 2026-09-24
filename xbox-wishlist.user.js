@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         XBOX Wishlist
 // @namespace    https://github.com/zellreid/xbox-wishlist
-// @version      1.5.26267.7
+// @version      1.5.26267.8
 // @description  Advanced filtering and sorting suite with multi-level sort (up to 3 criteria) - Resilient selectors - Public wishlist support
 // @author       ZellReid
 // @homepage     https://github.com/zellreid/xbox-wishlist
@@ -10,7 +10,7 @@
 // @match        https://www.xbox.com/*/wishlist*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=xbox.com
 // @run-at       document-body
-// @resource     CSSFilter https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/styles.css?ver=1.5.26267.7
+// @resource     CSSFilter https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/styles.css?ver=1.5.26267.8
 // @resource     IMGFilter https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/filter.svg
 // @resource     IMGSort https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/sort.svg
 // @resource     IMGExport https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/export.svg
@@ -1063,7 +1063,7 @@ window.XboxWishlistCore = {
         // own marks and is left alone. The toggle rewrites those marks for the whole page and
         // remembers the choice. Xbox's app manages <body>'s data-theme and can reset it on
         // in-app navigation, so enforceTheme() re-applies a saved choice when that happens.
-        const THEME_MARKS = { darkClass: 'theme-dark', headerMark: 'uhf-theme--', headerDark: 'uhf-theme--dark', headerLight: 'uhf-theme--light', headerElement: 'uhf-header' };
+        const THEME_MARKS = { darkClass: 'theme-dark', headerMark: 'uhf-theme--', headerDark: 'uhf-theme--dark', headerLight: 'uhf-theme--light', headerElement: 'uhf-header', navElement: 'uhf-contextual-nav' };
 
         function currentTheme() {
             return document.body && document.body.dataset.theme === 'light' ? 'light' : 'dark';
@@ -1083,7 +1083,54 @@ window.XboxWishlistCore = {
             document.querySelectorAll(`${THEME_MARKS.headerElement}[theme]`).forEach(el => {
                 if (el.getAttribute('theme') !== theme) el.setAttribute('theme', theme);
             });
+            applyHeaderLogos(theme);
             ensureThemeSheets();
+        }
+
+        // The header's Microsoft and Xbox logos are images with one version per theme (white ones
+        // for dark). The page's embedded state carries the header markup for both themes, so each
+        // logo is paired with its other-theme version by its alt text - read from the page, never
+        // hard-coded. Keyed by file name, so a local copy of a logo (saved page) still matches.
+        let headerLogoMaps = null;
+        const logoFile = src => String(src || '').split(/[?#]/)[0].split('/').pop();
+        function headerLogos() {
+            if (headerLogoMaps) return headerLogoMaps;
+            headerLogoMaps = { light: new Map(), dark: new Map() };   // either version's file name -> URL for that theme
+            try {
+                const pageState = parseEmbeddedState(document);
+                const data = pageState && pageState.uhf && pageState.uhf.data;
+                const images = t => {
+                    const html = data && data[t] && data[t].headerHtml;
+                    return typeof html === 'string'
+                        ? Array.from(new DOMParser().parseFromString(html, 'text/html').images, i => ({ alt: i.getAttribute('alt') || '', src: i.getAttribute('src') || '' }))
+                        : [];
+                };
+                const dark = images('dark');
+                images('light').forEach(l => {
+                    const d = dark.find(x => x.alt === l.alt);
+                    if (!l.alt || !d || logoFile(d.src) === logoFile(l.src)) return;
+                    [l.src, d.src].forEach(src => { headerLogoMaps.light.set(logoFile(src), l.src); headerLogoMaps.dark.set(logoFile(src), d.src); });
+                });
+            } catch (ex) { console.error('Failed to read the header logos:', ex); }
+            return headerLogoMaps;
+        }
+        function applyHeaderLogos(theme) {
+            const map = headerLogos()[theme];
+            if (!map || !map.size) return;
+            document.querySelectorAll(`${THEME_MARKS.headerElement} img[src]`).forEach(img => {
+                const to = map.get(logoFile(img.getAttribute('src')));
+                if (to && logoFile(to) !== logoFile(img.getAttribute('src'))) img.setAttribute('src', to);
+            });
+            // The nav element renders the Xbox logo from this attribute, so a re-render keeps the right one
+            document.querySelectorAll(`${THEME_MARKS.navElement}[logoimageurl]`).forEach(el => {
+                const to = map.get(logoFile(el.getAttribute('logoimageurl')));
+                if (to && el.getAttribute('logoimageurl') !== to) el.setAttribute('logoimageurl', to);
+            });
+        }
+        function headerLogosWrong() {
+            const map = headerLogos()[state.theme];
+            return !!(map && map.size) && Array.from(document.querySelectorAll(`${THEME_MARKS.headerElement} img[src]`))
+                .some(img => { const to = map.get(logoFile(img.getAttribute('src'))); return to && logoFile(to) !== logoFile(img.getAttribute('src')); });
         }
         function enforceTheme() {
             try { if (state.theme && (currentTheme() !== state.theme || needsThemeMarks())) applyTheme(state.theme); }
@@ -1095,7 +1142,7 @@ window.XboxWishlistCore = {
             const wrapperWrong = appClass && Array.from(document.getElementsByClassName(appClass)).some(el => el.classList.contains(THEME_MARKS.darkClass) !== dark);
             const headerWrong = Array.from(document.querySelectorAll(`header[class*="${THEME_MARKS.headerMark}"]`)).some(el => el.classList.contains(THEME_MARKS.headerDark) !== dark)
                 || Array.from(document.querySelectorAll(`${THEME_MARKS.headerElement}[theme]`)).some(el => el.getAttribute('theme') !== state.theme);
-            return !!(wrapperWrong || headerWrong);
+            return !!(wrapperWrong || headerWrong || headerLogosWrong());
         }
 
         // Xbox loads only the colour sheet for the theme the page opened in: its design
@@ -1128,10 +1175,12 @@ window.XboxWishlistCore = {
                 .map(l => ({ href: l.href, m: l.href.match(chunkName) })).filter(x => x.m);
             if (!loaded.length) throw new Error('no numbered stylesheet chunks on the page');
             const base = loaded[0].href.slice(0, loaded[0].href.lastIndexOf('/') + 1);
-            // Xbox's own scripts from the same folder; the likely home of the stylesheet map
+            // Xbox's own scripts from the same host (live they sit in a different folder from the
+            // stylesheets, e.g. static/js vs static/css); the likely home of the stylesheet map
             // (webpack's runtime, usually the main "client" bundle) is tried first
+            const host = new URL(base).origin;
             const likely = src => /\/(client|runtime|main)[.-]/i.test(src) ? 0 : 1;
-            const scripts = Array.from(document.scripts).map(s => s.src).filter(src => src && src.startsWith(base))
+            const scripts = Array.from(document.scripts).map(s => s.src).filter(src => { try { return src && new URL(src).origin === host; } catch (ex) { return false; } })
                 .sort((a, b) => likely(a) - likely(b)).slice(0, 15);
             for (const src of scripts) {
                 const text = await (await fetch(src)).text();

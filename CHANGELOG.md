@@ -14,6 +14,17 @@ for how a version is bumped and published.
 
 ---
 
+## v1.5.26267.8 (Sep 2026) - Theme switch: logos and Xbox colours on the live site
+
+- Fixed: after switching theme, the Microsoft and Xbox logos in the site
+  header stayed in the other theme's version (white logos on a white
+  header). They are images with a light and a dark version; the page
+  carries both, and the switch now uses the right one.
+- Fixed: on the live site, Xbox's own colours for the other theme (the BUY
+  buttons and the toolbar button backgrounds) still didn't load after a
+  switch. Xbox keeps its scripts and stylesheets in different folders on
+  its asset server, and the extension only looked in one of them.
+
 ## v1.5.26267.7 (Sep 2026) - Crisper Export and Filter icons
 
 - Fixed: the Export icon's folded corner looked like it spilled over the
