@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         XBOX Wishlist
 // @namespace    https://github.com/zellreid/xbox-wishlist
-// @version      1.5.26267.2
+// @version      1.5.26267.3
 // @description  Advanced filtering and sorting suite with multi-level sort (up to 3 criteria) - Resilient selectors - Public wishlist support
 // @author       ZellReid
 // @homepage     https://github.com/zellreid/xbox-wishlist
@@ -10,11 +10,12 @@
 // @match        https://www.xbox.com/*/wishlist*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=xbox.com
 // @run-at       document-body
-// @resource     CSSFilter https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/styles.css?ver=1.5.26267.2
+// @resource     CSSFilter https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/styles.css?ver=1.5.26267.3
 // @resource     IMGFilter https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/filter.svg
 // @resource     IMGSort https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/sort.svg
 // @resource     IMGExport https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/export.svg
 // @resource     IMGRefresh https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/refresh.svg
+// @resource     IMGTheme https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/theme.svg
 // @resource     IMGClose https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/close.svg
 // @resource     IMGPlus https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/plus.svg
 // @resource     IMGPreorder https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/preorder.svg
@@ -56,8 +57,9 @@ window.XboxWishlistCore = {
         const state = {
             scripts: [], styles: [],
             svgCache: new Map(), elementCache: new Map(),
+            theme: null,   // F-39: 'light' | 'dark' chosen with the toolbar button; null = follow Xbox
             ui: {
-                floatButtons: false, lblFilter: false, btnFilter: false, btnSort: false, btnExport: false, btnRefresh: false,
+                floatButtons: false, lblFilter: false, btnFilter: false, btnSort: false, btnExport: false, btnTheme: false, btnRefresh: false,
                 divFilter: false, divSort: false, divFilterShow: false, divSortShow: false,
                 tagContainer: false, complete: false, lowestItemId: null, contextLost: false,
                 listSearch: {}   // typeahead text per checkbox list id (Publishers, Genres)
@@ -124,6 +126,7 @@ window.XboxWishlistCore = {
                 exportButton: 'ifc_btn_Export',
                 exportMenu: 'ifc_export_menu',
                 refreshButton: 'ifc_btn_Refresh',
+                themeButton: 'ifc_btn_Theme',
                 tagContainer: 'ifc_tag_container',
                 clearButton: 'ifc_btn_ClearAll',
                 searchInput: 'ifc_input_search',
@@ -178,6 +181,7 @@ window.XboxWishlistCore = {
             iconXXSmall: 'Icon-module__xxSmall___',
             discountTag: 'Price-module__discountTag___',
             afterPriceTextContainer: 'Price-module__afterPriceTextContainer___',
+            appBackground: 'appBackground',   // the store app's wrapper, which carries the dark-theme mark (F-39)
         };
 
         // ==================== INITIALIZATION ====================
@@ -185,6 +189,8 @@ window.XboxWishlistCore = {
             try {
                 await addStyle(adapter.getResourceUrl('CSSFilter'));
                 await loadFilterState();
+                // The saved light/dark choice (F-39), as early as possible to avoid a flash
+                enforceTheme(); watchThemeMarks();
                 // Parse this page's embedded product data once (local, ~20 ms) so the first
                 // updateScreen() can attach rating/genre/release/deal data to every item
                 await loadProductData();
@@ -350,7 +356,8 @@ window.XboxWishlistCore = {
                     capabilities: { selected: state.filters.capabilities.selected },
                     types: { selected: state.filters.types.selected },
                     sort: { criteria: state.sort.criteria },
-                    presets: state.savedPresets
+                    presets: state.savedPresets,
+                    theme: state.theme
                 };
                 adapter.storage.save(CONFIG.storage.key, JSON.stringify(saveData));
             } catch (ex) { console.error('Failed to save filter state:', ex); }
@@ -389,6 +396,7 @@ window.XboxWishlistCore = {
                                 state.filters.platforms.selected = parsed.platforms.selected.filter(p => typeof p === 'string');
                             }
                             if (typeof parsed.justForYou === 'boolean') state.filters.justForYou = parsed.justForYou;
+                            if (parsed.theme === 'light' || parsed.theme === 'dark') state.theme = parsed.theme;
                             if (typeof parsed.preorder === 'boolean') state.filters.preorder = parsed.preorder;
                             if (parsed.capabilities && Array.isArray(parsed.capabilities.selected)) {
                                 state.filters.capabilities.selected = parsed.capabilities.selected.filter(c => typeof c === 'string');
@@ -1046,6 +1054,72 @@ window.XboxWishlistCore = {
         // Inspection hooks for DevTools / the mock harness. detailsDelayMs (undefined = 1 s base gap)
         // lets the harness run "Load details" without the real pause between requests.
         state.debug = { loadProductData, getProductData, fetchPageState, loadDetails, detailsDelayMs: undefined };
+
+        // ==================== LIGHT / DARK TOGGLE (F-39) ====================
+        // Xbox marks its theme in three places, and both its CSS and ours (the T-19 tokens)
+        // key off them: <body> (data-theme="light|dark" + the dark class), the store app's
+        // wrapper (the dark class) and the site header (a light/dark mark; the footer keeps
+        // its own and is left alone). The toggle rewrites those marks for the whole page and
+        // remembers the choice. Xbox's app manages <body>'s data-theme and can reset it on
+        // in-app navigation, so enforceTheme() re-applies a saved choice when that happens.
+        const THEME_MARKS = { darkClass: 'theme-dark', headerMark: 'uhf-theme--', headerDark: 'uhf-theme--dark', headerLight: 'uhf-theme--light' };
+
+        function currentTheme() {
+            return document.body && document.body.dataset.theme === 'light' ? 'light' : 'dark';
+        }
+        function applyTheme(theme) {
+            const body = document.body; if (!body) return;
+            const dark = theme === 'dark';
+            if (body.dataset.theme !== theme) body.dataset.theme = theme;
+            if (body.classList.contains(THEME_MARKS.darkClass) !== dark) body.classList.toggle(THEME_MARKS.darkClass, dark);
+            const appClass = resolveClass(PREFIXES.appBackground);
+            if (appClass) Array.from(document.getElementsByClassName(appClass)).forEach(el => {
+                if (el.classList.contains(THEME_MARKS.darkClass) !== dark) el.classList.toggle(THEME_MARKS.darkClass, dark);
+            });
+            document.querySelectorAll(`header[class*="${THEME_MARKS.headerMark}"]`).forEach(el => {
+                if (el.classList.contains(THEME_MARKS.headerDark) !== dark) { el.classList.toggle(THEME_MARKS.headerDark, dark); el.classList.toggle(THEME_MARKS.headerLight, !dark); }
+            });
+        }
+        function enforceTheme() {
+            try { if (state.theme && (currentTheme() !== state.theme || needsThemeMarks())) applyTheme(state.theme); }
+            catch (ex) { console.error('Failed to apply theme:', ex); }
+        }
+        // The wrapper or header can be re-rendered with Xbox's own marks while <body> stays right
+        function needsThemeMarks() {
+            const dark = state.theme === 'dark', appClass = resolveClass(PREFIXES.appBackground);
+            const wrapperWrong = appClass && Array.from(document.getElementsByClassName(appClass)).some(el => el.classList.contains(THEME_MARKS.darkClass) !== dark);
+            const headerWrong = Array.from(document.querySelectorAll(`header[class*="${THEME_MARKS.headerMark}"]`)).some(el => el.classList.contains(THEME_MARKS.headerDark) !== dark);
+            return !!(wrapperWrong || headerWrong);
+        }
+        function watchThemeMarks() {
+            try {
+                if (!document.body) return;
+                new MutationObserver(enforceTheme).observe(document.body, { attributes: true, attributeFilter: ['data-theme', 'class'] });
+            } catch (ex) { console.error('Failed to watch the page theme:', ex); }
+        }
+        function updateThemeButton() {
+            const btn = getElement(`#${CONFIG.ids.themeButton}`, false); if (!btn) return;
+            const text = currentTheme() === 'light' ? 'Switch to dark mode' : 'Switch to light mode';
+            btn.title = text; btn.setAttribute('aria-label', text);
+        }
+        function addThemeButton() {
+            if (state.ui.btnTheme) return;
+            try {
+                const bc = getElement(`#${CONFIG.ids.buttonContainer}`); if (!bc) return;
+                const btn = createImageButton('Theme', adapter.getResourceUrl('IMGTheme'), 'Switch theme', 'svg');
+                btn.removeAttribute('aria-pressed');   // an action, not a panel toggle
+                btn.addEventListener('click', () => {
+                    if (contextLost()) { handleContextLost(); return; }
+                    state.theme = currentTheme() === 'light' ? 'dark' : 'light';
+                    applyTheme(state.theme);
+                    updateThemeButton();
+                    saveFilterState();
+                });
+                bc.appendChild(btn);
+                state.ui.btnTheme = true;
+                updateThemeButton();
+            } catch (ex) { console.error('Failed to add theme button:', ex); }
+        }
 
         // ==================== REFRESH (F-32 v1) ====================
         // Re-reads the wishlist by reloading the page. Filters, sort and saved filters are
@@ -2199,7 +2273,7 @@ window.XboxWishlistCore = {
 
         async function addFilterControls() {
             try {
-                addFilterLabel(); addFilterButton(); addSortButton(); addExportButton(); addRefreshButton();
+                addFilterLabel(); addFilterButton(); addSortButton(); addExportButton(); addThemeButton(); addRefreshButton();
                 addFilterContainer(); addSortContainer();
                 addSearchFilter(); addQuickFilters();
                 await addFilterContainerOwned(); await addFilterContainerPublishers(); await addFilterContainerSubscriptions();
@@ -2636,7 +2710,7 @@ window.XboxWishlistCore = {
         }
 
         function reinitAfterRerender() {
-            ['floatButtons', 'lblFilter', 'btnFilter', 'btnSort', 'btnExport', 'btnRefresh'].forEach(k => { state.ui[k] = false; });
+            ['floatButtons', 'lblFilter', 'btnFilter', 'btnSort', 'btnExport', 'btnTheme', 'btnRefresh'].forEach(k => { state.ui[k] = false; });
             state.ui.complete = false;
             state.ui.lowestItemId = null;   // every item is a new element: number them from page order again
             onDOMReady();
@@ -2646,6 +2720,7 @@ window.XboxWishlistCore = {
             const timer = setInterval(() => {
                 try {
                     if (contextLost()) { clearInterval(timer); handleContextLost(); return; }
+                    enforceTheme();   // a saved light/dark choice holds on every page of the tab
                     if (!isWishlistPage()) { hidePanelsAwayFromWishlist(); return; }
                     if (!state.ui.complete || !CONFIG.selectors.items) return;
                     const items = document.getElementsByClassName(CONFIG.selectors.items);

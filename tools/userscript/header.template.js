@@ -15,6 +15,7 @@
 // @resource     IMGSort https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/sort.svg
 // @resource     IMGExport https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/export.svg
 // @resource     IMGRefresh https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/refresh.svg
+// @resource     IMGTheme https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/theme.svg
 // @resource     IMGClose https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/close.svg
 // @resource     IMGPlus https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/plus.svg
 // @resource     IMGPreorder https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/preorder.svg

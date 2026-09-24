@@ -14,6 +14,17 @@ for how a version is bumped and published.
 
 ---
 
+## v1.5.26267.3 (Sep 2026) - Light / dark toggle
+
+- New "Theme" button in the toolbar, before Refresh, switches the whole
+  wishlist page between light and dark (xbox.com has no switch of its own).
+  The choice is remembered, and re-applied if the store app resets the
+  theme while you browse within the tab.
+- Known limit: Xbox only loads the colours for the theme the page opened
+  in, so after switching, Xbox's own buttons (BUY, DETAILS) show without
+  their colours until the page is opened in that theme. The extension's own
+  panels, chips and menus switch fully.
+
 ## v1.5.26267.2 (Sep 2026) - Drop hard-coded Xbox class names and dead CSS
 
 - No visible change. The filter and sort panels no longer carry Xbox's

@@ -8,6 +8,7 @@
         IMGSort: 'shared/icons/sort.svg',
         IMGExport: 'shared/icons/export.svg',
         IMGRefresh: 'shared/icons/refresh.svg',
+        IMGTheme: 'shared/icons/theme.svg',
         IMGClose: 'shared/icons/close.svg',
         IMGPlus: 'shared/icons/plus.svg',
         IMGPreorder: 'shared/icons/preorder.svg',

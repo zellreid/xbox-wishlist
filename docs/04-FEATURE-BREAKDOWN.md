@@ -353,6 +353,15 @@ Note (2026-09-23): the light mock was saved with our panel already injected (old
 | 2 | Build on T-19's variables: button toggles our root's theme class; persisted (storage adapter) |
 | 3 | Icon from the catalogue (`tools/icons`) |
 
+**Status (v1.5.26267.3) - Done, needs a live check (also unblocks the T-19 live check - xbox.com has no theme switch of its own):**
+- **Scope: the whole page.** Xbox marks its theme in three places and its CSS (and our T-19 tokens) key off them: `<body>` (`data-theme` + `theme-dark`), the store app's wrapper (`appBackground`, `theme-dark`) and the site header (`uhf-theme--dark|light`; the footer keeps its own mark and is left alone). A toggle for our UI only was rejected: the chips on Xbox's game tiles would then sit on the wrong background.
+- **Button** "Theme" before Refresh (order: Filter, Sort, Export, Theme, Refresh), an original half-filled-circle icon in the Xbox icon format (`shared/icons/theme.svg`; the catalogue has no sun/moon). An action button (no green "open" state); tooltip says what a click does. Choice saved as `theme` in the existing saved state (not part of filters, Clear All or saved filters).
+- **Kept applied:** set straight after the saved state loads; an observer on `<body>`'s theme attributes re-applies it within milliseconds if Xbox's app resets it (it manages `data-theme` and may on in-app navigation); the 1 s route watcher re-applies it to a re-rendered wrapper or header, on every page of the tab.
+- **Selectors:** `appBackground` via a new `PREFIXES` entry and `resolveClass()`; the header as `header[class*="uhf-theme--"]` (a plain `uhf-header` prefix would also match `uhf-header-mode-full` / `uhf-header__container`). The mark names live in one `THEME_MARKS` constant.
+- **No manifest change:** the icon is covered by the existing `shared/icons/*.svg` wildcard. Userscript `@resource IMGTheme` added.
+- **Known limit (decision pending, F-39b):** Xbox loads only the current theme's colour sheet (613 `--gds-*` design variables per theme, ~27 KB; dark `5398…chunk.css`, light `1950…chunk.css`). After switching, anything Xbox draws with those variables (the BUY / DETAILS buttons, its toolbar button backgrounds) is uncoloured until the page is loaded in that theme natively. Our UI, the page background and text are unaffected.
+- Harness: dark -> light -> dark restores every mark exactly; light -> dark reproduces the dark capture's marks; saved choice applied on reload (`?persist`); body reset re-applied within 50 ms; wrapper/header reset re-applied on the next watcher tick; PASS on all 3 mocks, no duplicate ids.
+
 ---
 
 ### F-38 - Run on Product Pages (starting with diagnostics)
