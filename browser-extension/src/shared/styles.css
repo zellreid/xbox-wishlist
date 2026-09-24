@@ -547,129 +547,6 @@ ul.filter-groups {
         border-radius: 2px;
     }
 
-/* ==================== SELECT2 XBOX THEME ==================== */
-.select2-container--xbox {
-    width: 100% !important;
-}
-
-    .select2-container--xbox .select2-selection--multiple {
-        background-color: #2d2d2d !important;
-        border: 1px solid #757575 !important;
-        border-radius: 6px;
-        min-height: 38px;
-        max-height: 120px;
-        overflow-y: auto;
-        padding: 4px;
-        width: 100%;
-    }
-
-.theme-dark .select2-container--xbox .select2-selection--multiple {
-    background-color: #1a1a1a !important;
-}
-
-.select2-container--xbox .select2-selection--multiple .select2-selection__choice {
-    background-color: #107c10 !important;
-    border: none !important;
-    color: #ffffff !important;
-    border-radius: 4px;
-    padding: 4px 8px;
-    margin: 2px;
-    font-size: 0.75rem;
-}
-
-.select2-container--xbox .select2-selection--multiple .select2-selection__choice__remove {
-    color: #ffffff !important;
-    margin-right: 6px;
-    font-weight: bold;
-}
-
-    .select2-container--xbox .select2-selection--multiple .select2-selection__choice__remove:hover {
-        color: #ffdddd !important;
-    }
-
-.select2-container--xbox .select2-search__field {
-    color: #f5f5f5 !important;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-}
-
-    .select2-container--xbox .select2-search__field::placeholder {
-        color: #999999 !important;
-    }
-
-.select2-container--xbox.select2-container--focus .select2-selection--multiple {
-    border-color: #107c10 !important;
-    box-shadow: 0 0 0 2px rgba(16, 124, 16, 0.2);
-}
-
-/* Select2 Dropdown */
-.select2-container--xbox .select2-dropdown {
-    background-color: #2d2d2d;
-    border: 1px solid #757575;
-    border-radius: 6px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-    max-height: 300px;
-}
-
-.theme-dark .select2-container--xbox .select2-dropdown {
-    background-color: #1a1a1a;
-}
-
-.select2-container--xbox .select2-results {
-    max-height: 250px;
-    overflow-y: auto;
-}
-
-.select2-container--xbox .select2-results__options {
-    max-height: 250px;
-    overflow-y: auto;
-}
-
-.select2-container--xbox .select2-results__option {
-    color: #f5f5f5;
-    padding: 8px 12px;
-    font-size: 0.875rem;
-}
-
-.select2-container--xbox .select2-results__option--highlighted {
-    background-color: #107c10 !important;
-    color: #ffffff !important;
-}
-
-.select2-container--xbox .select2-results__option--selected {
-    background-color: rgba(16, 124, 16, 0.3);
-}
-
-.select2-container--xbox .select2-search--dropdown .select2-search__field {
-    background-color: #3d3d3d;
-    border: 1px solid #757575;
-    border-radius: 4px;
-    color: #f5f5f5;
-    padding: 8px;
-}
-
-/* ==================== SELECT2 SCROLLBARS ==================== */
-.select2-container--xbox .select2-selection--multiple::-webkit-scrollbar,
-.select2-container--xbox .select2-results__options::-webkit-scrollbar {
-    width: 8px;
-}
-
-.select2-container--xbox .select2-selection--multiple::-webkit-scrollbar-track,
-.select2-container--xbox .select2-results__options::-webkit-scrollbar-track {
-    background: rgba(117, 117, 117, 0.2);
-    border-radius: 4px;
-}
-
-.select2-container--xbox .select2-selection--multiple::-webkit-scrollbar-thumb,
-.select2-container--xbox .select2-results__options::-webkit-scrollbar-thumb {
-    background: #107c10;
-    border-radius: 4px;
-}
-
-    .select2-container--xbox .select2-selection--multiple::-webkit-scrollbar-thumb:hover,
-    .select2-container--xbox .select2-results__options::-webkit-scrollbar-thumb:hover {
-        background: #0e7a0e;
-    }
-
 /* ==================== STATIC FILTER BLOCKS ==================== */
 .ifc-filter-block-static {
     padding: 10px;
@@ -688,12 +565,6 @@ ul.filter-groups {
 
 .theme-dark .ifc-filter-static-heading {
     color: #ffffff;
-}
-
-.ifc-select2-multi {
-    width: 100%;
-    max-width: 100%;
-    box-sizing: border-box;
 }
 
 /* ==================== RANGE SLIDERS ==================== */
@@ -923,24 +794,6 @@ ul.filter-groups {
 .theme-dark .ifc-discount-badge {
     background-color: #ffd800 !important;
     color: #000 !important;
-}
-
-/* Xbox's original discount tag styling (keeping for reference) */
-.Price-module__discountTag___OjGFy {
-    background-color: #ffd800;
-    border-radius: .25rem;
-    color: #000;
-    flex-shrink: 0;
-    font-size: .75rem;
-    height: 1.25rem;
-    text-align: center;
-    width: 2.1875rem;
-}
-
-.typography-module__xdsBody2___RNdGY {
-    font-family: Segoe UI;
-    font-size: .875rem;
-    line-height: 1.25rem;
 }
 
 /* ==================== SCROLLBAR STYLING ==================== */

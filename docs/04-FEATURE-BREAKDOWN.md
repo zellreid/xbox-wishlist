@@ -339,6 +339,8 @@ Note (2026-09-23): the light mock was saved with our panel already injected (old
 | 2 | Remove the dead select2 CSS |
 | 3 | Harness on all mocks; compare computed styles on panels, toolbar and tiles in light and dark before and after |
 
+**Status (v1.5.26267.2) - Done:** every hard-coded hashed name was stale. None of the exact names exist in the Xbox stylesheets captured in the mocks: `SortAndFilters-module__container`, `__filterList`, `__filtersText` and `typography-module__spotLightSubtitlePortrait` have been re-hashed, `Price-module__discountTag` is gone, and `typography-module__xdsBody2` has been re-hashed. All removed; none re-added through `resolveClass()`, because re-adding would change today's look (Xbox browse-page margins and fonts), and these browse-page classes never appear on the wishlist page, so `resolveClass()` could not resolve them anyway. Our own unprefixed classes (`filter-section`, `filter-list`, `filter-text-heading`, `filter-groups`) stay. Removed the unused select2 block (theme and scrollbars) and `.ifc-select2-multi` (-142 CSS lines). The `PREFIXES` map (hash-free prefixes resolved at runtime) is untouched. Verified: 25 elements (both panels with headings and lists, toolbar, label, 4 buttons, 4 tiles with tag rows, price rows and badges) x ~1,300 computed properties, before vs after, on the light (1603) and dark (1032) mocks: 0 differences in 32,614 properties each; the new stylesheet confirmed loaded (no select2 or hashed rules). Harness PASS on all 3 mocks and `?keepCapture`.
+
 ---
 
 ### F-39 - Light / Dark Mode Toggle

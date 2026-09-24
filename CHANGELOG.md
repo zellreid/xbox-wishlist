@@ -14,6 +14,15 @@ for how a version is bumped and published.
 
 ---
 
+## v1.5.26267.2 (Sep 2026) - Drop hard-coded Xbox class names and dead CSS
+
+- No visible change. The filter and sort panels no longer carry Xbox's
+  hashed class names (for example `SortAndFilters-module__container___...`),
+  and two stylesheet rules written against hashed Xbox names are gone. Xbox
+  had already re-hashed or dropped every one of them, so none had any effect,
+  and hard-coded hashed names break whenever Xbox rebuilds its site.
+- Removed the unused select2 styles (the extension never used select2).
+
 ## v1.5.26267.1 (Sep 2026) - Light mode
 
 - Our panels, pills, chips and menus now follow Xbox's light or dark theme.

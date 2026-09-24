@@ -1098,13 +1098,13 @@ window.XboxWishlistCore = {
                 if (getElement(`#${CONFIG.ids.filterContainer}`, false)) return;
                 const fc = document.createElement('div');
                 fc.id = CONFIG.ids.filterContainer;
-                fc.classList.add('filter-section', 'SortAndFilters-module__container___yA+Vp', 'ifc-hidden');
+                fc.classList.add('filter-section', 'ifc-hidden');
                 const fl = document.createElement('div');
-                fl.classList.add('filter-list', 'SortAndFilters-module__filterList___T81LH');
+                fl.classList.add('filter-list');
                 const headerRow = document.createElement('div');
                 headerRow.className = 'ifc-filter-header-row';
                 const h = document.createElement('h2');
-                h.classList.add('filter-text-heading', 'typography-module__spotLightSubtitlePortrait___RB7M0', 'SortAndFilters-module__filtersText___8OwXG');
+                h.classList.add('filter-text-heading');
                 h.textContent = 'Filters';
                 const clearBtn = document.createElement('button');
                 clearBtn.id = CONFIG.ids.clearButton;
@@ -1116,7 +1116,7 @@ window.XboxWishlistCore = {
                 const tc = document.createElement('div');
                 tc.id = CONFIG.ids.tagContainer; tc.className = 'ifc-tag-container ifc-hidden';
                 const fg = document.createElement('ul');
-                fg.classList.add('filter-groups', 'SortAndFilters-module__filterList___T81LH');
+                fg.classList.add('filter-groups');
                 fl.appendChild(headerRow); fl.appendChild(tc); fl.appendChild(fg); fc.appendChild(fl);
                 document.body.appendChild(fc);
                 // (the Filter button wires its own click in addFilterButton - see reinitAfterRerender)
@@ -2200,11 +2200,11 @@ window.XboxWishlistCore = {
                 if (getElement(`#${CONFIG.ids.sortContainer}`, false)) return;
                 const sc = document.createElement('div');
                 sc.id = CONFIG.ids.sortContainer;
-                sc.classList.add('filter-section', 'SortAndFilters-module__container___yA+Vp', 'ifc-hidden');
+                sc.classList.add('filter-section', 'ifc-hidden');
                 const sl = document.createElement('div');
-                sl.classList.add('filter-list', 'SortAndFilters-module__filterList___T81LH');
+                sl.classList.add('filter-list');
                 const h = document.createElement('h2');
-                h.classList.add('filter-text-heading', 'typography-module__spotLightSubtitlePortrait___RB7M0', 'SortAndFilters-module__filtersText___8OwXG');
+                h.classList.add('filter-text-heading');
                 h.textContent = 'Sort';
                 const scc = document.createElement('div');
                 scc.id = 'ifc_sort_criteria_container'; scc.className = 'ifc-sort-criteria-container';
