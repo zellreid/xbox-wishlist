@@ -3,7 +3,7 @@ project: Xbox Wishlist
 label: Personal
 phase: Live
 priority: Medium
-next_milestone: Live check of T-19 light mode using the new F-39 Theme button (v1.5.26267.3); then F-40 DLC indicator
+next_milestone: Live check of T-19 + F-39 with the theme switch fixes (v1.5.26267.4); then F-40 DLC indicator
 target_date: none
 hard_deadline: false
 blockers: []
@@ -17,7 +17,7 @@ updated: 2026-09-24
 > Never put credentials, keys, connection strings or secrets in this file.
 
 ## Now
-- Live at v1.5.26267.3. F-39 built: a Theme button (before Refresh) switches the whole page light/dark and remembers it; this unblocks the T-19 live check (xbox.com has no theme switch). Known limit: Xbox loads only one theme's colour sheet, so its own BUY/DETAILS buttons are uncoloured after switching (decision pending, F-39b).
+- Live at v1.5.26267.4. F-39 theme switch fixed after live feedback: the site header is switched too (it was white on white), and Xbox's own colour sheet for the other theme is loaded at runtime so BUY/DETAILS and toolbar buttons keep their colours (F-39b resolved without copying Xbox CSS). Needs the live check.
 - Fixed: duplicate toolbar buttons when the page already holds a set (saved capture, or extension + userscript both installed). The harness now cleans captures saved with the extension running (?keepCapture keeps them).
 - T-17 closed (v1.5.26266.26): store pages stay; Load details uses a 1 s gap with back-off.
 - T-21 done (v1.5.26267.2): stale hard-coded Xbox class names and unused select2 CSS removed; computed styles identical before and after in light and dark.
@@ -25,8 +25,7 @@ updated: 2026-09-24
 ## TODO
 | ID | Item | Priority | Status | Next action |
 |---|---|---|---|---|
-| T-19 | Light mode styling fix | High | In Progress | Live check: use the new Theme button to view both modes (panels, chips, export menu, active buttons) |
-| F-39b | Keep Xbox's own buttons coloured after a theme switch | Medium | Blocked | Your decision: ship fallback copies of Xbox's two colour sheets (~55 KB, only used when Xbox's own is missing), or accept the limit |
+| T-19 | Light mode styling fix (+ F-39 theme switch) | High | In Progress | Live check on xbox.com with the Theme button: header, BUY buttons, toolbar, our panels and chips in both modes |
 | F-40 | DLC for wishlist games: has-DLC chip, add-ons link, DLC count | Medium | Todo | Build the free part (flag + link) first; count via add-ons page, cached |
 | F-38 | Run on product pages (diagnostics first) | Medium | Todo | HITL: approve manifest/@match change for /games/store/*; DOA6 product mock as fixture |
 | T-06 | Live check in Chrome and the Tampermonkey userscript (Edge done) | Low | Todo | Push the new icons, then repeat the Edge checks in Chrome and Tampermonkey |
@@ -39,8 +38,8 @@ updated: 2026-09-24
 + 6 more in docs/04-FEATURE-BREAKDOWN.md and docs/01-PRD.md (E-06, T-02, F-28 to F-30, Firefox/Safari support)
 
 ## Recent sessions
+- 2026-09-24: F-39 fixes (v1.5.26267.4) from live feedback + new mocks 20260924_1542_Dark/_Light: header custom element theme switched; Xbox's own theme colour sheet found and loaded at runtime (F-39b resolved); harness keeps inert script placeholders; PASS on all 5 mocks, both switch directions verified with staged sheets
 - 2026-09-24: F-39 theme toggle (v1.5.26267.3): whole-page light/dark via Xbox's own theme marks, saved and re-applied on resets; found Xbox loads only one theme's colour sheet (F-39b decision); mock harness PASS on all 3 mocks incl. both directions, ?persist reload and simulated resets
 - 2026-09-24: T-21 (v1.5.26267.2): removed 7 stale hashed Xbox class names from the panels, 2 hashed-class CSS rules and the unused select2 CSS; 0 computed-style differences (32,614 properties each) on light and dark mocks; mock harness PASS on all 3 mocks
 - 2026-09-24: T-19 light mode (v1.5.26267.1): theme tokens (dark unchanged, verified), white icons on active buttons, duplicate-toolbar fix, harness cleans captures saved with the extension (?keepCapture); mock harness PASS on all 3 mocks, light mock screenshots checked
 - 2026-09-23: T-17 closed (v1.5.26266.26): kept store pages, removed the diagnostic, Load details gap 2 s -> 1 s with back-off to 8 s on errors/slow answers; mock harness PASS on all 3 mocks, back-off verified with a failure/success/429 shim
-- 2026-09-23: T-17 v3 live report analysed: per-game service usable without login but not faster; catalogue fast but lacks FPS Boost; POST route exists. Recommended keeping store pages and removing the diagnostic; no code changed (harness not run, no version bump)

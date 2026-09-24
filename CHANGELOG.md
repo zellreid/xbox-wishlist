@@ -14,6 +14,18 @@ for how a version is bumped and published.
 
 ---
 
+## v1.5.26267.4 (Sep 2026) - Theme switch fixes
+
+- Fixed: after switching to light, the Microsoft site header (Game Pass,
+  Games, Devices...) was white on white. Its links take their colour from
+  a theme setting on the header itself, which the switch now updates too.
+- Fixed: after a switch, Xbox's own BUY / DETAILS buttons and the toolbar
+  button backgrounds lost their colours. Xbox only loads the colours for
+  the theme the page opened in; the extension now loads Xbox's own colour
+  sheet for the other theme when you switch (found on the page each time,
+  so it keeps working after Xbox updates its site). If that ever fails, the
+  page stays usable and only those Xbox colours are missing.
+
 ## v1.5.26267.3 (Sep 2026) - Light / dark toggle
 
 - New "Theme" button in the toolbar, before Refresh, switches the whole

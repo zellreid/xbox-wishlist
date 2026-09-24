@@ -1016,13 +1016,14 @@ window.XboxWishlistCore = {
         state.debug = { loadProductData, getProductData, fetchPageState, loadDetails, detailsDelayMs: undefined };
 
         // ==================== LIGHT / DARK TOGGLE (F-39) ====================
-        // Xbox marks its theme in three places, and both its CSS and ours (the T-19 tokens)
+        // Xbox marks its theme in four places, and both its CSS and ours (the T-19 tokens)
         // key off them: <body> (data-theme="light|dark" + the dark class), the store app's
-        // wrapper (the dark class) and the site header (a light/dark mark; the footer keeps
-        // its own and is left alone). The toggle rewrites those marks for the whole page and
+        // wrapper (the dark class), the site header (a light/dark class) and the header's
+        // custom element (theme="light|dark", which colours its links). The footer keeps its
+        // own marks and is left alone. The toggle rewrites those marks for the whole page and
         // remembers the choice. Xbox's app manages <body>'s data-theme and can reset it on
         // in-app navigation, so enforceTheme() re-applies a saved choice when that happens.
-        const THEME_MARKS = { darkClass: 'theme-dark', headerMark: 'uhf-theme--', headerDark: 'uhf-theme--dark', headerLight: 'uhf-theme--light' };
+        const THEME_MARKS = { darkClass: 'theme-dark', headerMark: 'uhf-theme--', headerDark: 'uhf-theme--dark', headerLight: 'uhf-theme--light', headerElement: 'uhf-header' };
 
         function currentTheme() {
             return document.body && document.body.dataset.theme === 'light' ? 'light' : 'dark';
@@ -1039,6 +1040,10 @@ window.XboxWishlistCore = {
             document.querySelectorAll(`header[class*="${THEME_MARKS.headerMark}"]`).forEach(el => {
                 if (el.classList.contains(THEME_MARKS.headerDark) !== dark) { el.classList.toggle(THEME_MARKS.headerDark, dark); el.classList.toggle(THEME_MARKS.headerLight, !dark); }
             });
+            document.querySelectorAll(`${THEME_MARKS.headerElement}[theme]`).forEach(el => {
+                if (el.getAttribute('theme') !== theme) el.setAttribute('theme', theme);
+            });
+            ensureThemeSheets();
         }
         function enforceTheme() {
             try { if (state.theme && (currentTheme() !== state.theme || needsThemeMarks())) applyTheme(state.theme); }
@@ -1048,8 +1053,70 @@ window.XboxWishlistCore = {
         function needsThemeMarks() {
             const dark = state.theme === 'dark', appClass = resolveClass(PREFIXES.appBackground);
             const wrapperWrong = appClass && Array.from(document.getElementsByClassName(appClass)).some(el => el.classList.contains(THEME_MARKS.darkClass) !== dark);
-            const headerWrong = Array.from(document.querySelectorAll(`header[class*="${THEME_MARKS.headerMark}"]`)).some(el => el.classList.contains(THEME_MARKS.headerDark) !== dark);
+            const headerWrong = Array.from(document.querySelectorAll(`header[class*="${THEME_MARKS.headerMark}"]`)).some(el => el.classList.contains(THEME_MARKS.headerDark) !== dark)
+                || Array.from(document.querySelectorAll(`${THEME_MARKS.headerElement}[theme]`)).some(el => el.getAttribute('theme') !== state.theme);
             return !!(wrapperWrong || headerWrong);
+        }
+
+        // Xbox loads only the colour sheet for the theme the page opened in: its design
+        // variables (--gds-*), which draw its own buttons (BUY, DETAILS, toolbar). After a
+        // switch those are missing, so load Xbox's own sheets for the other themes, found at
+        // runtime (their file names change with every Xbox release, so nothing is hard-coded):
+        // Xbox's script maps each stylesheet chunk id to its file hash, and its theme loader
+        // requests the theme chunks side by side. Each candidate is fetched first and only
+        // added if it is purely a theme sheet (rules scoped to body[data-theme=...] plus
+        // fonts), so a wrong guess can never restyle the page. Any failure leaves the page as
+        // it was (our own UI switches either way).
+        const THEME_TOKEN_PROBE = '--gds-backplateSolidBrandRest';
+        let themeSheetsLoading = null;
+
+        function ensureThemeSheets() {
+            if (themeSheetsLoading || !document.body) return;
+            if (getComputedStyle(document.body).getPropertyValue(THEME_TOKEN_PROBE).trim()) return;   // Xbox's colours are there
+            themeSheetsLoading = loadThemeSheets(currentTheme())
+                .catch(ex => console.warn('[XBOX Wishlist] Could not load Xbox\'s colours for this theme:', ex.message));
+        }
+        function isThemeOnlySheet(css) {
+            const rules = css.replace(/\/\*[\s\S]*?\*\//g, '').match(/[^{}]+\{[^{}]*\}/g) || [];
+            return rules.length > 0 && rules.every(r => { const sel = r.slice(0, r.indexOf('{')).trim(); return sel === '@font-face' || /^body\[data-theme=["']?[a-z-]+["']?\]$/.test(sel); })
+                && rules.some(r => /^body\[data-theme=/.test(r.trim()));
+        }
+        async function loadThemeSheets(theme) {
+            const forTheme = new RegExp(`body\\[data-theme=["']?${theme}["']?\\]`);
+            const chunkName = /\/(\d+)\.([0-9a-f]{8,})\.chunk\.css(?:[?#].*)?$/;
+            const loaded = Array.from(document.querySelectorAll('link[rel="stylesheet"][href]'))
+                .map(l => ({ href: l.href, m: l.href.match(chunkName) })).filter(x => x.m);
+            if (!loaded.length) throw new Error('no numbered stylesheet chunks on the page');
+            const base = loaded[0].href.slice(0, loaded[0].href.lastIndexOf('/') + 1);
+            // Xbox's own scripts from the same folder; the likely home of the stylesheet map
+            // (webpack's runtime, usually the main "client" bundle) is tried first
+            const likely = src => /\/(client|runtime|main)[.-]/i.test(src) ? 0 : 1;
+            const scripts = Array.from(document.scripts).map(s => s.src).filter(src => src && src.startsWith(base))
+                .sort((a, b) => likely(a) - likely(b)).slice(0, 15);
+            for (const src of scripts) {
+                const text = await (await fetch(src)).text();
+                for (const { m } of loaded) {
+                    // The stylesheet map: a flat {id:"hash",...} holding a sheet we know is loaded
+                    const at = text.indexOf(`${m[1]}:"${m[2]}"`); if (at < 0) continue;
+                    const hashes = new Map(Array.from(text.slice(text.lastIndexOf('{', at), text.indexOf('}', at)).matchAll(/(\d+):"([0-9a-f]{8,})"/g), x => [x[1], x[2]]));
+                    // The theme loader: chunk requests like .e(1950) ... .e(5398) next to each other
+                    const call = text.indexOf(`.e(${m[1]})`); if (call < 0) continue;
+                    const ids = [...new Set(Array.from(text.slice(Math.max(0, call - 800), call + 800).matchAll(/\.e\((\d+)\)/g), x => x[1]))]
+                        .filter(id => id !== m[1] && hashes.has(id));
+                    for (const id of ids) {
+                        const href = `${base}${id}.${hashes.get(id)}.chunk.css`;
+                        if (document.querySelector(`link[href="${CSS.escape(href)}"]`)) continue;
+                        const r = await fetch(href); if (!r.ok) continue;
+                        const css = await r.text();
+                        if (!isThemeOnlySheet(css) || !forTheme.test(css)) continue;   // only the sheet for the theme now shown
+                        const link = document.createElement('link');
+                        link.rel = 'stylesheet'; link.href = href; link.dataset.ifcThemeSheet = id;
+                        document.head.appendChild(link);
+                        return;
+                    }
+                }
+            }
+            throw new Error('Xbox\'s theme stylesheets were not found');
         }
         function watchThemeMarks() {
             try {

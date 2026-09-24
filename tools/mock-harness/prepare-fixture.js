@@ -30,12 +30,15 @@ function toUrlPath(p) {
 
 // Strips every <script> except Xbox's embedded app state (window.__PRELOADED_STATE__),
 // which is kept as non-executing text/plain so the core's product-data reader can
-// parse it exactly as it does on the live page.
+// parse it exactly as it does on the live page. External scripts are kept as inert
+// text/plain placeholders with their src (never fetched or run), so code that looks up
+// the page's script addresses (the F-39 theme-sheet finder) sees them as on the live page.
 function stripScripts(html) {
-    return html.replace(/<script[\s\S]*?<\/script>/gi, (tag) =>
-        tag.includes('__PRELOADED_STATE__')
-            ? tag.replace(/^<script[^>]*>/i, '<script type="text/plain" data-harness-kept="preloaded-state">')
-            : '');
+    return html.replace(/<script[\s\S]*?<\/script>/gi, (tag) => {
+        if (tag.includes('__PRELOADED_STATE__')) return tag.replace(/^<script[^>]*>/i, '<script type="text/plain" data-harness-kept="preloaded-state">');
+        const src = (tag.match(/^<script[^>]*\ssrc="([^"]+)"/i) || [])[1];
+        return src ? `<script type="text/plain" data-harness-kept="src" src="${src}"></script>` : '';
+    });
 }
 
 function buildHarnessBlock(outDir) {

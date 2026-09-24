@@ -76,6 +76,15 @@ result line says what was cleaned ("capture: ..."). Add `?keepCapture` to
 skip this and test how the extension copes with a page that already holds
 its elements (e.g. no duplicate toolbar buttons).
 
+**Scripts:** the fixture strips every script so Xbox's app can't re-render the
+frozen page, but keeps external ones as inert `text/plain` placeholders with
+their `src` (browsers never fetch or run those). Code that looks up the page's
+script addresses - the theme switch's finder for Xbox's colour sheets (F-39) -
+then sees them as on the live page. A capture only holds the colour sheet for
+the theme it was saved in; to test a switch to the other theme, copy that
+sheet (e.g. `1950.<hash>.chunk.css` from a light capture) next to it and
+remove it afterwards.
+
 A plain `file://` open won't work reliably (fetching the SVG icons via
 `fetch()` is blocked from `file://` origins in most browsers) - always go
 through the server.
