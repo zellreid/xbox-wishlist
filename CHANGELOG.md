@@ -14,6 +14,15 @@ for how a version is bumped and published.
 
 ---
 
+## v1.5.26267.7 (Sep 2026) - Crisper Export and Filter icons
+
+- Fixed: the Export icon's folded corner looked like it spilled over the
+  top and right edges. The overlapping square line ends at the fold are
+  replaced by clean pointed corners, and the icon is re-laid on the
+  toolbar's pixel grid so its straight lines fall on whole pixels (they
+  were half a pixel off, which blurred them across two pixels).
+- The Filter icon's three lines also sit on whole pixels now, evenly spaced.
+
 ## v1.5.26267.6 (Sep 2026) - Filter and Sort icons match the Xbox icons
 
 - The Filter and Sort icons are redrawn in Xbox's icon style too, so all of
