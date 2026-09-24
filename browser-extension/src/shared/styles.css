@@ -399,13 +399,6 @@ ul.filter-groups {
 }
 
 /* ==================== EXPORT MENU ==================== */
-/* export.svg is an outline (stroke) icon; Xbox's icon classes force a fill,
-   which would render it as solid shapes */
-#ifc_img_Export svg,
-#ifc_img_Export svg * {
-    fill: none;
-}
-
 /* Positioned against #ifc_ButtonContainer (position: fixed), under the buttons */
 .ifc-export-menu {
     position: absolute;

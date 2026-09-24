@@ -14,6 +14,23 @@ for how a version is bumped and published.
 
 ---
 
+## v1.5.26267.6 (Sep 2026) - Filter and Sort icons match the Xbox icons
+
+- The Filter and Sort icons are redrawn in Xbox's icon style too, so all of
+  our toolbar icons now share Xbox's line weight, square line ends and
+  size (14 px, 1 px in from the edge, like Xbox's share icon).
+- Fixed: the Sort icon was drawn too large for its button, pushed off
+  centre and cropped (the file had no scaling information). It is now the
+  standard down-and-up arrows sort symbol.
+- The Export icon is now exactly the same height as the others, centred.
+
+## v1.5.26267.5 (Sep 2026) - Export icon matches the Xbox icons
+
+- The Export button's icon was drawn in a different icon style (thicker,
+  rounded lines). It is now redrawn in Xbox's own icon style - same
+  design, with the thinner lines and square ends of the other toolbar
+  icons - and takes their colours like the rest (white when active).
+
 ## v1.5.26267.4 (Sep 2026) - Theme switch fixes
 
 - Fixed: after switching to light, the Microsoft site header (Game Pass,
