@@ -14,6 +14,16 @@ for how a version is bumped and published.
 
 ---
 
+## v1.5.26267.9 (Sep 2026) - Theme switch keeps the site header intact
+
+- Fixed: after switching theme, the Microsoft site header's menu fell
+  apart (items scattered over two rows, a second row overlapping the list,
+  a grey bar). The header rebuilds itself when its own theme setting
+  changes, so the extension no longer touches that setting. It now only
+  changes the header's colours - through the colour settings the header
+  itself provides, with the values read from Xbox's own stylesheets - and
+  its logos.
+
 ## v1.5.26267.8 (Sep 2026) - Theme switch: logos and Xbox colours on the live site
 
 - Fixed: after switching theme, the Microsoft and Xbox logos in the site

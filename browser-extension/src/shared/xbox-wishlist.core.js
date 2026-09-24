@@ -1016,14 +1016,16 @@ window.XboxWishlistCore = {
         state.debug = { loadProductData, getProductData, fetchPageState, loadDetails, detailsDelayMs: undefined };
 
         // ==================== LIGHT / DARK TOGGLE (F-39) ====================
-        // Xbox marks its theme in four places, and both its CSS and ours (the T-19 tokens)
-        // key off them: <body> (data-theme="light|dark" + the dark class), the store app's
-        // wrapper (the dark class), the site header (a light/dark class) and the header's
-        // custom element (theme="light|dark", which colours its links). The footer keeps its
-        // own marks and is left alone. The toggle rewrites those marks for the whole page and
-        // remembers the choice. Xbox's app manages <body>'s data-theme and can reset it on
-        // in-app navigation, so enforceTheme() re-applies a saved choice when that happens.
-        const THEME_MARKS = { darkClass: 'theme-dark', headerMark: 'uhf-theme--', headerDark: 'uhf-theme--dark', headerLight: 'uhf-theme--light', headerElement: 'uhf-header', navElement: 'uhf-contextual-nav' };
+        // Xbox marks its theme on <body> (data-theme="light|dark" + the dark class), on the
+        // store app's wrapper (the dark class) and on the site header (a light/dark class), and
+        // both its CSS and ours (the T-19 tokens) key off those marks; the toggle rewrites them
+        // and remembers the choice. The site header is a web component that rebuilds itself
+        // (other theme's menus, broken layout) if its own theme attribute changes, so that is
+        // left alone: its colours are switched through its CSS override hooks and its logos by
+        // image (see below). The footer keeps its own marks. Xbox's app manages <body>'s
+        // data-theme and can reset it on in-app navigation, so enforceTheme() re-applies a
+        // saved choice when that happens.
+        const THEME_MARKS = { darkClass: 'theme-dark', headerMark: 'uhf-theme--', headerDark: 'uhf-theme--dark', headerLight: 'uhf-theme--light', headerElement: 'uhf-header', skipLink: 'uhf-skip-link' };
 
         function currentTheme() {
             return document.body && document.body.dataset.theme === 'light' ? 'light' : 'dark';
@@ -1040,11 +1042,79 @@ window.XboxWishlistCore = {
             document.querySelectorAll(`header[class*="${THEME_MARKS.headerMark}"]`).forEach(el => {
                 if (el.classList.contains(THEME_MARKS.headerDark) !== dark) { el.classList.toggle(THEME_MARKS.headerDark, dark); el.classList.toggle(THEME_MARKS.headerLight, !dark); }
             });
-            document.querySelectorAll(`${THEME_MARKS.headerElement}[theme]`).forEach(el => {
-                if (el.getAttribute('theme') !== theme) el.setAttribute('theme', theme);
-            });
+            applyHeaderColours(theme);
             applyHeaderLogos(theme);
             ensureThemeSheets();
+        }
+
+        // Header colours. Every colour of the header is a CSS variable with an "-override" hook
+        // (e.g. --uhf-header-link-color: var(--uhf-header-link-color-override, #262626)), keyed on
+        // the component's own theme attribute - which we must not change. So for the other theme
+        // its values are set as overrides on the component. Both themes' values are read from
+        // Xbox's own stylesheets in a hidden, empty frame holding two plain probe elements (the
+        // header component isn't registered there, so nothing is built; computed values are
+        // readable even when a stylesheet from another host isn't). Nothing is hard-coded.
+        let headerColours = null;          // Promise of { light: { var: value }, dark: {...} }
+        let headerColoursKnown = null;     // the same, once read
+        const headerNativeTheme = () => {
+            const el = document.querySelector(`${THEME_MARKS.headerElement}[theme]`);
+            return el && el.getAttribute('theme') === 'dark' ? 'dark' : 'light';
+        };
+        function readHeaderColours() {
+            if (headerColours) return headerColours;
+            headerColours = new Promise(resolve => {
+                const empty = { light: {}, dark: {} };
+                try {
+                    const frame = document.createElement('iframe');
+                    frame.setAttribute('aria-hidden', 'true'); frame.tabIndex = -1;
+                    frame.style.cssText = 'position:absolute;width:0;height:0;border:0;visibility:hidden';
+                    const sheets = Array.from(document.querySelectorAll('link[rel="stylesheet"][href]')).map(l => l.href).filter(h => /^https?:/i.test(h))
+                        .map(h => `<link rel="stylesheet" href="${h.replace(/&/g, '&amp;').replace(/"/g, '&quot;')}">`).join('');
+                    const el = THEME_MARKS.headerElement;
+                    frame.srcdoc = `<!doctype html><html><head>${sheets}</head><body>`
+                        + `<div class="${el}" id="l"></div><a class="${THEME_MARKS.skipLink}" id="ls"></a>`
+                        + `<${el} theme="dark"><div class="${el}" id="d"></div><a class="${THEME_MARKS.skipLink}" id="ds"></a></${el}></body></html>`;
+                    let done = false;
+                    const finish = () => {
+                        if (done) return; done = true;
+                        const out = { light: {}, dark: {} };
+                        try {
+                            const doc = frame.contentDocument, win = frame.contentWindow;
+                            [['l', 'd'], ['ls', 'ds']].forEach(([li, di]) => {
+                                const ls = win.getComputedStyle(doc.getElementById(li)), ds = win.getComputedStyle(doc.getElementById(di));
+                                Array.from(ls).filter(p => p.startsWith('--uhf-') && !p.endsWith('-override')).forEach(p => {
+                                    const lv = ls.getPropertyValue(p).trim(), dv = ds.getPropertyValue(p).trim();
+                                    if (lv && dv && lv !== dv) { out.light[p] = lv; out.dark[p] = dv; }
+                                });
+                            });
+                        } catch (ex) { console.error('Failed to read the header colours:', ex); }
+                        frame.remove();
+                        headerColoursKnown = out;
+                        resolve(out);
+                    };
+                    frame.addEventListener('load', finish);
+                    setTimeout(finish, 5000);   // never wait on a stylesheet forever
+                    document.body.appendChild(frame);
+                } catch (ex) { console.error('Failed to read the header colours:', ex); headerColoursKnown = empty; resolve(empty); }
+            });
+            return headerColours;
+        }
+        function applyHeaderColours(theme) {
+            const host = document.querySelector(`${THEME_MARKS.headerElement}[theme]`); if (!host) return;
+            const set = colours => Object.keys(colours.light).forEach(p => {
+                const want = theme === headerNativeTheme() ? '' : colours[theme][p];   // native theme: no overrides
+                if (host.style.getPropertyValue(`${p}-override`) !== want) {
+                    if (want) host.style.setProperty(`${p}-override`, want); else host.style.removeProperty(`${p}-override`);
+                }
+            });
+            if (headerColoursKnown) set(headerColoursKnown);
+            else if (theme !== headerNativeTheme()) readHeaderColours().then(set);
+        }
+        function headerColoursWrong() {
+            const host = document.querySelector(`${THEME_MARKS.headerElement}[theme]`);
+            if (!host || !headerColoursKnown) return false;
+            const native = state.theme === headerNativeTheme();
+            return Object.keys(headerColoursKnown.light).some(p => host.style.getPropertyValue(`${p}-override`) !== (native ? '' : headerColoursKnown[state.theme][p]));
         }
 
         // The header's Microsoft and Xbox logos are images with one version per theme (white ones
@@ -1081,11 +1151,8 @@ window.XboxWishlistCore = {
                 const to = map.get(logoFile(img.getAttribute('src')));
                 if (to && logoFile(to) !== logoFile(img.getAttribute('src'))) img.setAttribute('src', to);
             });
-            // The nav element renders the Xbox logo from this attribute, so a re-render keeps the right one
-            document.querySelectorAll(`${THEME_MARKS.navElement}[logoimageurl]`).forEach(el => {
-                const to = map.get(logoFile(el.getAttribute('logoimageurl')));
-                if (to && el.getAttribute('logoimageurl') !== to) el.setAttribute('logoimageurl', to);
-            });
+            // (The nav component's own logo attribute is left alone - changing it makes the
+            // component re-render; if it ever does, the watcher swaps the image back.)
         }
         function headerLogosWrong() {
             const map = headerLogos()[state.theme];
@@ -1100,9 +1167,8 @@ window.XboxWishlistCore = {
         function needsThemeMarks() {
             const dark = state.theme === 'dark', appClass = resolveClass(PREFIXES.appBackground);
             const wrapperWrong = appClass && Array.from(document.getElementsByClassName(appClass)).some(el => el.classList.contains(THEME_MARKS.darkClass) !== dark);
-            const headerWrong = Array.from(document.querySelectorAll(`header[class*="${THEME_MARKS.headerMark}"]`)).some(el => el.classList.contains(THEME_MARKS.headerDark) !== dark)
-                || Array.from(document.querySelectorAll(`${THEME_MARKS.headerElement}[theme]`)).some(el => el.getAttribute('theme') !== state.theme);
-            return !!(wrapperWrong || headerWrong || headerLogosWrong());
+            const headerWrong = Array.from(document.querySelectorAll(`header[class*="${THEME_MARKS.headerMark}"]`)).some(el => el.classList.contains(THEME_MARKS.headerDark) !== dark);
+            return !!(wrapperWrong || headerWrong || headerColoursWrong() || headerLogosWrong());
         }
 
         // Xbox loads only the colour sheet for the theme the page opened in: its design
