@@ -283,7 +283,7 @@
 - The POST to the sibling `products` path passed the browser's CORS check and was refused only for the API version, so a many-ids route exists. Likely without capabilities: the wishlist page's own summaries (probably from a bulk call) have none.
 - Most of the "Load details" duration is our deliberate 2 s gap between games, not the source.
 
-**Recommendation (awaiting decision):** keep store pages for "Load details"; remove the diagnostic (UI block, request watcher, catalogue call). Optional: shorten the gap to ~1 s with automatic back-off on 429 or errors. Optional v4 only if evidence is wanted (also useful to Digital Unite): POST with other API versions, plus per-capability coverage of catalogue attributes across all cached games.
+**Decision (2026-09-23) - DONE in v1.5.26266.26:** keep store pages for "Load details" and the per-item refresh. The diagnostic is removed (UI block, request watcher, catalogue call, styles). "Load details" now waits 1 s between games instead of 2 s. After an error or an answer slower than 3 s the gap doubles, up to 8 s; after normal answers it halves back toward 1 s; HTTP 429 still stops the run. About half the time for a full wishlist. Harness: shim with 3 failures, 5 successes, then a 429 measured gaps of 100/200/400 then 200/100/50/50/50 ms (50 ms test base), then a clean stop. The learnings above are kept for Digital Unite, to test there when ready (the v4 ideas, POST with other API versions and per-capability catalogue coverage, fit better there). Note: `manifest.json` has had a host permission for the public catalogue since the initial commit; nothing uses it now. Removing it is a manifest change (HITL).
 
 **Digital Unite (2026-09-23):** the per-game xbox.com service is not suitable for Digital Unite's server-side ingestion. It is an undocumented front end for xbox.com, its CORS rules are built around browser requests from www.xbox.com, it needs site-specific headers, and it serves one game per request. Digital Unite already plans the public catalogue (F2-02). What does carry over from here: capability keys (XPA, ConsoleGen9Optimized, ConsoleCrossGen and others), productKind (Game / Durable / Consumable), offer shapes (`endDateUtc` format, XPrice / GamePass / EAAccess eligibility), and, once the v3 live run reports it, whether the catalogue's attributes match store-page capabilities.
 
@@ -307,6 +307,17 @@
 | 3 | Re-check both mocks (dark `20260923_1032`, light `20260923_1603`) visually |
 
 Note (2026-09-23): the light mock was saved with our panel already injected (old version), and the harness re-uses those saved `ifc_` elements, so it shows the old UI. Fine for the style comparison; for behaviour tests, have `prepare-fixture.js` strip saved `ifc_` elements (or re-save the page with the extension off).
+
+---
+
+### T-20 - Remove the Unused Public-Catalogue Host Permission
+
+**Why:** `manifest.json` has listed a host permission for Microsoft's public product catalogue since the initial commit. After T-17 nothing uses it, and unused permissions widen what the extension can reach and draw store-review questions.
+
+| Step | Task |
+|------|------|
+| 1 | HITL: approve the manifest change (AGENTS 2.7 trigger #10) |
+| 2 | Remove the entry from `host_permissions`; reload unpacked; check Load details and the per-item refresh still work (both use same-origin store pages) |
 
 ---
 

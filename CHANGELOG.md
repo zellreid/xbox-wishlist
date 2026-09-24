@@ -14,6 +14,18 @@ for how a version is bumped and published.
 
 ---
 
+## v1.5.26266.26 (Sep 2026) - Faster "Load details"; lookup test removed
+
+- "Load details" now reads about one game a second instead of one every
+  2 seconds, roughly halving the time for a full wishlist. If Xbox answers
+  with an error or slowly, it automatically waits longer between games (up
+  to 8 seconds), then speeds back up once answers are normal again. If Xbox
+  says it's limiting requests, the run still stops.
+- Removed the temporary "Test: faster lookup" block (T-17). The test showed
+  the store pages remain the right source: the store's own product service
+  works but isn't faster, and the public catalogue is fast but doesn't carry
+  all the capabilities the store pages show.
+
 ## v1.5.26266.25 (Sep 2026) - Lookup test v3 (T-17, temporary)
 
 - The v2 live run showed the product-data service wants one more header: a

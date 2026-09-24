@@ -292,33 +292,6 @@ ul.filter-groups {
     font-weight: 600;
 }
 
-/* T-17 bulk lookup test block (temporary - remove with the diagnostic) */
-.ifc-diag {
-    margin-top: 10px;
-    padding-top: 8px;
-    border-top: 1px dashed rgba(255, 185, 0, 0.5);
-}
-
-.ifc-diag-title {
-    font-size: 0.75rem;
-    font-weight: 600;
-    color: #ffb900;
-    margin-bottom: 6px;
-}
-
-.ifc-diag-output {
-    width: 100%;
-    box-sizing: border-box;
-    height: 180px;
-    margin: 6px 0;
-    background: #1a1a1a;
-    color: #dddddd;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 4px;
-    font: 11px Consolas, monospace;
-    resize: vertical;
-}
-
 /* "Load details" bar at the top of the Capabilities section */
 .ifc-details-bar {
     display: flex;
