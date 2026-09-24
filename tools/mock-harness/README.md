@@ -67,6 +67,15 @@ turns amber ("HARNESS SKIPPED") because the sanity checks assume no filters
 and would overwrite the state being inspected - inspect the restored UI
 manually or by script instead. Closing the tab clears the store.
 
+**Captures saved with the extension running:** before loading the extension
+code, the harness removes whatever an earlier copy of the extension had
+injected into the saved page (panels, toolbar buttons, tag rows, badges) and
+our marks on Xbox's own elements (item classes and `data-ifc-*` data, the
+toolbar id), so the code under test starts from a clean page. The first
+result line says what was cleaned ("capture: ..."). Add `?keepCapture` to
+skip this and test how the extension copes with a page that already holds
+its elements (e.g. no duplicate toolbar buttons).
+
 A plain `file://` open won't work reliably (fetching the SVG icons via
 `fetch()` is blocked from `file://` origins in most browsers) - always go
 through the server.

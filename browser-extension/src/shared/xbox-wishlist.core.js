@@ -658,6 +658,10 @@ window.XboxWishlistCore = {
                     document.body.appendChild(buttonContainer);
                 }
                 buttonContainer.id = CONFIG.ids.buttonContainer;
+                // Our toolbar items left by another copy of this code (e.g. extension and userscript
+                // both installed, or a page saved with them in) would sit beside ours as dead
+                // duplicates - clear them so there is exactly one working set
+                buttonContainer.querySelectorAll('[id^="ifc_"]').forEach(el => el.remove());
                 state.ui.floatButtons = true;
             } catch (ex) { console.error('Failed to float buttons:', ex); }
         }

@@ -1,3 +1,60 @@
+/* ==================== THEME TOKENS (T-19) ==================== */
+/* Our colours. Dark by default (the original look); Xbox marks its theme on
+   <body> (data-theme="light" | "dark"), and on a light page the light set
+   takes over. Text we don't colour (accordion headings, checkbox labels)
+   inherits the page's own text colour, so it follows the theme by itself. */
+body {
+    --ifc-text: #f5f5f5;
+    --ifc-text-strong: #ffffff;
+    --ifc-text-soft: rgba(245, 245, 245, 0.8);
+    --ifc-tag-text: rgba(245, 245, 245, 0.85);
+    --ifc-text-muted: rgba(245, 245, 245, 0.7);
+    --ifc-placeholder: rgba(245, 245, 245, 0.5);
+    --ifc-panel-bg: rgba(30, 30, 30, 0.70);
+    --ifc-panel-shadow: none;
+    --ifc-menu-bg: #1f1f1f;
+    --ifc-menu-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    --ifc-field-bg: #2d2d2d;
+    --ifc-control-bg: rgba(255, 255, 255, 0.08);
+    --ifc-control-bg-hover: rgba(255, 255, 255, 0.16);
+    --ifc-control-border: rgba(255, 255, 255, 0.2);
+    --ifc-hover-bg: rgba(255, 255, 255, 0.12);
+    --ifc-chip-border: rgba(255, 255, 255, 0.25);
+    --ifc-chip-border-strong: rgba(255, 255, 255, 0.35);
+    --ifc-accent-text: #9dd85c;
+    --ifc-accent-border: rgba(157, 216, 92, 0.45);
+    --ifc-warn: #ffb900;
+    --ifc-track: #3d3d3d;
+    --ifc-check: #ffffff;
+    --ifc-check-mark: #262626;
+}
+
+body[data-theme="light"] {
+    --ifc-text: #1a1a1a;
+    --ifc-text-strong: #000000;
+    --ifc-text-soft: rgba(0, 0, 0, 0.72);
+    --ifc-tag-text: rgba(0, 0, 0, 0.75);
+    --ifc-text-muted: rgba(0, 0, 0, 0.6);
+    --ifc-placeholder: rgba(0, 0, 0, 0.45);
+    --ifc-panel-bg: rgba(255, 255, 255, 0.94);
+    --ifc-panel-shadow: 0 4px 16px rgba(0, 0, 0, 0.16), 0 0 0 1px rgba(0, 0, 0, 0.08);
+    --ifc-menu-bg: #ffffff;
+    --ifc-menu-shadow: 0 4px 12px rgba(0, 0, 0, 0.16);
+    --ifc-field-bg: #ffffff;
+    --ifc-control-bg: rgba(0, 0, 0, 0.04);
+    --ifc-control-bg-hover: rgba(0, 0, 0, 0.09);
+    --ifc-control-border: rgba(0, 0, 0, 0.22);
+    --ifc-hover-bg: rgba(0, 0, 0, 0.07);
+    --ifc-chip-border: rgba(0, 0, 0, 0.25);
+    --ifc-chip-border-strong: rgba(0, 0, 0, 0.35);
+    --ifc-accent-text: #107c10;
+    --ifc-accent-border: rgba(16, 124, 16, 0.45);
+    --ifc-warn: #8a5300;
+    --ifc-track: #d2d2d2;
+    --ifc-check: #1a1a1a;
+    --ifc-check-mark: #ffffff;
+}
+
 #ifc_btn_Filter:hover {
     cursor: pointer;
 }
@@ -34,7 +91,7 @@
 
 /* Shown in place of "Viewing X of Y" when the extension was reloaded under an open tab */
 #ifc_lbl_Filter.ifc-context-lost {
-    color: #ffb900;
+    color: var(--ifc-warn);
     font-weight: 600;
 }
 
@@ -68,7 +125,8 @@
     --background-color: #262626;
     max-height: calc(100vh - 210px);
     overflow-y: auto;
-    background-color: rgba(30, 30, 30, 0.70) !important;
+    background-color: var(--ifc-panel-bg) !important;
+    box-shadow: var(--ifc-panel-shadow);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
 }
@@ -103,7 +161,7 @@ ul.filter-groups {
 .ifc-clear-all-btn {
     background: none;
     border: none;
-    color: #9dd85c;
+    color: var(--ifc-accent-text);
     font-size: 0.8rem;
     font-weight: 600;
     cursor: pointer;
@@ -124,14 +182,14 @@ ul.filter-groups {
     box-sizing: border-box;
     padding: 6px 10px;
     border-radius: 6px;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    background-color: rgba(255, 255, 255, 0.08);
-    color: #f5f5f5;
+    border: 1px solid var(--ifc-control-border);
+    background-color: var(--ifc-control-bg);
+    color: var(--ifc-text);
     font-size: 0.85rem;
 }
 
 .ifc-search-input::placeholder {
-    color: rgba(245, 245, 245, 0.5);
+    color: var(--ifc-placeholder);
 }
 
 /* ==================== QUICK FILTERS ==================== */
@@ -143,17 +201,17 @@ ul.filter-groups {
 }
 
 .ifc-quick-filter-btn {
-    background-color: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    background-color: var(--ifc-control-bg);
+    border: 1px solid var(--ifc-control-border);
     border-radius: 999px;
-    color: #f5f5f5;
+    color: var(--ifc-text);
     font-size: 0.75rem;
     padding: 4px 10px;
     cursor: pointer;
 }
 
 .ifc-quick-filter-btn:hover {
-    background-color: rgba(255, 255, 255, 0.16);
+    background-color: var(--ifc-control-bg-hover);
 }
 
 .ifc-quick-filter-btn.ifc-Active,
@@ -169,7 +227,7 @@ ul.filter-groups {
 }
 
 .ifc-quick-filter-btn:disabled:hover {
-    background-color: rgba(255, 255, 255, 0.08);
+    background-color: var(--ifc-control-bg);
 }
 
 /* ==================== DEAL END BADGE ==================== */
@@ -178,16 +236,16 @@ ul.filter-groups {
     margin-left: 6px;
     padding: 1px 6px;
     border-radius: 3px;
-    border: 1px solid rgba(255, 255, 255, 0.25);
-    color: rgba(245, 245, 245, 0.8);
+    border: 1px solid var(--ifc-chip-border);
+    color: var(--ifc-text-soft);
     font-size: 0.6875rem;
     white-space: nowrap;
     vertical-align: middle;
 }
 
 .ifc-deal-ends-soon {
-    border-color: #ffb900;
-    color: #ffb900;
+    border-color: var(--ifc-warn);
+    color: var(--ifc-warn);
 }
 
 /* ==================== ITEM TAGS (F-34) ==================== */
@@ -218,8 +276,8 @@ ul.filter-groups {
 }
 
 .ifc-item-tag-preorder {
-    border: 1px solid rgba(255, 255, 255, 0.25);
-    color: rgba(245, 245, 245, 0.85);
+    border: 1px solid var(--ifc-chip-border);
+    color: var(--ifc-tag-text);
 }
 
 .ifc-item-tag-icon {
@@ -228,9 +286,9 @@ ul.filter-groups {
 
 /* Item type chip (DLC / Consumable) */
 .ifc-item-tag-kind {
-    border: 1px solid rgba(255, 255, 255, 0.35);
-    color: #f5f5f5;
-    background-color: rgba(255, 255, 255, 0.08);
+    border: 1px solid var(--ifc-chip-border-strong);
+    color: var(--ifc-text);
+    background-color: var(--ifc-control-bg);
 }
 
 /* Per-item refresh button - first in the tag row */
@@ -241,20 +299,20 @@ ul.filter-groups {
     width: 20px;
     height: 18px;
     padding: 0;
-    border: 1px solid rgba(255, 255, 255, 0.25);
+    border: 1px solid var(--ifc-chip-border);
     border-radius: 3px;
     background: transparent;
-    color: rgba(245, 245, 245, 0.8);
+    color: var(--ifc-text-soft);
     cursor: pointer;
 }
 
 .ifc-item-refresh:hover {
-    background-color: rgba(255, 255, 255, 0.12);
-    color: #ffffff;
+    background-color: var(--ifc-hover-bg);
+    color: var(--ifc-text-strong);
 }
 
 .ifc-item-refresh:focus-visible {
-    outline: 2px solid #9dd85c;
+    outline: 2px solid var(--ifc-accent-text);
     outline-offset: 1px;
 }
 
@@ -273,8 +331,8 @@ ul.filter-groups {
 }
 
 .ifc-item-refresh.ifc-error {
-    border-color: #ffb900;
-    color: #ffb900;
+    border-color: var(--ifc-warn);
+    color: var(--ifc-warn);
 }
 
 @keyframes ifc-spin {
@@ -287,8 +345,8 @@ ul.filter-groups {
 
 /* Capability chips (F-36) - quiet, so deal pills stay the loudest */
 .ifc-item-tag-cap {
-    border: 1px solid rgba(157, 216, 92, 0.45);
-    color: #9dd85c;
+    border: 1px solid var(--ifc-accent-border);
+    color: var(--ifc-accent-text);
     font-weight: 600;
 }
 
@@ -303,7 +361,7 @@ ul.filter-groups {
 
 .ifc-details-status {
     font-size: 0.75rem;
-    color: rgba(245, 245, 245, 0.7);
+    color: var(--ifc-text-muted);
 }
 
 .ifc-item-tag-icon .ifc-glyph {
@@ -358,17 +416,17 @@ ul.filter-groups {
     flex-direction: column;
     min-width: 190px;
     padding: 4px;
-    background-color: #1f1f1f;
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    background-color: var(--ifc-menu-bg);
+    border: 1px solid var(--ifc-control-border);
     border-radius: 6px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    box-shadow: var(--ifc-menu-shadow);
 }
 
 .ifc-export-item {
     background: none;
     border: none;
     border-radius: 4px;
-    color: #f5f5f5;
+    color: var(--ifc-text);
     font-size: 0.8125rem;
     text-align: left;
     padding: 6px 10px;
@@ -376,7 +434,7 @@ ul.filter-groups {
 }
 
 .ifc-export-item:hover {
-    background-color: rgba(255, 255, 255, 0.12);
+    background-color: var(--ifc-hover-bg);
 }
 
 .ifc-export-item:disabled {
@@ -394,7 +452,7 @@ ul.filter-groups {
 .ifc-saved-presets-heading {
     font-size: 0.8125rem;
     font-weight: 600;
-    color: rgba(245, 245, 245, 0.7);
+    color: var(--ifc-text-muted);
     margin-bottom: 8px;
 }
 
@@ -427,11 +485,11 @@ ul.filter-groups {
 }
 
 .ifc-saved-preset-remove {
-    background-color: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    background-color: var(--ifc-control-bg);
+    border: 1px solid var(--ifc-control-border);
     border-left: none;
     border-radius: 0 999px 999px 0;
-    color: rgba(245, 245, 245, 0.7);
+    color: var(--ifc-text-muted);
     font-size: 0.75rem;
     padding: 4px 8px 4px 6px;
     cursor: pointer;
@@ -623,7 +681,7 @@ ul.filter-groups {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     font-size: 0.875rem;
     font-weight: 600;
-    color: #f5f5f5;
+    color: var(--ifc-text);
     margin: 0 0 10px 0;
     padding: 0;
 }
@@ -649,7 +707,7 @@ ul.filter-groups {
 .ifc-slider-label {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     font-size: 0.75rem;
-    color: #f5f5f5;
+    color: var(--ifc-text);
     margin-bottom: 15px;
     text-align: center;
     font-weight: 500;
@@ -679,7 +737,7 @@ ul.filter-groups {
         left: 0;
         right: 0;
         height: 6px;
-        background-color: #3d3d3d;
+        background-color: var(--ifc-track);
         border-radius: 3px;
         transform: translateY(-50%);
         z-index: 0;
@@ -930,8 +988,8 @@ ul.filter-groups {
     padding: 8px;
     border-radius: 4px;
     border: 1px solid #757575;
-    background-color: #2d2d2d;
-    color: #f5f5f5;
+    background-color: var(--ifc-field-bg);
+    color: var(--ifc-text);
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     font-size: 0.875rem;
 }
@@ -1003,6 +1061,8 @@ ul.filter-groups {
 .ifc-active-button {
     background-color: #107c10 !important;
     border-color: #107c10 !important;
+    /* White icon on the green in both themes (a light page would otherwise keep Xbox's dark icon) */
+    color: #ffffff !important;
 }
 
 /* ==================== XBOX-STYLE ACCORDION ==================== */
@@ -1126,7 +1186,7 @@ ul.filter-groups {
     height: 16px;
     min-width: 16px;
     min-height: 16px;
-    border: 1.5px solid #ffffff;
+    border: 1.5px solid var(--ifc-check);
     border-radius: 2px;
     background-color: transparent;
     cursor: pointer;
@@ -1136,7 +1196,7 @@ ul.filter-groups {
 }
 
     .ifc-checkbox:checked {
-        background-color: #ffffff;
+        background-color: var(--ifc-check);
     }
 
         .ifc-checkbox:checked::after {
@@ -1148,12 +1208,12 @@ ul.filter-groups {
             height: 8px;
             border: solid;
             border-width: 0 2px 2px 0;
-            border-color: #262626;
+            border-color: var(--ifc-check-mark);
             transform: rotate(45deg);
         }
 
     .ifc-checkbox:focus-visible {
-        outline: 2px solid #ffffff;
+        outline: 2px solid var(--ifc-check);
         outline-offset: 2px;
         border-radius: 2px;
     }

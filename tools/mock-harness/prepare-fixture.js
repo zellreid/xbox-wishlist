@@ -120,8 +120,29 @@ function buildHarnessBlock(outDir) {
         });
     }
 
+    // A capture saved while the extension was running still holds what it injected (panels,
+    // toolbar buttons, tag rows, badges) and its marks on Xbox's own elements (item classes and
+    // data, the toolbar id). Undo both, so the code under test starts from a clean page.
+    // ?keepCapture skips this, to test how the code copes with a page that already has them.
+    function cleanCapture() {
+        if (new URLSearchParams(location.search).has('keepCapture')) return 'kept (?keepCapture)';
+        const ours = el => el.id !== 'ifc-harness-banner' && ((/^(ifc_|injected)/.test(el.id) && el.id !== 'ifc_ButtonContainer')
+            || (el.classList.length > 0 && [...el.classList].every(c => c.startsWith('ifc-'))));
+        let removed = 0, unmarked = 0;
+        document.querySelectorAll('body *').forEach(el => { if (el.isConnected && ours(el)) { el.remove(); removed++; } });
+        document.querySelectorAll('body *').forEach(el => {
+            const before = el.attributes.length + el.classList.length;
+            [...el.classList].filter(c => c.startsWith('ifc-')).forEach(c => el.classList.remove(c));
+            [...el.attributes].filter(a => a.name.startsWith('data-ifc')).forEach(a => el.removeAttribute(a.name));
+            if (el.id === 'ifc_ButtonContainer') el.removeAttribute('id');
+            if (el.attributes.length + el.classList.length !== before) unmarked++;
+        });
+        return removed || unmarked ? 'removed ' + removed + ' injected elements, unmarked ' + unmarked : 'nothing injected';
+    }
+
     async function runHarness() {
         const failures = [];
+        const captureCleanup = cleanCapture();
         try {
             await loadScript('${coreUrl}');
             await loadScript('${contentUrl}');
@@ -132,7 +153,7 @@ function buildHarnessBlock(outDir) {
         }
 
         const state = window.injected;
-        const lines = [];
+        const lines = ['capture: ' + captureCleanup];
 
         // The checks below assume no filters are active and would also overwrite the
         // restored state being inspected - so skip them when a restore is under test.

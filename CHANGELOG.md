@@ -14,6 +14,19 @@ for how a version is bumped and published.
 
 ---
 
+## v1.5.26267.1 (Sep 2026) - Light mode
+
+- Our panels, pills, chips and menus now follow Xbox's light or dark theme.
+  On a light page the filter and sort panels are a light frosted card with
+  dark text instead of a see-through dark grey, and chips, deal-end badges,
+  the export menu, checkboxes and sliders use colours that read on white.
+  Dark mode looks exactly as before.
+- Active (green) toolbar buttons now always show a white icon.
+- Fixed: the toolbar buttons could appear twice when the page already held
+  a set from another copy of the extension (for example the extension and
+  the userscript both installed). Leftovers are now cleared, leaving one
+  working set.
+
 ## v1.5.26266.26 (Sep 2026) - Faster "Load details"; lookup test removed
 
 - "Load details" now reads about one game a second instead of one every

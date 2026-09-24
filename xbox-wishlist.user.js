@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         XBOX Wishlist
 // @namespace    https://github.com/zellreid/xbox-wishlist
-// @version      1.5.26266.26
+// @version      1.5.26267.1
 // @description  Advanced filtering and sorting suite with multi-level sort (up to 3 criteria) - Resilient selectors - Public wishlist support
 // @author       ZellReid
 // @homepage     https://github.com/zellreid/xbox-wishlist
@@ -10,7 +10,7 @@
 // @match        https://www.xbox.com/*/wishlist*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=xbox.com
 // @run-at       document-body
-// @resource     CSSFilter https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/styles.css?ver=1.5.26266.26
+// @resource     CSSFilter https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/styles.css?ver=1.5.26267.1
 // @resource     IMGFilter https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/filter.svg
 // @resource     IMGSort https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/sort.svg
 // @resource     IMGExport https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/export.svg
@@ -697,6 +697,10 @@ window.XboxWishlistCore = {
                     document.body.appendChild(buttonContainer);
                 }
                 buttonContainer.id = CONFIG.ids.buttonContainer;
+                // Our toolbar items left by another copy of this code (e.g. extension and userscript
+                // both installed, or a page saved with them in) would sit beside ours as dead
+                // duplicates - clear them so there is exactly one working set
+                buttonContainer.querySelectorAll('[id^="ifc_"]').forEach(el => el.remove());
                 state.ui.floatButtons = true;
             } catch (ex) { console.error('Failed to float buttons:', ex); }
         }

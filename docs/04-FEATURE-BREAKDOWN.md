@@ -308,6 +308,14 @@
 
 Note (2026-09-23): the light mock was saved with our panel already injected (old version), and the harness re-uses those saved `ifc_` elements, so it shows the old UI. Fine for the style comparison; for behaviour tests, have `prepare-fixture.js` strip saved `ifc_` elements (or re-save the page with the extension off).
 
+**Status (v1.5.26267.1) - Done, needs a live check:**
+- **Theme tokens:** `styles.css` now starts with CSS variables: a dark set (the exact previous values, so dark mode is unchanged - 13 sampled computed colours verified identical) and a light set applied by Xbox's own `body[data-theme="light"]`. 49 hard-coded colours moved to tokens: panel (near-white frosted with a soft shadow instead of see-through dark grey), inputs, pills, chips, deal-end badges, item refresh, capability chips (Xbox green instead of pale green on white), warnings (dark amber instead of yellow), export menu, saved filters, sort selects, slider track, checkboxes. Text we don't colour (accordion headings, checkbox labels) inherits the page colour, so it follows the theme by itself. The existing `.theme-dark` rules are untouched.
+- **Active toolbar buttons** (green) now always show a white icon; on a light page they kept Xbox's dark icon (poor contrast on green).
+- **Duplicate toolbar buttons (found on the light mock):** the toolbar functions only checked their own "added" flags, not the page, so a page that already held our buttons (saved capture, or extension + userscript both installed) got a second, dead set. `floatButtons()` now clears our leftover toolbar items from the container first - exactly one working set.
+- **Harness:** the fixture now removes what an earlier copy of the extension injected into a capture and unmarks Xbox's elements before loading the code (the light mock: 467 elements removed, 399 unmarked); `?keepCapture` keeps them to test the duplicate guard.
+- Harness PASS on all 3 mocks; light mock checked by screenshot (filter panel, open accordion with checkbox, active pills and tags, sort panel, export menu, capability / DLC / deal-end chips); `?keepCapture`: one toolbar set, Filter button opens the panel.
+- Found in passing (not changed, separate task offered): hard-coded Xbox hashed class names in the core (`addFilterContainer`) and `styles.css`, and an unused select2 CSS block.
+
 ---
 
 ### T-20 - Remove the Unused Public-Catalogue Host Permission
@@ -318,6 +326,18 @@ Note (2026-09-23): the light mock was saved with our panel already injected (old
 |------|------|
 | 1 | HITL: approve the manifest change (AGENTS 2.7 trigger #10) |
 | 2 | Remove the entry from `host_permissions`; reload unpacked; check Load details and the per-item refresh still work (both use same-origin store pages) |
+
+---
+
+### T-21 - Remove Hard-Coded Xbox Class Names and Dead CSS
+
+**Why:** Found during T-19. `addFilterContainer()` in the core adds Xbox hashed classes (`SortAndFilters-module__...`, `typography-module__...`), and `styles.css` styles `.Price-module__discountTag___OjGFy` and `.typography-module__xdsBody2___RNdGY`. AGENTS.md forbids these (they break on every Xbox rebuild). `styles.css` also has an unused `.select2-container--xbox` block (the core never uses select2).
+
+| Step | Task |
+|------|------|
+| 1 | Check each hard-coded class against the current mocks; drop the ones with no effect, route any still needed through `resolveClass()` / `PREFIXES` |
+| 2 | Remove the dead select2 CSS |
+| 3 | Harness on all mocks; compare computed styles on panels, toolbar and tiles in light and dark before and after |
 
 ---
 
