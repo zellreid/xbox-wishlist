@@ -14,6 +14,33 @@ for how a version is bumped and published.
 
 ---
 
+## v1.5.26268.14 (Sep 2026) - Filter panel: tighter range sections and foot
+
+- Price Range and Discount Range use the same, tighter spacing: equal
+  space above and below each slider instead of a large gap underneath
+  (each section 151px -> 110px).
+- Removed the extra space at the bottom of the filter panel (a leftover
+  list margin from Xbox's page styles); the panel now ends with the same
+  padding it starts with.
+
+## v1.5.26268.13 (Sep 2026) - Filter panel: no bottom divider
+
+- Removed the divider under the last filter group (Discount Range) at the
+  bottom of the filter panel.
+
+## v1.5.26268.12 (Sep 2026) - Filter panel layout
+
+- Saved filters moved to the top of the filter panel, right under the
+  search box. The quick filters follow under a small "Quick filters"
+  heading, like "Saved filters", and each section starts with a divider.
+
+## v1.5.26268.11 (Sep 2026) - Filter panel dividers
+
+- Active filter tags now sit between two dividers (one above, one below)
+  instead of two dividers stacking under them; with no tags there is one.
+- Removed the extra divider above "Saved filters" - the last filter
+  group's line already separates it.
+
 ## v1.5.26268.10 (Sep 2026) - Owned item spacing
 
 - Fixed: owned items had an empty gap between the "Owned" line and the chip

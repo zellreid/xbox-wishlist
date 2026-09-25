@@ -141,6 +141,7 @@ body[data-theme="light"] {
 
 ul.filter-groups {
     padding-inline-start: 0px;
+    margin-bottom: 0;   /* Xbox's generic ul margin left extra space at the panel's foot */
 }
 
 /* ==================== FILTER HEADER / CLEAR ALL ==================== */
@@ -519,14 +520,16 @@ p:has(+ .ifc-item-tags) {
     cursor: default;
 }
 
-/* ==================== SAVED FILTER PRESETS ==================== */
-.ifc-saved-presets {
-    margin-top: 12px;
-    padding-top: 12px;
+/* ==================== PANEL SECTIONS (SAVED / QUICK FILTERS) ==================== */
+/* Search, then Saved filters, then Quick filters - each section opens with a divider
+   and a small heading */
+.ifc-panel-section {
+    margin-top: 10px;
+    padding-top: 10px;
     border-top: 1px solid rgba(117, 117, 117, 0.3);
 }
 
-.ifc-saved-presets-heading {
+.ifc-section-heading {
     font-size: 0.8125rem;
     font-weight: 600;
     color: var(--ifc-text-muted);
@@ -583,8 +586,9 @@ p:has(+ .ifc-item-tags) {
     flex-wrap: wrap;
     gap: 8px;
     padding: 10px 0;
-    margin-bottom: 10px;
-    border-bottom: 1px solid rgba(117, 117, 117, 0.3);
+    margin-top: 10px;
+    /* The divider above; the first filter group's top border closes the row below */
+    border-top: 1px solid rgba(117, 117, 117, 0.3);
 }
 
 .ifc-filter-tag {
@@ -645,9 +649,11 @@ p:has(+ .ifc-item-tags) {
 }
 
 /* ==================== RANGE SLIDERS ==================== */
+/* Price and Discount Range share these, so both sections are the same size: heading,
+   value, then the slider with the same space above and below it */
 .ifc-slider-container {
-    padding: 10px;
-    margin: 5px 0;
+    padding: 6px 10px;
+    margin: 0;
     max-width: 100%;
     box-sizing: border-box;
 }
@@ -656,7 +662,7 @@ p:has(+ .ifc-item-tags) {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     font-size: 0.75rem;
     color: var(--ifc-text);
-    margin-bottom: 15px;
+    margin-bottom: 12px;
     text-align: center;
     font-weight: 500;
     word-wrap: break-word;
@@ -671,7 +677,7 @@ p:has(+ .ifc-item-tags) {
     height: 18px;
     background: transparent;
     border-radius: 3px;
-    margin: 20px 0;
+    margin: 0;
     width: 100%;
     max-width: 100%;
     display: flex;
@@ -1018,6 +1024,11 @@ p:has(+ .ifc-item-tags) {
 
     .ifc-accordion-group:first-child {
         border-top: 1px solid rgba(117, 117, 117, 0.3);
+    }
+
+    /* Nothing follows the last group (Discount Range) now Saved filters sit at the top */
+    .ifc-accordion-group:last-child {
+        border-bottom: none;
     }
 
 .ifc-accordion-header {

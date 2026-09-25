@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         XBOX Wishlist
 // @namespace    https://github.com/zellreid/xbox-wishlist
-// @version      1.5.26268.10
+// @version      1.5.26268.14
 // @description  Advanced filtering and sorting suite with multi-level sort (up to 3 criteria) - Resilient selectors - Public wishlist support
 // @author       ZellReid
 // @homepage     https://github.com/zellreid/xbox-wishlist
@@ -10,7 +10,7 @@
 // @match        https://www.xbox.com/*/wishlist*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=xbox.com
 // @run-at       document-body
-// @resource     CSSFilter https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/styles.css?ver=1.5.26268.10
+// @resource     CSSFilter https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/styles.css?ver=1.5.26268.14
 // @resource     IMGFilter https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/filter.svg
 // @resource     IMGSort https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/sort.svg
 // @resource     IMGExport https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/export.svg
@@ -1776,7 +1776,12 @@ window.XboxWishlistCore = {
                     });
                     row.appendChild(btn);
                 });
-                tc.parentNode.insertBefore(row, tc);
+                // Own section with a divider above and a small heading, like Saved filters
+                const section = document.createElement('div'); section.className = 'ifc-panel-section';
+                const heading = document.createElement('div');
+                heading.className = 'ifc-section-heading'; heading.textContent = 'Quick filters';
+                section.append(heading, row);
+                tc.parentNode.insertBefore(section, tc);
                 updateQuickFilterStates();
             } catch (ex) { console.error('Failed to add quick filters:', ex); }
         }
@@ -1987,12 +1992,13 @@ window.XboxWishlistCore = {
             if (!state.ui.divFilter) return;
             try {
                 if (getElement(`#${CONFIG.ids.savedPresets}`, false)) return;
-                const fg = getElement(`#${CONFIG.ids.filterContainer} ${CONFIG.selectors.filterGroups}`, false);
-                if (!fg || !fg.parentNode) return;
+                // Straight after the search box, above the quick filters
+                const search = getElement(`#${CONFIG.ids.searchInput}`, false), sw = search && search.parentNode;
+                if (!sw || !sw.parentNode) return;
                 const box = document.createElement('div');
-                box.id = CONFIG.ids.savedPresets; box.className = 'ifc-saved-presets';
+                box.id = CONFIG.ids.savedPresets; box.className = 'ifc-saved-presets ifc-panel-section';
                 const heading = document.createElement('div');
-                heading.className = 'ifc-saved-presets-heading'; heading.textContent = 'Saved filters';
+                heading.className = 'ifc-section-heading'; heading.textContent = 'Saved filters';
                 const list = document.createElement('div');
                 list.id = CONFIG.ids.savedPresetsList; list.className = 'ifc-quick-filters';
                 const row = document.createElement('div'); row.className = 'ifc-saved-presets-row';
@@ -2008,7 +2014,7 @@ window.XboxWishlistCore = {
                 saveBtn.addEventListener('click', saveCurrentAsPreset);
                 row.appendChild(input); row.appendChild(saveBtn);
                 box.appendChild(heading); box.appendChild(list); box.appendChild(row);
-                fg.parentNode.appendChild(box);
+                sw.insertAdjacentElement('afterend', box);
                 renderSavedPresets();
             } catch (ex) { console.error('Failed to add saved filters:', ex); }
         }
