@@ -341,6 +341,28 @@ Note (2026-09-23): the light mock was saved with our panel already injected (old
 
 **Status (v1.5.26267.2) - Done:** every hard-coded hashed name was stale. None of the exact names exist in the Xbox stylesheets captured in the mocks: `SortAndFilters-module__container`, `__filterList`, `__filtersText` and `typography-module__spotLightSubtitlePortrait` have been re-hashed, `Price-module__discountTag` is gone, and `typography-module__xdsBody2` has been re-hashed. All removed; none re-added through `resolveClass()`, because re-adding would change today's look (Xbox browse-page margins and fonts), and these browse-page classes never appear on the wishlist page, so `resolveClass()` could not resolve them anyway. Our own unprefixed classes (`filter-section`, `filter-list`, `filter-text-heading`, `filter-groups`) stay. Removed the unused select2 block (theme and scrollbars) and `.ifc-select2-multi` (-142 CSS lines). The `PREFIXES` map (hash-free prefixes resolved at runtime) is untouched. Verified: 25 elements (both panels with headings and lists, toolbar, label, 4 buttons, 4 tiles with tag rows, price rows and badges) x ~1,300 computed properties, before vs after, on the light (1603) and dark (1032) mocks: 0 differences in 32,614 properties each; the new stylesheet confirmed loaded (no select2 or hashed rules). Harness PASS on all 3 mocks and `?keepCapture`.
 
+
+### T-22 - Remove Remaining Dead Styles and an Unused Prefix
+
+**Why:** Found by a scan on 2026-09-25 (every CSS class, id and custom property in `styles.css` checked against the core and the wishlist mocks; every function, constant, `CONFIG` key, `PREFIXES` entry and icon checked for use). The JavaScript is clean apart from one prefix; all icons are used by both platforms. Leftovers are all in `styles.css` (about 60 lines), plus one entry in the core:
+
+| What | Where | Why it is dead |
+|---|---|---|
+| `.ifc-Sub-GamePass`, `.ifc-Sub-EA`, `.ifc-Sub-Ubisoft`, `.ifc-Discounted` (+ their `.theme-dark` copies) | styles.css | Tile tints from before the shared core; nothing adds these classes (subscriptions are data attributes now) |
+| `.my-2` | styles.css | Not on any wishlist mock and not used by us |
+| `.filter-dropdown` (empty), `.filter-options`, `.filter-block`, `.filter-block .title` (empty) | styles.css | Never used (only `ifc-filter-block-static` is) |
+| `--color`, `--background-color` in the panel rule | styles.css | Custom properties nobody reads |
+| `.theme-dark .ifc-Owned`, `.theme-dark .ifc-UnPurchasable` | styles.css | Identical to the base rule; the base rule stays |
+| `PREFIXES.primaryText` | core | Never resolved |
+
+| Step | Task |
+|------|------|
+| 1 | Remove the rows above |
+| 2 | Harness on all mocks; computed-style compare on panels, toolbar and tiles (owned / un-purchasable tints) in light and dark, before vs after: expect 0 differences |
+| 3 | Bump version, CHANGELOG entry |
+
+**Status:** Todo - awaiting go-ahead (pre-existing dead code is only removed on request).
+
 ---
 
 ### F-39 - Light / Dark Mode Toggle
@@ -404,7 +426,7 @@ Note (2026-09-23): the light mock was saved with our panel already injected (old
 | 3 | Filter / quick filter "Has DLC"; export `hasDlc`, `dlcCount` |
 | 4 | Harness: use `mock_examples/#products/DEAD OR ALIVE 6_ Core Fighters _ XBOX_Add-ons for this game _ XBOX.html` as the fetched add-ons page |
 
-**Status (v1.5.26268.3) - Done, confirmed live 2026-09-25:**
+**Status (v1.5.26268.3) - Done, confirmed live 2026-09-25 (including the 0-count fix):**
 - **Chip-link "Add-ons" / "Add-ons (462)"** on games whose summary has `hasAddOns` (never on DLC or consumables - they keep the F-37 "DLC" chip; different word to avoid confusion). Opens `https://www.xbox.com/<locale>/games/browse/ProductAddOns_<ID>` in a new tab (locale from the item's own URL; format checked against the real page the capture was saved from). Outlined like the Pre-order chip; scoped `.ifc-item-tags a.ifc-item-tag-addons` because Xbox's `a` / `.theme-dark a` link colours otherwise win (green text).
 - **Quick filter "Has add-ons"** (`state.filters.hasAddOns`), wired like Pre-order everywhere: saved state, active tag, Clear All, saved presets (older presets default to off), filtering. Attributes `data-ifc-has-add-ons`, `data-ifc-add-ons-count`; export columns `hasAddOns`, `addOnsCount`.
 - **Count:** stored in the capability cache entry (`{ caps, at, addOns }`, same 7-day expiry). `isDetailsFresh()` = capabilities fresh and, for a game with add-ons, count known; "Load details" fetches only what is missing (store page, add-ons page, or both - same pause between the two). Per-item refresh fetches the count too. `fetchAddOnsCount()` reads the channel `PRODUCTADDONS_<ID>` (any PRODUCTADDONS channel as fallback). Existing caches only need the counts, not a full reload.

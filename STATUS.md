@@ -3,7 +3,7 @@ project: Xbox Wishlist
 label: Personal
 phase: Live
 priority: Medium
-next_milestone: Quick live check of the add-ons 0-count fix (v1.5.26268.3); then pick next (F-38 product pages needs manifest approval, or F-25/F-26)
+next_milestone: T-22 dead-style cleanup on go-ahead; then pick next (F-38 product pages needs manifest approval, or F-25/F-26)
 target_date: none
 hard_deadline: false
 blockers: []
@@ -17,14 +17,15 @@ updated: 2026-09-25
 > Never put credentials, keys, connection strings or secrets in this file.
 
 ## Now
-- Live at v1.5.26268.3. F-40 add-ons confirmed live (2026-09-25).
-- Fix: games the store flags as having add-ons but whose add-ons page lists none (e.g. Torchlight II, count 0) now lose the "Add-ons" link and drop out of "Has add-ons" once the count is loaded. Needs a quick live check.
+- Live at v1.5.26268.3. F-40 add-ons confirmed live, including the 0-count fix (2026-09-25).
+- Stale-code scan done: JavaScript clean apart from one unused prefix; about 60 lines of dead CSS logged as T-22, awaiting go-ahead.
+- The userscript is already generated from the shared core (tools/userscript/build.js); only one code set is edited.
 
 ## TODO
 | ID | Item | Priority | Status | Next action |
 |---|---|---|---|---|
-| F-40 | Add-ons: hide games whose add-ons page lists none (count 0) | Medium | In Progress | Quick live check: ↻ on Torchlight II removes its "Add-ons" link |
 | F-38 | Run on product pages (diagnostics first) | Medium | Todo | HITL: approve manifest/@match change for /games/store/*; DOA6 product mock as fixture |
+| T-22 | Remove remaining dead styles and an unused prefix | Low | Todo | On go-ahead: remove the list in docs/04 T-22, compare computed styles, harness |
 | T-06 | Live check in Chrome and the Tampermonkey userscript (Edge done) | Low | Todo | Push the new icons, then repeat the Edge checks in Chrome and Tampermonkey |
 | F-35 | Deals / games browse page support | Low | Todo | Same state kind as wishlist (no capabilities); decide scope, needs manifest change (HITL) |
 | T-20 | Remove the unused public-catalogue host permission from manifest.json (there since the first commit) | Low | Todo | HITL: approve the manifest change, then check Load details and refresh still work |
@@ -35,8 +36,8 @@ updated: 2026-09-25
 + 4 more: F-28 to F-30 in docs/01-PRD.md, and Firefox/Safari support (planned in AGENTS.md)
 
 ## Recent sessions
+- 2026-09-25: F-40 0-count fix confirmed live; stale-code scan (functions, constants, config, prefixes, icons, CSS classes/ids/vars): dead CSS + PREFIXES.primaryText logged as T-22; confirmed userscript is generated from the one core
 - 2026-09-25: F-40 confirmed live; fix (v1.5.26268.3): a loaded add-ons count of 0 (store flag stale, e.g. Torchlight II, store shows "Failed to Get Channel") removes the chip and the Has add-ons match; mock harness PASS on all 5 mocks
 - 2026-09-25: T-19 + F-39 confirmed live; F-40 add-ons (v1.5.26268.2): chip-link, count via Load details / refresh (only-missing fetch), Has add-ons quick filter, export; mock harness PASS on all 5 mocks incl. DOA6 add-ons page
 - 2026-09-25: F-39 live feedback 4 (v1.5.26268.1): header/footer wrapper uhf-dark mark switched (grey bar), active-button colours id-scoped to beat Xbox's !important menu button rules; harness with light sheet staged, live CSS order and real hover; PASS on all 5 mocks
 - 2026-09-24: Active toolbar button mirrors Xbox's active wishlist menu button per theme (v1.5.26267.10); header confirmed live in both modes; mock harness PASS on all 5 mocks
-- 2026-09-24: F-39 live feedback 3 (v1.5.26267.9): header menu layout broke on switch (component rebuilds on its theme attribute); now colours via --uhf-header-*-override read through a hidden probe frame, logos by image; harness both directions + saved-theme load + watcher; PASS on all 5 mocks
