@@ -49,7 +49,7 @@ The Xbox wishlist page (`xbox.com/*/wishlist`) provides no native filtering, sor
 
 ## Feature List
 
-### ✅ Implemented (v1.5.26268.1 - Current)
+### ✅ Implemented (v1.5.26268.3 - Current)
 
 | ID | Feature | Version Introduced |
 |----|---------|-------------------|
@@ -83,6 +83,7 @@ The Xbox wishlist page (`xbox.com/*/wishlist`) provides no native filtering, sor
 | F-34 | "Just for you" / pre-order pills and quick filters, Platforms filter, deal type | v1.5 |
 | F-36 | Capabilities filter + X\|S / Smart Delivery / Play Anywhere chips via opt-in "Load details" (cached 7 days); per-item refresh | v1.5 |
 | F-37 | Type filter (Game / DLC / Consumable) + DLC chip | v1.5 |
+| F-40 | Add-ons for games: "Add-ons (N)" chip-link to the store's add-ons list, "Has add-ons" quick filter, count via Load details / per-item refresh | v1.5 |
 | F-39 | Light / dark toggle for the whole page (saved), with themed extension UI (T-19) | v1.5 |
 
 ### ⚠️ In Progress / Partially Done

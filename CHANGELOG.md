@@ -14,6 +14,26 @@ for how a version is bumped and published.
 
 ---
 
+## v1.5.26268.3 (Sep 2026) - Add-ons: hide games that list none
+
+- Fixed: some games (e.g. Torchlight II) are marked by the store as having
+  add-ons, but their add-ons page lists none (the store itself shows
+  "Failed to Get Channel (0 games)"). Once "Load details" or the refresh
+  button finds 0, the "Add-ons" link is removed and the game no longer
+  counts for the "Has add-ons" quick filter. Export shows hasAddOns false,
+  addOnsCount 0.
+
+## v1.5.26268.2 (Sep 2026) - Add-ons for wishlist games (F-40)
+
+- Games that have add-ons (DLC) on the store now show an "Add-ons" link
+  under the title; it opens the store's list of that game's add-ons in a
+  new tab. No extra requests - the page already says which games have them.
+- "Load details" and the per-game refresh button also read how many add-ons
+  there are, so the link becomes "Add-ons (462)". Kept for 7 days like the
+  capabilities; games that already have details only need the count.
+- New quick filter "Has add-ons", and two new export columns (hasAddOns,
+  addOnsCount).
+
 ## v1.5.26268.1 (Sep 2026) - Theme switch: header bar, footer, active icons
 
 - Fixed: on a page switched to light, the bar behind the Microsoft header

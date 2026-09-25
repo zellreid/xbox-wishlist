@@ -43,7 +43,9 @@ Verified against the mocks in `mock_examples/#wishlist` (2 captures) and `mock_e
 | Short / full description | State | No | |
 | Max install size | State | No | |
 | Images, videos | State | No | |
-| Has add-ons, product kind / family | State | No | |
+| Has add-ons | State | Yes (F-40 "Add-ons" chip-link, "Has add-ons" quick filter, export) | `hasAddOns`, set on games only. Can be stale: some flagged games list none (count 0), so a loaded count of 0 overrides it |
+| Add-ons count | Add-ons page (1 request per game) | Yes (F-40 chip "Add-ons (N)", export) | `core2.channels.channelData["BROWSE_CHANNELID=PRODUCTADDONS_<id>_FILTERS="].data.totalItems` on `/<locale>/games/browse/ProductAddOns_<id>`; fetched by "Load details" / the per-item refresh, cached with the capabilities (7 days) |
+| Product kind / family | State | Kind: yes (F-37 Type filter); family: no | |
 | Subscription badge codes | State - codes | Via DOM instead | Numeric codes 0-11 that the store turns into subscription logos (Game Pass tiers, EA Play, Ubisoft+, GTA+) - **not** capabilities (checked against 15 product pages). The Subscriptions filter already reads these logos from the DOM. |
 
 ---

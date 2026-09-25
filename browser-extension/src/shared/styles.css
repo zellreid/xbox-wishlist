@@ -291,6 +291,26 @@ ul.filter-groups {
     background-color: var(--ifc-control-bg);
 }
 
+/* "Add-ons (462)" on a game (F-40) - a link to the store's add-ons list. Scoped to the tag
+   row so it outranks Xbox's own link colours (a / .theme-dark a) whatever the load order */
+.ifc-item-tags a.ifc-item-tag-addons {
+    border: 1px solid var(--ifc-chip-border);
+    color: var(--ifc-tag-text);
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.ifc-item-tags a.ifc-item-tag-addons:hover {
+    background-color: var(--ifc-hover-bg);
+    color: var(--ifc-text-strong);
+    text-decoration: underline;
+}
+
+.ifc-item-tags a.ifc-item-tag-addons:focus-visible {
+    outline: 2px solid var(--ifc-accent-text);
+    outline-offset: 1px;
+}
+
 /* Per-item refresh button - first in the tag row */
 .ifc-item-refresh {
     display: inline-flex;

@@ -37,6 +37,7 @@ window.XboxWishlistCore = {
                 platforms: { selected: [], list: new Map() },
                 justForYou: false,
                 preorder: false,
+                hasAddOns: false,   // F-40: games with add-ons (DLC) on the store
                 // F-36: capability labels; an item must have ALL selected ones
                 capabilities: { selected: [], list: new Map() },
                 // Item type: Game / DLC / Consumable (any selected matches)
@@ -358,6 +359,7 @@ window.XboxWishlistCore = {
                             if (typeof parsed.justForYou === 'boolean') state.filters.justForYou = parsed.justForYou;
                             if (parsed.theme === 'light' || parsed.theme === 'dark') state.theme = parsed.theme;
                             if (typeof parsed.preorder === 'boolean') state.filters.preorder = parsed.preorder;
+                            if (typeof parsed.hasAddOns === 'boolean') state.filters.hasAddOns = parsed.hasAddOns;
                             if (parsed.capabilities && Array.isArray(parsed.capabilities.selected)) {
                                 state.filters.capabilities.selected = parsed.capabilities.selected.filter(c => typeof c === 'string');
                             }
@@ -424,6 +426,7 @@ window.XboxWishlistCore = {
             });
             if (state.filters.justForYou) tags.push({ type: 'justForYou', value: 'justForYou', label: 'Just for you' });
             if (state.filters.preorder) tags.push({ type: 'preorder', value: 'preorder', label: 'Pre-order' });
+            if (state.filters.hasAddOns) tags.push({ type: 'hasAddOns', value: 'hasAddOns', label: 'Has add-ons' });
             state.filters.capabilities.selected.forEach(cap => {
                 const count = state.filters.capabilities.list.get(cap) || 0;
                 tags.push({ type: 'capability', value: cap, label: `${cap} (${count})` });
@@ -483,6 +486,7 @@ window.XboxWishlistCore = {
                     updateCheckboxes(CONFIG.ids.platformsSelect, state.filters.platforms.selected); break;
                 case 'justForYou': state.filters.justForYou = false; break;
                 case 'preorder': state.filters.preorder = false; break;
+                case 'hasAddOns': state.filters.hasAddOns = false; break;
                 case 'capability':
                     state.filters.capabilities.selected = state.filters.capabilities.selected.filter(v => v !== tag.value);
                     updateCheckboxes(CONFIG.ids.capabilitiesSelect, state.filters.capabilities.selected); break;
@@ -909,6 +913,15 @@ window.XboxWishlistCore = {
             // Item type from the product kind: games, DLC / add-ons, in-game consumables
             const type = p ? (PRODUCT_KIND_LABELS[p.productKind] || p.productKind || null) : null;
             setDataAttribute(container, 'ifcType', type);
+            // F-40: add-ons (DLC) for a game - the flag is on this page; the count comes from the
+            // game's add-ons page, fetched by "Load details" / the per-item refresh and cached
+            // The flag can be stale: some flagged games list none (the store's own add-ons page
+            // says "Failed to Get Channel (0 games)"), so a loaded count of 0 means no add-ons
+            const flaggedAddOns = !!(p && p.hasAddOns === true);
+            const addOnsCount = flaggedAddOns ? getCachedAddOnsCount(container.dataset.ifcProductId) : null;
+            const hasAddOns = flaggedAddOns && addOnsCount !== 0;
+            setDataAttribute(container, 'ifcHasAddOns', hasAddOns);
+            setDataAttribute(container, 'ifcAddOnsCount', addOnsCount);
             injectDealEndBadge(container, dealEnds);
             injectItemTags(container, {
                 productId: (container.dataset.ifcProductId || '').toUpperCase(), url: container.dataset.ifcUri,
@@ -916,8 +929,21 @@ window.XboxWishlistCore = {
                 kindLabel: type === 'DLC' || type === 'Consumable' ? type : null,
                 personal: dealType === 'personal', reason: offer.dealReason, preorder: !!(p && p.ifcIsPreorder),
                 playAnywhere: capKeys.includes('XPA'), optimizedXS: capKeys.includes('ConsoleGen9Optimized'),
-                smartDelivery: capKeys.includes('ConsoleCrossGen')
+                smartDelivery: capKeys.includes('ConsoleCrossGen'),
+                addOns: hasAddOns ? { count: addOnsCount, url: addOnsUrl(container.dataset.ifcProductId, container.dataset.ifcUri) } : null
             });
+        }
+
+        // The store's "add-ons for this game" page, in the item's own locale (F-40)
+        function addOnsUrl(productId, itemUrl) {
+            try {
+                const u = new URL(itemUrl, location.href);
+                const isLocale = s => /^[a-z]{2}-[a-z]{2}$/i.test(s || '');
+                const fromItem = u.pathname.split('/').filter(Boolean)[0], fromPage = location.pathname.split('/').filter(Boolean)[0];
+                const locale = isLocale(fromItem) ? fromItem : isLocale(fromPage) ? fromPage : null;
+                if (!productId || !locale) return null;
+                return `${u.origin}/${locale}/games/browse/ProductAddOns_${String(productId).toUpperCase()}`;
+            } catch (ex) { return null; }
         }
 
         // Small pills under the title: "Just for you" (reason on hover, styled like Xbox's),
@@ -930,7 +956,7 @@ window.XboxWishlistCore = {
                 // The row always leads with the per-item refresh button, so every item with a
                 // store page gets one; without a product id / URL there's nothing to refresh
                 const canRefresh = !!(info.productId && info.url && info.url !== 'null');
-                if (!canRefresh && !info.personal && !info.preorder && !info.playAnywhere && !info.optimizedXS && !info.smartDelivery && !info.kindLabel) { if (row) row.remove(); return; }
+                if (!canRefresh && !info.personal && !info.preorder && !info.playAnywhere && !info.optimizedXS && !info.smartDelivery && !info.kindLabel && !info.addOns) { if (row) row.remove(); return; }
                 if (!row) {
                     const pd = CONFIG.selectors.productDetails ? safeQuerySelector(container, CONFIG.selectors.productDetails) : null;
                     if (!pd) return;
@@ -968,6 +994,18 @@ window.XboxWishlistCore = {
                 if (info.optimizedXS) chip('ifc-item-tag-xs', 'X|S', 'Optimized for Xbox Series X|S');
                 if (info.smartDelivery) chip('ifc-item-tag-sd', 'Smart Delivery', 'Smart Delivery');
                 if (info.playAnywhere) chip('ifc-item-tag-xpa', 'Play Anywhere', 'Xbox Play Anywhere', 'IMGPlayAnywhere');
+                // F-40: "Add-ons" / "Add-ons (462)" - a link to the store's add-ons list for this game
+                if (info.addOns && info.addOns.url) {
+                    const n = info.addOns.count, known = typeof n === 'number';
+                    const link = document.createElement('a'); link.className = 'ifc-item-tag ifc-item-tag-addons';
+                    link.href = info.addOns.url; link.target = '_blank'; link.rel = 'noopener';
+                    link.textContent = known ? `Add-ons (${n})` : 'Add-ons';
+                    link.title = known ? `${n} add-on${n === 1 ? '' : 's'} for this game - open the list in a new tab`
+                        : 'This game has add-ons - open the list in a new tab (Load details or ↻ adds the count)';
+                    // The item card may sit inside Xbox's own click handling - let the link just open
+                    link.addEventListener('click', (e) => e.stopPropagation());
+                    row.appendChild(link);
+                }
             } catch (ex) { console.error('Failed to inject item tags:', ex); }
         }
 
@@ -1316,13 +1354,15 @@ window.XboxWishlistCore = {
                 // F-36: empty unless "Load details" has fetched this item's product page
                 capabilities: getItemJsonList(c, 'ifcCapabilities'),
                 type: text(c.dataset.ifcType) || null,   // Game | DLC | Consumable
+                // F-40: count is null until "Load details" / the per-item refresh has read it
+                hasAddOns: c.dataset.ifcHasAddOns === 'true', addOnsCount: num(c.dataset.ifcAddOnsCount),
                 url: text(c.dataset.ifcUri)
             };
         }
 
         function toCsv(rows) {
             const cols = ['title', 'publisher', 'price', 'originalPrice', 'discountPercent', 'owned', 'unpurchasable',
-                'rating', 'ratingCount', 'genres', 'releaseDate', 'dealEnds', 'inPass', 'dealType', 'dealReason', 'preorder', 'platforms', 'capabilities', 'type', 'url'];
+                'rating', 'ratingCount', 'genres', 'releaseDate', 'dealEnds', 'inPass', 'dealType', 'dealReason', 'preorder', 'platforms', 'capabilities', 'type', 'hasAddOns', 'addOnsCount', 'url'];
             const cell = v => {
                 if (v === null || v === undefined) return '';
                 if (Array.isArray(v)) v = v.join('; ');
@@ -1512,6 +1552,9 @@ window.XboxWishlistCore = {
                     apply: () => { state.filters.justForYou = true; }, clear: () => { state.filters.justForYou = false; } },
                 { key: 'preorder', label: 'Pre-order', isActive: () => state.filters.preorder === true,
                     apply: () => { state.filters.preorder = true; }, clear: () => { state.filters.preorder = false; } },
+                // Games with add-ons (DLC) on the store (F-40, from the page's product data)
+                { key: 'hasAddOns', label: 'Has add-ons', isActive: () => state.filters.hasAddOns === true,
+                    apply: () => { state.filters.hasAddOns = true; }, clear: () => { state.filters.hasAddOns = false; } },
                 { key: 'cheap', label: 'Cheap',
                     isActive: () => pr().enabled && pr().currentMin === pr().min && pr().currentMax === cheapMax(),
                     apply: () => {
@@ -1548,6 +1591,7 @@ window.XboxWishlistCore = {
                 state.filters.platforms.selected = [];
                 state.filters.justForYou = false;
                 state.filters.preorder = false;
+                state.filters.hasAddOns = false;
                 state.filters.capabilities.selected = [];
                 state.filters.types.selected = [];
                 state.filters.search.term = '';
@@ -1580,6 +1624,7 @@ window.XboxWishlistCore = {
                 owned: [...f.owned.selected], publishers: [...f.publishers.selected], subscriptions: [...f.subscriptions.selected],
                 genres: [...f.genres.selected], inPass: f.inPass === true,
                 platforms: [...f.platforms.selected], justForYou: f.justForYou === true, preorder: f.preorder === true,
+                hasAddOns: f.hasAddOns === true,
                 capabilities: [...f.capabilities.selected], types: [...f.types.selected],
                 priceRange: snapshotRange(f.priceRange), discountRange: snapshotRange(f.discountRange)
             };
@@ -1599,6 +1644,7 @@ window.XboxWishlistCore = {
                     owned: list(f.owned), publishers: list(f.publishers), subscriptions: list(f.subscriptions),
                     genres: list(f.genres), inPass: f.inPass === true,   // absent in presets saved before F-33
                     platforms: list(f.platforms), justForYou: f.justForYou === true, preorder: f.preorder === true,   // before F-34
+                    hasAddOns: f.hasAddOns === true,      // before F-40
                     capabilities: list(f.capabilities),   // before F-36
                     types: list(f.types),                 // before the Type filter
                     priceRange: range(f.priceRange), discountRange: range(f.discountRange)
@@ -1608,7 +1654,7 @@ window.XboxWishlistCore = {
         function hasPresetableFilters() {
             const f = state.filters;
             return f.owned.selected.length > 0 || f.publishers.selected.length > 0 || f.subscriptions.selected.length > 0
-                || f.genres.selected.length > 0 || f.inPass || f.platforms.selected.length > 0 || f.justForYou || f.preorder
+                || f.genres.selected.length > 0 || f.inPass || f.platforms.selected.length > 0 || f.justForYou || f.preorder || f.hasAddOns
                 || f.capabilities.selected.length > 0 || f.types.selected.length > 0
                 || f.priceRange.enabled || f.discountRange.enabled;
         }
@@ -1628,7 +1674,7 @@ window.XboxWishlistCore = {
             return sameSet(f.owned.selected, pf.owned) && sameSet(f.publishers.selected, pf.publishers)
                 && sameSet(f.subscriptions.selected, pf.subscriptions)
                 && sameSet(f.genres.selected, pf.genres) && f.inPass === pf.inPass
-                && sameSet(f.platforms.selected, pf.platforms) && f.justForYou === pf.justForYou && f.preorder === pf.preorder
+                && sameSet(f.platforms.selected, pf.platforms) && f.justForYou === pf.justForYou && f.preorder === pf.preorder && f.hasAddOns === pf.hasAddOns
                 && sameSet(f.capabilities.selected, pf.capabilities) && sameSet(f.types.selected, pf.types)
                 && rangeIs(f.priceRange, pf.priceRange) && rangeIs(f.discountRange, pf.discountRange);
         }
@@ -1638,7 +1684,7 @@ window.XboxWishlistCore = {
                 const f = state.filters, pf = p.filters;
                 f.owned.selected = [...pf.owned]; f.publishers.selected = [...pf.publishers]; f.subscriptions.selected = [...pf.subscriptions];
                 f.genres.selected = [...pf.genres]; f.inPass = pf.inPass;
-                f.platforms.selected = [...pf.platforms]; f.justForYou = pf.justForYou; f.preorder = pf.preorder;
+                f.platforms.selected = [...pf.platforms]; f.justForYou = pf.justForYou; f.preorder = pf.preorder; f.hasAddOns = pf.hasAddOns;
                 f.capabilities.selected = [...pf.capabilities]; f.types.selected = [...pf.types];
                 updateCheckboxes(CONFIG.ids.ownedSelect, f.owned.selected);
                 updateCheckboxes(CONFIG.ids.publishersSelect, f.publishers.selected);
@@ -2106,6 +2152,32 @@ window.XboxWishlistCore = {
             const entry = state.capCache[String(productId).toUpperCase()];
             return !!(entry && typeof entry.at === 'number' && Date.now() - entry.at < DETAILS_TTL_MS);
         }
+        // F-40: a game's add-ons count lives in the same cache entry ({ caps, at, addOns })
+        function getCachedAddOnsCount(productId) {
+            const entry = productId ? state.capCache[String(productId).toUpperCase()] : null;
+            return entry && typeof entry.addOns === 'number' ? entry.addOns : null;
+        }
+        function needsAddOnsCount(productId) {
+            const p = getProductData(productId);
+            return !!(p && p.hasAddOns === true);
+        }
+        // Loaded = capabilities fresh and, for a game with add-ons, its count known
+        function isDetailsFresh(productId) {
+            return isCapabilityFresh(productId) && (!needsAddOnsCount(productId) || getCachedAddOnsCount(productId) !== null);
+        }
+        // Reads the total from the game's add-ons page (its browse channel for this product)
+        async function fetchAddOnsCount(productId, itemUrl) {
+            const url = addOnsUrl(productId, itemUrl);
+            if (!url) throw new Error('no add-ons page address');
+            const pageState = await fetchPageState(url);
+            const channels = pageState && pageState.core2 && pageState.core2.channels && pageState.core2.channels.channelData;
+            if (!channels || typeof channels !== 'object') throw new Error('no add-ons list on its page');
+            const id = String(productId).toUpperCase(), keys = Object.keys(channels);
+            const key = keys.find(k => k.toUpperCase().includes(`PRODUCTADDONS_${id}`)) || keys.find(k => /PRODUCTADDONS_/i.test(k));
+            const total = key && channels[key] && channels[key].data ? channels[key].data.totalItems : undefined;
+            if (typeof total !== 'number') throw new Error('no add-ons count on its page');
+            return total;
+        }
 
         // One entry per product id (several items can share one), shown items first
         function detailsQueue() {
@@ -2119,7 +2191,7 @@ window.XboxWishlistCore = {
             const d = state.details;
             if (d.running) return;
             if (contextLost()) { handleContextLost(); return; }
-            const queue = detailsQueue().filter(e => !isCapabilityFresh(e.id));
+            const queue = detailsQueue().filter(e => !isDetailsFresh(e.id));
             Object.assign(d, { running: true, cancel: false, done: 0, total: queue.length, failed: 0, message: '' });
             renderDetailsStatus();
             const delay = typeof state.debug.detailsDelayMs === 'number' ? state.debug.detailsDelayMs : DETAILS_DELAY_MS;
@@ -2130,14 +2202,22 @@ window.XboxWishlistCore = {
                 const t0 = Date.now();
                 let eased = false;
                 try {
-                    const summary = productSummariesFrom(await fetchPageState(url)).get(id);
-                    const caps = {};
-                    if (summary && summary.capabilities && typeof summary.capabilities === 'object') {
-                        Object.entries(summary.capabilities).forEach(([k, v]) => { if (typeof v === 'string' && v.trim()) caps[k] = v.trim(); });
+                    // Only what's missing: the store page (capabilities) and/or the add-ons page (count)
+                    const needCaps = !isCapabilityFresh(id);
+                    if (needCaps) {
+                        const summary = productSummariesFrom(await fetchPageState(url)).get(id);
+                        const caps = {};
+                        if (summary && summary.capabilities && typeof summary.capabilities === 'object') {
+                            Object.entries(summary.capabilities).forEach(([k, v]) => { if (typeof v === 'string' && v.trim()) caps[k] = v.trim(); });
+                        }
+                        // Stored even when empty, so a game with no capabilities isn't re-fetched every time
+                        state.capCache[id] = { caps, at: Date.now() };
                     }
-                    // Stored even when empty, so a game with no capabilities isn't re-fetched every time
-                    state.capCache[id] = { caps, at: Date.now() };
-                    eased = Date.now() - t0 < DETAILS_SLOW_MS;
+                    if (needsAddOnsCount(id) && (needCaps || getCachedAddOnsCount(id) === null)) {
+                        if (needCaps) await new Promise(r => setTimeout(r, gap));   // same pause between the two pages
+                        state.capCache[id].addOns = await fetchAddOnsCount(id, url);
+                    }
+                    eased = Date.now() - t0 < DETAILS_SLOW_MS * (needCaps && needsAddOnsCount(id) ? 2 : 1);
                 } catch (ex) {
                     d.failed++;
                     if (/HTTP 429/.test(ex.message)) { d.message = 'Xbox is limiting requests - stopped; try again later.'; d.done++; break; }
@@ -2174,6 +2254,8 @@ window.XboxWishlistCore = {
                     Object.entries(summary.capabilities).forEach(([k, v]) => { if (typeof v === 'string' && v.trim()) caps[k] = v.trim(); });
                 }
                 state.capCache[id] = { caps, at: Date.now() };
+                // F-40: and the add-ons count for a game that has add-ons
+                if (summary.hasAddOns === true) state.capCache[id].addOns = await fetchAddOnsCount(id, url);
                 saveCapabilityCache();
                 status[id] = { busy: false, at: Date.now() };
             } catch (ex) {
@@ -2187,7 +2269,7 @@ window.XboxWishlistCore = {
                 const status = getElement(`#${CONFIG.ids.detailsStatus}`, false), btn = getElement(`#${CONFIG.ids.detailsButton}`, false);
                 if (!status || !btn) return;
                 const d = state.details, queue = detailsQueue();
-                const loaded = queue.filter(e => getCachedCapabilities(e.id)).length, stale = queue.filter(e => !isCapabilityFresh(e.id)).length;
+                const loaded = queue.filter(e => getCachedCapabilities(e.id)).length, stale = queue.filter(e => !isDetailsFresh(e.id)).length;
                 if (d.running) {
                     status.textContent = `Loading details ${d.done} / ${d.total}...`;
                     btn.textContent = 'Cancel'; btn.disabled = false;
@@ -2196,7 +2278,7 @@ window.XboxWishlistCore = {
                     btn.textContent = stale ? `Load details (${stale})` : 'Details up to date';
                     btn.disabled = stale === 0;
                 }
-                btn.title = 'Reads each game\'s store page, about one a second (slower if Xbox is slow to answer); results are kept for 7 days.';
+                btn.title = 'Reads each game\'s store page (and, for games with add-ons, its add-ons page for the count), about one a second (slower if Xbox is slow to answer); results are kept for 7 days.';
             } catch (ex) { console.error('Failed to render details status:', ex); }
         }
 
@@ -2750,6 +2832,7 @@ window.XboxWishlistCore = {
             }
             if (state.filters.justForYou && container.dataset.ifcDealType !== 'personal') return false;
             if (state.filters.preorder && container.dataset.ifcPreorder !== 'true') return false;
+            if (state.filters.hasAddOns && container.dataset.ifcHasAddOns !== 'true') return false;
             if (state.filters.capabilities.selected.length > 0) {
                 // Capabilities are features you want together - the item needs ALL selected ones.
                 // Items whose details aren't loaded yet have none, so they don't match.
