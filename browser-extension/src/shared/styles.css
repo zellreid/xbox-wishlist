@@ -300,6 +300,12 @@ ul.filter-groups {
     margin-top: 4px;
 }
 
+/* Xbox's generic "p { margin-bottom: 1rem }" leaves a gap above our row when the line
+   before it is a paragraph that doesn't reset it (the "Owned" line on owned items) */
+p:has(+ .ifc-item-tags) {
+    margin-bottom: 0;
+}
+
 .ifc-item-tag {
     display: inline-flex;
     align-items: center;

@@ -14,6 +14,13 @@ for how a version is bumped and published.
 
 ---
 
+## v1.5.26268.10 (Sep 2026) - Owned item spacing
+
+- Fixed: owned items had an empty gap between the "Owned" line and the chip
+  row. Xbox gives every paragraph a bottom margin and the "Owned" line
+  doesn't reset it; it is now removed when our chip row follows, so every
+  item has the same small gap.
+
 ## v1.5.26268.9 (Sep 2026) - Price history (F-27), fixed tag order
 
 - Each game now keeps a dated list of its prices for the last 90 days

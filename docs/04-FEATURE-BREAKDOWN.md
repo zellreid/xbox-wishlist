@@ -365,6 +365,15 @@ Note (2026-09-23): the light mock was saved with our panel already injected (old
 
 **Status (v1.5.26268.4) - Done:** all rows removed (styles.css -62 lines, core -1). Verified: computed styles of every `ifc_` element, both panels opened, and the first 4 tiles with all their descendants (748 elements light / 743 dark, ~970,000 properties each), before vs after on the light (1603) and dark (1032) mocks: 0 differences apart from the two removed custom properties themselves; owned and un-purchasable tints unchanged on the dark page. Harness PASS on all 5 mocks.
 
+
+### T-23 - Item Row Layout: Fixed Chip Order and Owned-Item Gap
+
+**Why:** Live feedback 2026-09-25: chips should always appear in one agreed order, and owned items showed an empty gap between the "Owned" line and the chip row.
+
+**Status (v1.5.26268.10) - Done, needs a live check:**
+- Order: `ITEM_TAG_ORDER` enum (v1.5.26268.9, see F-27 section).
+- Gap: Xbox's generic `p { margin-bottom: 1rem }` applies to the "Owned" line (the publisher line resets it, the "Owned" line doesn't), which left 16px above our row once it followed that line. `p:has(+ .ifc-item-tags) { margin-bottom: 0 }` clears it only there. Harness: the gap above the row is 4px on every tile (owned, un-purchasable, priced) on all 5 mocks. PASS on all 5 mocks.
+
 ---
 
 ### F-39 - Light / Dark Mode Toggle
