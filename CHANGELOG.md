@@ -14,6 +14,13 @@ for how a version is bumped and published.
 
 ---
 
+## v1.5.26267.10 (Sep 2026) - Active buttons match Xbox's own
+
+- An open panel's toolbar button (Filter, Sort, Export) now looks like
+  Xbox's own active "Edit wishlist" button: white with a dark icon on a
+  dark page, green with a white icon on a light page. It was always green
+  before. Follows the Theme switch too.
+
 ## v1.5.26267.9 (Sep 2026) - Theme switch keeps the site header intact
 
 - Fixed: after switching theme, the Microsoft site header's menu fell
