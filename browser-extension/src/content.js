@@ -13,6 +13,8 @@
         IMGPlus: 'shared/icons/plus.svg',
         IMGPreorder: 'shared/icons/preorder.svg',
         IMGPlayAnywhere: 'shared/icons/play-anywhere.svg',
+        IMGStar: 'shared/icons/star.svg',
+        IMGStarFilled: 'shared/icons/star-filled.svg',
         IMGExpand: 'shared/icons/expand.svg',
         IMGCollapse: 'shared/icons/collapse.svg',
         CSSFilter: null // already declared in manifest.json's content_scripts.css

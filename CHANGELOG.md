@@ -14,6 +14,17 @@ for how a version is bumped and published.
 
 ---
 
+## v1.5.26268.7 (Sep 2026) - Flag games (F-25), filter button dot
+
+- New star next to each item's refresh button: click it to flag the game.
+  Flagged games get a gold star and a gold bar down the tile's left edge,
+  and stay flagged across visits (saved per game, so every copy of the
+  game - and the same game on a shared wishlist - shows it).
+- New quick filter "Flagged", sort option "Flagged" (flagged first), and
+  a `flagged` export column.
+- The filter button now shows the same green dot as the sort button while
+  any filter (including a search) is applied, and drops it when none is.
+
 ## v1.5.26268.6 (Sep 2026) - Counts on the Owned filter
 
 - The Owned, Not Owned and Un-Purchasable checkboxes now show how many

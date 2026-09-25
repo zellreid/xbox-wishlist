@@ -464,6 +464,13 @@ Note (2026-09-23): the light mock was saved with our panel already injected (old
 | 3 | Flagged items get a visible star indicator and optional highlight border |
 | 4 | Sort option: "Flagged first" added to sort field dropdown |
 
+**Status (v1.5.26268.7) - Done, needs a live check:**
+- **Star** (`.ifc-item-flag`) after the per-item refresh button, same size and outline; Xbox's own star icons (`star.svg` #15362 outline, `star-filled.svg` #16294 filled, exported with `tools/icons/catalogue.js`; no manifest change, `shared/icons/*.svg` is already web-accessible). Flagged: filled gold star (`--ifc-flag`: #ffb900 dark, #b36b00 light) and a 3px gold inset bar on the tile (`.ifc-flagged`).
+- **Storage:** own key `ifc_xbox_wishlist_flags` (`CONFIG.storage.flagsKey`), a JSON array of upper-case product ids, through the storage adapter (`chrome.storage.local` / `GM_setValue`). Per product, so every copy of a game and the same game on a shared wishlist show the flag.
+- **Item data:** `data-ifc-flagged` 1/0 (numeric so it sorts). Quick filter "Flagged" (`state.filters.flagged`) wired like "Has add-ons": saved state, tag, Clear All, saved presets (older ones default off). Sort field "Flagged" switches its level to descending (flagged first) when picked. Export column `flagged`.
+- **Filter button dot (with F-22):** `setButtonBadge()` now drives both buttons; the filter dot shows while any active tag exists (every filter, including search, makes one).
+- Harness (`20260923_1032?persist`): 310 stars; flagging 2 -> bar and gold star, saved as 2 ids; quick filter 2 of 310 with the filter dot, cleared -> 310, no dot; search sets and clears the dot; sort "Flagged" puts both first with the level on descending and the sort dot; reload restores flags and sort; unflag works; CSV header ends `...,addOnsCount,flagged,url`. Stars on all items on all 5 mocks and `?public`. PASS on all 5 mocks.
+
 ---
 
 ### F-26 — Last Seen Price Annotation

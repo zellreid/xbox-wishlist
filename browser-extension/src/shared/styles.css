@@ -31,6 +31,7 @@ body {
     --ifc-tool-bg-hover: #515863;
     --ifc-tool-bg-press: #222428;
     --ifc-tool-text: #ffffff;
+    --ifc-flag: #ffb900;
 }
 
 body[data-theme="light"] {
@@ -61,6 +62,7 @@ body[data-theme="light"] {
     --ifc-tool-bg-hover: #f4f5f6;
     --ifc-tool-bg-press: #bdc0c7;
     --ifc-tool-text: #303030;
+    --ifc-flag: #b36b00;
 }
 
 #ifc_btn_Filter:hover {
@@ -302,8 +304,9 @@ ul.filter-groups {
     outline-offset: 1px;
 }
 
-/* Per-item refresh button - first in the tag row */
-.ifc-item-refresh {
+/* Per-item refresh button - first in the tag row - and the flag star (F-25) next to it */
+.ifc-item-refresh,
+.ifc-item-flag {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -317,17 +320,20 @@ ul.filter-groups {
     cursor: pointer;
 }
 
-.ifc-item-refresh:hover {
+.ifc-item-refresh:hover,
+.ifc-item-flag:hover {
     background-color: var(--ifc-hover-bg);
     color: var(--ifc-text-strong);
 }
 
-.ifc-item-refresh:focus-visible {
+.ifc-item-refresh:focus-visible,
+.ifc-item-flag:focus-visible {
     outline: 2px solid var(--ifc-accent-text);
     outline-offset: 1px;
 }
 
-.ifc-item-refresh .ifc-glyph {
+.ifc-item-refresh .ifc-glyph,
+.ifc-item-flag .ifc-glyph {
     width: 10px;
     height: 10px;
 }
@@ -344,6 +350,17 @@ ul.filter-groups {
 .ifc-item-refresh.ifc-error {
     border-color: var(--ifc-warn);
     color: var(--ifc-warn);
+}
+
+/* Flagged: gold filled star, and a gold bar down the tile's left edge */
+.ifc-item-flag.ifc-flag-on,
+.ifc-item-flag.ifc-flag-on:hover {
+    border-color: var(--ifc-flag);
+    color: var(--ifc-flag);
+}
+
+.ifc-flagged {
+    box-shadow: inset 3px 0 0 var(--ifc-flag);
 }
 
 @keyframes ifc-spin {

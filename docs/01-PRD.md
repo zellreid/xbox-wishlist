@@ -49,7 +49,7 @@ The Xbox wishlist page (`xbox.com/*/wishlist`) provides no native filtering, sor
 
 ## Feature List
 
-### ✅ Implemented (v1.5.26268.6 - Current)
+### ✅ Implemented (v1.5.26268.7 - Current)
 
 | ID | Feature | Version Introduced |
 |----|---------|-------------------|
@@ -75,7 +75,8 @@ The Xbox wishlist page (`xbox.com/*/wishlist`) provides no native filtering, sor
 | F-15 | Accordion header styling (superseded by single-row Xbox-style header) | v1.5 |
 | F-20 | Publisher typeahead search (also on Genres since v1.5.26266.18) | v1.5 |
 | F-21 | Filtered result count (met by the existing "Viewing X of Y results" label) | v1.5 |
-| F-22 | Active sort indicator dot on the sort button | v1.5 |
+| F-22 | Active sort indicator dot on the sort button (and on the filter button while filters apply, since v1.5.26268.7) | v1.5 |
+| F-25 | Flag games with a star: highlight, "Flagged" quick filter and sort, export column | v1.5 |
 | F-23 | Save/load named filter presets | v1.5 |
 | F-24 | Export the visible (filtered, sorted) items as CSV or JSON | v1.5 |
 | F-32 | Refresh button (v1: persist state + reload) | v1.5 |
@@ -96,7 +97,6 @@ The Xbox wishlist page (`xbox.com/*/wishlist`) provides no native filtering, sor
 
 | ID | Feature | Priority | Notes |
 |----|---------|----------|-------|
-| F-25 | Highlight/flag items | 🟢 Nice | Star/flag per item, persisted, sortable |
 | F-26 | Last seen price annotation | 🟢 Nice | Show price delta on each item since last visit |
 | F-27 | Price history tracking | 🟢 Future | Store price snapshots over time in `GM_setValue` |
 | F-28 | Deal alerts / notifications | 🟢 Future | Browser notification when a flagged item drops in price |
