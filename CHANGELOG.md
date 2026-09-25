@@ -14,6 +14,17 @@ for how a version is bumped and published.
 
 ---
 
+## v1.5.26268.1 (Sep 2026) - Theme switch: header bar, footer, active icons
+
+- Fixed: on a page switched to light, the bar behind the Microsoft header
+  was grey (and the footer stayed black). The store app marks its header
+  and footer wrappers as dark on a dark page; the switch now updates that
+  mark too, so both look exactly as on a natively light page.
+- Fixed: the icon on an open panel's toolbar button had the wrong colour on
+  the live site (dark on green in light mode, white on white in dark mode):
+  Xbox's own menu button colours were winning because its stylesheet loads
+  after the extension's. The extension's colours now take priority.
+
 ## v1.5.26267.10 (Sep 2026) - Active buttons match Xbox's own
 
 - An open panel's toolbar button (Filter, Sort, Export) now looks like

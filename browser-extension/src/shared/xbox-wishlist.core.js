@@ -1025,7 +1025,12 @@ window.XboxWishlistCore = {
         // image (see below). The footer keeps its own marks. Xbox's app manages <body>'s
         // data-theme and can reset it on in-app navigation, so enforceTheme() re-applies a
         // saved choice when that happens.
-        const THEME_MARKS = { darkClass: 'theme-dark', headerMark: 'uhf-theme--', headerDark: 'uhf-theme--dark', headerLight: 'uhf-theme--light', headerElement: 'uhf-header', skipLink: 'uhf-skip-link' };
+        const THEME_MARKS = { darkClass: 'theme-dark', headerMark: 'uhf-theme--', headerDark: 'uhf-theme--dark', headerLight: 'uhf-theme--light', headerElement: 'uhf-header', footerElement: 'uhf-footer', skipLink: 'uhf-skip-link', shellDark: 'uhf-dark' };
+        // The store app's wrappers around the Microsoft header and footer (div.uhf-header / div.uhf-footer)
+        // carry the shell dark mark, which paints them in the page colour (grey on a switched light page)
+        const shellWrappers = () => [THEME_MARKS.headerElement, THEME_MARKS.footerElement]
+            .map(tag => { const el = document.querySelector(tag); return el && el.parentElement && el.parentElement.closest(`.${tag}`); })
+            .filter(Boolean);
 
         function currentTheme() {
             return document.body && document.body.dataset.theme === 'light' ? 'light' : 'dark';
@@ -1042,6 +1047,7 @@ window.XboxWishlistCore = {
             document.querySelectorAll(`header[class*="${THEME_MARKS.headerMark}"]`).forEach(el => {
                 if (el.classList.contains(THEME_MARKS.headerDark) !== dark) { el.classList.toggle(THEME_MARKS.headerDark, dark); el.classList.toggle(THEME_MARKS.headerLight, !dark); }
             });
+            shellWrappers().forEach(el => { if (el.classList.contains(THEME_MARKS.shellDark) !== dark) el.classList.toggle(THEME_MARKS.shellDark, dark); });
             applyHeaderColours(theme);
             applyHeaderLogos(theme);
             ensureThemeSheets();
@@ -1168,7 +1174,8 @@ window.XboxWishlistCore = {
             const dark = state.theme === 'dark', appClass = resolveClass(PREFIXES.appBackground);
             const wrapperWrong = appClass && Array.from(document.getElementsByClassName(appClass)).some(el => el.classList.contains(THEME_MARKS.darkClass) !== dark);
             const headerWrong = Array.from(document.querySelectorAll(`header[class*="${THEME_MARKS.headerMark}"]`)).some(el => el.classList.contains(THEME_MARKS.headerDark) !== dark);
-            return !!(wrapperWrong || headerWrong || headerColoursWrong() || headerLogosWrong());
+            const shellWrong = shellWrappers().some(el => el.classList.contains(THEME_MARKS.shellDark) !== dark);
+            return !!(wrapperWrong || headerWrong || shellWrong || headerColoursWrong() || headerLogosWrong());
         }
 
         // Xbox loads only the colour sheet for the theme the page opened in: its design

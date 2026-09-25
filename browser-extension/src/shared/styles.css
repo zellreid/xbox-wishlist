@@ -906,14 +906,15 @@ ul.filter-groups {
 
 /* Active (panel open) toolbar button - mirrors Xbox's own active wishlist menu button
    (its "Edit wishlist" toggle): green with a white icon on a light page, white with a
-   dark icon on a dark one */
-.ifc-active-button {
+   dark icon on a dark one. Scoped to our toolbar id so it outranks Xbox's own menu
+   button colours (also !important, same specificity otherwise, and loaded after ours) */
+#ifc_ButtonContainer .ifc-active-button {
     background-color: #107c10 !important;
     border-color: #107c10 !important;
     color: #ffffff !important;
 }
 
-.theme-dark .ifc-active-button {
+.theme-dark #ifc_ButtonContainer .ifc-active-button {
     background-color: #ffffff !important;
     border-color: #ffffff !important;
     color: #303030 !important;
