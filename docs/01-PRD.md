@@ -49,12 +49,12 @@ The Xbox wishlist page (`xbox.com/*/wishlist`) provides no native filtering, sor
 
 ## Feature List
 
-### ✅ Implemented (v1.5.26268.5 - Current)
+### ✅ Implemented (v1.5.26268.6 - Current)
 
 | ID | Feature | Version Introduced |
 |----|---------|-------------------|
 | F-01 | Injected button bar (Filter, Sort) into Xbox action area | v1.2 |
-| F-02 | Filter panel — Owned / Not Owned / Un-Purchasable checkboxes | v1.2 |
+| F-02 | Filter panel — Owned / Not Owned / Un-Purchasable checkboxes (with counts since v1.5.26268.6) | v1.2 |
 | F-03 | Filter panel — Publishers multi-select accordion | v1.2 |
 | F-04 | Filter panel — Price Range dual-handle slider | v1.2 |
 | F-05 | Filter panel — Discount Range dual-handle slider | v1.2 |

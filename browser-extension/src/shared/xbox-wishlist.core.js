@@ -312,6 +312,7 @@ window.XboxWishlistCore = {
             try {
                 const saveData = {
                     ...state.filters,
+                    owned: { selected: state.filters.owned.selected, options: state.filters.owned.options },   // counts are rebuilt
                     publishers: { selected: state.filters.publishers.selected, list: Array.from(state.filters.publishers.list.entries()) },
                     subscriptions: { selected: state.filters.subscriptions.selected, list: Array.from(state.filters.subscriptions.list.entries()) },
                     genres: { selected: state.filters.genres.selected },   // list is rebuilt from the items
@@ -408,7 +409,10 @@ window.XboxWishlistCore = {
             if (state.filters.search.term.trim() !== '') {
                 tags.push({ type: 'search', value: 'search', label: `Search: "${state.filters.search.term.trim()}"` });
             }
-            state.filters.owned.selected.forEach(item => tags.push({ type: 'owned', value: item, label: item }));
+            state.filters.owned.selected.forEach(item => {
+                const count = state.filters.owned.counts ? (state.filters.owned.counts.get(item) || 0) : null;
+                tags.push({ type: 'owned', value: item, label: count === null ? item : `${item} (${count})` });
+            });
             state.filters.publishers.selected.forEach(pub => {
                 const count = state.filters.publishers.list.get(pub) || 0;
                 tags.push({ type: 'publisher', value: pub, label: `${pub} (${count})` });
@@ -1816,6 +1820,28 @@ window.XboxWishlistCore = {
             } catch (ex) { console.error('Failed to add owned filter:', ex); }
         }
 
+        // Owned / Not Owned / Un-Purchasable counts over all items, like the other groups
+        // (same rules as the filter in shouldShowContainer)
+        function collectOwnedCounts() {
+            const counts = new Map([['Owned', 0], ['Not Owned', 0], ['Un-Purchasable', 0]]);
+            Array.from(document.getElementsByClassName(CONFIG.selectors.items)).forEach(c => {
+                const owned = c.dataset.ifcOwned === 'true', unPurchasable = c.dataset.ifcUnpurchasable === 'true';
+                const key = owned ? 'Owned' : (unPurchasable ? 'Un-Purchasable' : 'Not Owned');
+                counts.set(key, counts.get(key) + 1);
+            });
+            state.filters.owned.counts = counts;
+            return counts;
+        }
+
+        function updateOwnedCounts() {
+            const counts = collectOwnedCounts(), container = document.getElementById(CONFIG.ids.ownedSelect);
+            if (!container) return;
+            container.querySelectorAll('.ifc-checkbox-item').forEach(label => {
+                const cb = label.querySelector('input'), span = label.querySelector('.ifc-checkbox-label');
+                if (cb && span) span.textContent = `${cb.value} (${counts.get(cb.value) || 0})`;
+            });
+        }
+
         function collectPublishers() {
             const publishers = new Map();
             Array.from(document.getElementsByClassName(CONFIG.selectors.items)).forEach(c => {
@@ -2868,7 +2894,7 @@ window.XboxWishlistCore = {
             unnumbered.forEach(c => { c.dataset.ifcId = nextId--; });
             state.ui.lowestItemId = nextId + 1;
             Array.from(containers).forEach(c => setContainerData(c, c.dataset.ifcId));
-            collectPublishers(); updatePublishersCheckboxes(); updateSubscriptionsCheckboxes(); updateGenresCheckboxes(); updatePlatformsCheckboxes(); updateTypesCheckboxes(); updateCapabilitiesCheckboxes(); updatePriceSlider(); updateDiscountSlider();
+            updateOwnedCounts(); collectPublishers(); updatePublishersCheckboxes(); updateSubscriptionsCheckboxes(); updateGenresCheckboxes(); updatePlatformsCheckboxes(); updateTypesCheckboxes(); updateCapabilitiesCheckboxes(); updatePriceSlider(); updateDiscountSlider();
             Array.from(containers).forEach(c => {
                 try {
                     if (shouldShowContainer(c)) {

@@ -14,6 +14,12 @@ for how a version is bumped and published.
 
 ---
 
+## v1.5.26268.6 (Sep 2026) - Counts on the Owned filter
+
+- The Owned, Not Owned and Un-Purchasable checkboxes now show how many
+  items each covers, like the other filter groups (e.g. "Not Owned (252)"),
+  and their active tags carry the count too.
+
 ## v1.5.26268.5 (Sep 2026) - Toolbar buttons on shared wishlists
 
 - Fixed: on a shared (public) wishlist the toolbar buttons had no
