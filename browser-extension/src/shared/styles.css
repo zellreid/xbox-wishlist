@@ -269,6 +269,24 @@ ul.filter-groups {
     color: var(--ifc-accent-text);
 }
 
+/* F-27: lowest price seen in the last 90 days - quiet, green when the current price is it */
+.ifc-price-low {
+    margin-left: 6px;
+    padding: 1px 6px;
+    border-radius: 3px;
+    border: 1px solid var(--ifc-chip-border);
+    color: var(--ifc-text-soft);
+    font-size: 0.6875rem;
+    white-space: nowrap;
+    vertical-align: middle;
+    cursor: help;
+}
+
+.ifc-price-low.ifc-price-low-now {
+    border-color: var(--ifc-accent-border);
+    color: var(--ifc-accent-text);
+}
+
 .ifc-price-up {
     color: var(--ifc-warn);
 }

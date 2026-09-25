@@ -500,6 +500,14 @@ Note (2026-09-23): the light mock was saved with our panel already injected (old
 | 2 | Hover tooltip on price badge shows mini price history list |
 | 3 | Prune history entries older than 90 days to avoid storage bloat |
 
+**Status (v1.5.26268.9) - Done, needs a live check (over time):**
+- **Storage:** the F-26 entry gains `h`: `[[ms, price], ...]` oldest first, one point when first seen and one per change. `prunePricePoints()` drops points older than 90 days (`PRICE_POINTS_KEEP_MS`) except the newest of them - the price in force when the window starts, so the 90-day low stays right - and rebuilds `h` from the F-26 fields for entries saved before F-27. Runs on load and on each change.
+- **Chip** `.ifc-price-low` at the end of the price row once a game has two points and no change badge is showing: "Lowest seen" (`.ifc-price-low-now`, accent green) when the current price is the lowest point, otherwise "Low R 800.00". Tooltip: "Price history (90 days):" and the newest 10 points (`PRICE_POINTS_TOOLTIP`), newest first. The F-26 change badge's tooltip adds the same list.
+- **Data / export:** `data-ifc-price-low`, `data-ifc-price-history` (JSON, only with two or more points); CSV/JSON `lowestPrice`, `priceHistory` ("yyyy-mm-dd price; ...").
+- Harness (`20260923_1032?persist`, seeded earlier visit): an F-26-format entry (no `h`) migrated to 3 points after today's drop, change badge tooltip lists them; an entry with points 200/100/40/10 days old kept 100/40/10 and shows "Low R 800.00"; a two-point entry at its low shows "Lowest seen" in green; export rows carry both columns. PASS on all 5 mocks.
+
+**Tag row order (v1.5.26268.9):** `ITEM_TAG_ORDER` (frozen enum in the core) fixes each entry's place, spaced by 10 for later additions: REFRESH 10, FLAG 20, ADD_ONS 30, JUST_FOR_YOU 40, PREORDER 50, OPTIMIZED_XS 60, PLAY_ANYWHERE 70, SMART_DELIVERY 80, DLC 90, CONSUMABLE 100. `injectItemTags()` collects entries and appends them sorted. Harness: all 310 rows in order on `20260924_1542_Dark`, including items given every capability chip.
+
 ---
 
 ### F-28 — Deal Alerts / Notifications

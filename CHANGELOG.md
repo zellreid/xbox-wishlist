@@ -14,6 +14,18 @@ for how a version is bumped and published.
 
 ---
 
+## v1.5.26268.9 (Sep 2026) - Price history (F-27), fixed tag order
+
+- Each game now keeps a dated list of its prices for the last 90 days
+  (one point per price seen). Once a game has two prices on record, a quiet
+  chip shows the lowest: "Lowest seen" (green) when today's price is the
+  lowest, otherwise "Low R 800.00". Hover it - or the price change badge -
+  for the history, newest first. Export gains lowestPrice and priceHistory.
+  Prices saved by v1.5.26268.8 carry over.
+- The chips under each title now always appear in one fixed order: refresh,
+  flag, Add-ons, Just for you, Pre-order, X|S, Play Anywhere, Smart
+  Delivery, DLC / Consumable.
+
 ## v1.5.26268.8 (Sep 2026) - Price since last visit (F-26)
 
 - The extension now remembers each game's price (by game id only, on this

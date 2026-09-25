@@ -67,7 +67,7 @@ window.XboxWishlistCore = {
             capCache: {},
             // F-25: flagged (starred) product ids, upper case - saved under CONFIG.storage.flagsKey
             flags: new Set(),
-            // F-26: price seen per product id - { p, at, first, was, wasAt, changed, deal } (see recordPrice);
+            // F-26/F-27: price seen per product id - { p, at, first, was, wasAt, changed, deal, h } (see recordPrice);
             // saved under CONFIG.storage.pricesKey. priceRecorded = ids already recorded this page load
             priceHistory: {}, priceRecorded: new Set(), priceDirty: false,
             details: { running: false, cancel: false, done: 0, total: 0, failed: 0, message: '',
@@ -977,6 +977,13 @@ window.XboxWishlistCore = {
         // "Pre-order" (Xbox's calendar icon) and - once details are loaded (F-36) - Play
         // Anywhere (Xbox's icon) plus X|S / Smart Delivery as text chips (the store draws
         // those two as Microsoft branding images, which we don't bundle). Rebuilt in place.
+        // Fixed position of each entry in an item's tag row, whatever order the code builds them in.
+        // Spaced by 10 so a new entry can go between two existing ones without renumbering.
+        const ITEM_TAG_ORDER = Object.freeze({
+            REFRESH: 10, FLAG: 20, ADD_ONS: 30, JUST_FOR_YOU: 40, PREORDER: 50,
+            OPTIMIZED_XS: 60, PLAY_ANYWHERE: 70, SMART_DELIVERY: 80, DLC: 90, CONSUMABLE: 100
+        });
+
         function injectItemTags(container, info) {
             try {
                 let row = container.querySelector('.ifc-item-tags');
@@ -991,38 +998,38 @@ window.XboxWishlistCore = {
                     row = document.createElement('div'); row.className = 'ifc-item-tags';
                     pd.appendChild(row);
                 }
-                row.replaceChildren();
-                if (canRefresh) row.appendChild(createItemRefreshButton(info));
-                if (canFlag) row.appendChild(createItemFlagButton(info));
+                const entries = [], add = (order, el) => entries.push({ order, el });
+                if (canRefresh) add(ITEM_TAG_ORDER.REFRESH, createItemRefreshButton(info));
+                if (canFlag) add(ITEM_TAG_ORDER.FLAG, createItemFlagButton(info));
                 if (info.kindLabel) {
                     const kind = document.createElement('span'); kind.className = 'ifc-item-tag ifc-item-tag-kind';
                     kind.textContent = info.kindLabel;
                     kind.title = info.kindLabel === 'DLC' ? 'Add-on / downloadable content - needs the base game' : 'In-game consumable item';
-                    row.appendChild(kind);
+                    add(info.kindLabel === 'DLC' ? ITEM_TAG_ORDER.DLC : ITEM_TAG_ORDER.CONSUMABLE, kind);
                 }
                 if (info.personal) {
                     const jfy = document.createElement('span'); jfy.className = 'ifc-item-tag ifc-item-tag-jfy';
                     jfy.textContent = 'Just for you';
                     if (info.reason) { jfy.title = info.reason; jfy.setAttribute('aria-label', `Just for you: ${info.reason}`); }
-                    row.appendChild(jfy);
+                    add(ITEM_TAG_ORDER.JUST_FOR_YOU, jfy);
                 }
                 if (info.preorder) {
                     const pre = document.createElement('span'); pre.className = 'ifc-item-tag ifc-item-tag-preorder';
                     const icon = document.createElement('span'); icon.className = 'ifc-item-tag-icon';
                     setGlyph(icon, 'IMGPreorder', '');
                     pre.append(icon, 'Pre-order');
-                    row.appendChild(pre);
+                    add(ITEM_TAG_ORDER.PREORDER, pre);
                 }
-                const chip = (cls, text, title, iconKey) => {
+                const chip = (order, cls, text, title, iconKey) => {
                     const el = document.createElement('span'); el.className = `ifc-item-tag ifc-item-tag-cap ${cls}`;
                     el.title = title;
                     if (iconKey) { const icon = document.createElement('span'); icon.className = 'ifc-item-tag-icon'; setGlyph(icon, iconKey, ''); el.append(icon); }
                     el.append(text);
-                    row.appendChild(el);
+                    add(order, el);
                 };
-                if (info.optimizedXS) chip('ifc-item-tag-xs', 'X|S', 'Optimized for Xbox Series X|S');
-                if (info.smartDelivery) chip('ifc-item-tag-sd', 'Smart Delivery', 'Smart Delivery');
-                if (info.playAnywhere) chip('ifc-item-tag-xpa', 'Play Anywhere', 'Xbox Play Anywhere', 'IMGPlayAnywhere');
+                if (info.optimizedXS) chip(ITEM_TAG_ORDER.OPTIMIZED_XS, 'ifc-item-tag-xs', 'X|S', 'Optimized for Xbox Series X|S');
+                if (info.smartDelivery) chip(ITEM_TAG_ORDER.SMART_DELIVERY, 'ifc-item-tag-sd', 'Smart Delivery', 'Smart Delivery');
+                if (info.playAnywhere) chip(ITEM_TAG_ORDER.PLAY_ANYWHERE, 'ifc-item-tag-xpa', 'Play Anywhere', 'Xbox Play Anywhere', 'IMGPlayAnywhere');
                 // F-40: "Add-ons" / "Add-ons (462)" - a link to the store's add-ons list for this game
                 if (info.addOns && info.addOns.url) {
                     const n = info.addOns.count, known = typeof n === 'number';
@@ -1033,8 +1040,9 @@ window.XboxWishlistCore = {
                         : 'This game has add-ons - open the list in a new tab (Load details or ↻ adds the count)';
                     // The item card may sit inside Xbox's own click handling - let the link just open
                     link.addEventListener('click', (e) => e.stopPropagation());
-                    row.appendChild(link);
+                    add(ITEM_TAG_ORDER.ADD_ONS, link);
                 }
+                row.replaceChildren(...entries.sort((a, b) => a.order - b.order).map(e => e.el));
             } catch (ex) { console.error('Failed to inject item tags:', ex); }
         }
 
@@ -1109,6 +1117,23 @@ window.XboxWishlistCore = {
         // shows as a badge the next time, and the day a sale was first seen is kept while it runs.
         const PRICE_CHANGE_SHOW_MS = 7 * 24 * 60 * 60 * 1000;    // how long a change stays badged
         const PRICE_HISTORY_KEEP_MS = 365 * 24 * 60 * 60 * 1000; // entries unseen for a year are dropped
+        const PRICE_POINTS_KEEP_MS = 90 * 24 * 60 * 60 * 1000;   // F-27: price points kept per product
+        const PRICE_POINTS_TOOLTIP = 10;                         // newest points listed in a tooltip
+
+        // F-27: h = [[ms, price], ...] oldest first, one point per price seen (first + each change).
+        // Points older than 90 days go, except the newest of them: the price in force at the cutoff.
+        function prunePricePoints(e) {
+            if (!Array.isArray(e.h)) {   // saved before F-27: rebuild from the F-26 fields
+                e.h = e.was !== null && e.was !== undefined && e.changed
+                    ? [[e.wasAt || e.first, e.was], [e.changed, e.p]] : [[e.first, e.p]];
+            }
+            e.h = e.h.filter(pt => Array.isArray(pt) && typeof pt[0] === 'number' && typeof pt[1] === 'number');
+            const cutoff = Date.now() - PRICE_POINTS_KEEP_MS, recent = e.h.filter(pt => pt[0] >= cutoff);
+            const older = e.h.filter(pt => pt[0] < cutoff);
+            e.h = older.length ? [older[older.length - 1], ...recent] : recent;
+            if (!e.h.length) e.h = [[e.at, e.p]];
+            return e;
+        }
 
         function loadPriceHistory() {
             return new Promise(resolve => {
@@ -1119,7 +1144,7 @@ window.XboxWishlistCore = {
                             if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
                                 const cutoff = Date.now() - PRICE_HISTORY_KEEP_MS;
                                 Object.entries(parsed).forEach(([id, e]) => {
-                                    if (e && typeof e.p === 'number' && typeof e.at === 'number' && e.at >= cutoff) state.priceHistory[id] = e;
+                                    if (e && typeof e.p === 'number' && typeof e.at === 'number' && e.at >= cutoff) state.priceHistory[id] = prunePricePoints(e);
                                 });
                             }
                         } catch (ex) { console.error('Failed to read price history:', ex); }
@@ -1143,9 +1168,9 @@ window.XboxWishlistCore = {
             if (state.priceRecorded.has(id)) return e || null;
             state.priceRecorded.add(id);
             const now = Date.now(), onSale = (parseFloat(container.dataset.ifcPriceDiscountPercent) || 0) > 0;
-            if (!e) e = { p: price, at: now, first: now, was: null, wasAt: null, changed: null, deal: onSale ? now : null };
+            if (!e) e = { p: price, at: now, first: now, was: null, wasAt: null, changed: null, deal: onSale ? now : null, h: [[now, price]] };
             else {
-                if (e.p !== price) { e.was = e.p; e.wasAt = e.at; e.changed = now; e.p = price; }
+                if (e.p !== price) { e.was = e.p; e.wasAt = e.at; e.changed = now; e.p = price; e.h.push([now, price]); prunePricePoints(e); }
                 e.at = now;
                 if (!onSale) e.deal = null;
                 else if (!e.deal) e.deal = now;
@@ -1163,6 +1188,13 @@ window.XboxWishlistCore = {
                 setDataAttribute(container, 'ifcPriceChanged', e && e.changed ? e.changed : null);
                 setDataAttribute(container, 'ifcDealSince', e && e.deal ? e.deal : null);
                 setDataAttribute(container, 'ifcDealSinceKnown', dealKnown);
+                // F-27: price points (newest first in the tooltip) and the lowest of them
+                const points = e && Array.isArray(e.h) ? e.h : [];
+                const low = points.length ? Math.min(...points.map(pt => pt[1])) : null;
+                const historyText = points.length > 1 ? 'Price history (90 days):\n' + points.slice(-PRICE_POINTS_TOOLTIP).reverse()
+                    .map(pt => `${day(pt[0])}: ${formatCurrency(pt[1])}`).join('\n') : '';
+                setDataAttribute(container, 'ifcPriceLow', points.length > 1 ? low : null);
+                setDataAttribute(container, 'ifcPriceHistory', points.length > 1 ? JSON.stringify(points) : null);
                 const discount = container.querySelector('.ifc-discount-badge');
                 if (discount) discount.title = e && e.deal ? (dealKnown ? `On sale since ${day(e.deal)}` : `On sale since at least ${day(e.deal)} (already on sale when first seen)`) : '';
                 // "Since 22 Sep" after the deal badges - only when the start was actually seen
@@ -1175,20 +1207,35 @@ window.XboxWishlistCore = {
                     since.textContent = `Since ${day(e.deal)}`;
                     since.title = `First seen on sale ${new Date(e.deal).toLocaleString()}`;
                 }
+                const priceRow = () => {
+                    const pd = CONFIG.selectors.productDetails ? safeQuerySelector(container, CONFIG.selectors.productDetails) : null;
+                    const row = pd && pd.querySelector('div'); if (row) row.classList.add('ifc-price-row');
+                    return row;
+                };
+                // F-27: "Lowest seen" / "Low R 250.00" once there are two prices, while no change badge shows
+                let lowChip = container.querySelector('.ifc-price-low');
+                if (changed || points.length < 2) { if (lowChip) lowChip.remove(); }
+                else {
+                    if (!lowChip) { const row = priceRow(); if (row) { lowChip = document.createElement('span'); row.appendChild(lowChip); } }
+                    if (lowChip) {
+                        const atLow = e.p <= low;
+                        lowChip.className = 'ifc-price-low' + (atLow ? ' ifc-price-low-now' : '');
+                        lowChip.textContent = atLow ? 'Lowest seen' : `Low ${formatCurrency(low)}`;
+                        lowChip.title = historyText; lowChip.setAttribute('aria-label', (atLow ? 'Lowest price seen. ' : `Lowest seen ${formatCurrency(low)}. `) + historyText);
+                    }
+                }
                 // "▼ R 40.00" / "▲ R 40.00" at the end of the price row for a week after a change
                 let badge = container.querySelector('.ifc-price-change');
                 if (!changed) { if (badge) badge.remove(); return; }
                 if (!badge) {
-                    const pd = CONFIG.selectors.productDetails ? safeQuerySelector(container, CONFIG.selectors.productDetails) : null;
-                    const row = pd && pd.querySelector('div'); if (!row) return;
-                    row.classList.add('ifc-price-row');
+                    const row = priceRow(); if (!row) return;
                     badge = document.createElement('span'); row.appendChild(badge);
                 }
                 const down = e.p < e.was, delta = Math.round(Math.abs(e.p - e.was) * 100) / 100;
                 badge.className = 'ifc-price-change ' + (down ? 'ifc-price-down' : 'ifc-price-up');
                 badge.textContent = `${down ? '▼' : '▲'} ${formatCurrency(delta)}`;
                 const text = `Price ${down ? 'dropped' : 'went up'} from ${formatCurrency(e.was)} (seen ${day(e.wasAt || e.changed)}) to ${formatCurrency(e.p)} (${day(e.changed)})`;
-                badge.title = text; badge.setAttribute('aria-label', text);
+                badge.title = historyText ? `${text}\n\n${historyText}` : text; badge.setAttribute('aria-label', text);
             } catch (ex) { console.error('Failed to show price history:', ex); }
         }
 
@@ -1524,13 +1571,16 @@ window.XboxWishlistCore = {
                 priceChanged: num(c.dataset.ifcPriceChanged) === null ? null : new Date(num(c.dataset.ifcPriceChanged)).toISOString(),
                 onSaleSince: num(c.dataset.ifcDealSince) === null ? null : new Date(num(c.dataset.ifcDealSince)).toISOString(),
                 onSaleSinceKnown: c.dataset.ifcDealSinceKnown === 'true',
+                // F-27: lowest of the kept price points, and the points as "yyyy-mm-dd price" (null until two)
+                lowestPrice: num(c.dataset.ifcPriceLow),
+                priceHistory: (() => { try { const h = JSON.parse(c.dataset.ifcPriceHistory || 'null'); return Array.isArray(h) ? h.map(pt => `${new Date(pt[0]).toISOString().slice(0, 10)} ${pt[1]}`).join('; ') : null; } catch (ex) { return null; } })(),
                 url: text(c.dataset.ifcUri)
             };
         }
 
         function toCsv(rows) {
             const cols = ['title', 'publisher', 'price', 'originalPrice', 'discountPercent', 'owned', 'unpurchasable',
-                'rating', 'ratingCount', 'genres', 'releaseDate', 'dealEnds', 'inPass', 'dealType', 'dealReason', 'preorder', 'platforms', 'capabilities', 'type', 'hasAddOns', 'addOnsCount', 'flagged', 'previousPrice', 'priceChanged', 'onSaleSince', 'onSaleSinceKnown', 'url'];
+                'rating', 'ratingCount', 'genres', 'releaseDate', 'dealEnds', 'inPass', 'dealType', 'dealReason', 'preorder', 'platforms', 'capabilities', 'type', 'hasAddOns', 'addOnsCount', 'flagged', 'previousPrice', 'priceChanged', 'onSaleSince', 'onSaleSinceKnown', 'lowestPrice', 'priceHistory', 'url'];
             const cell = v => {
                 if (v === null || v === undefined) return '';
                 if (Array.isArray(v)) v = v.join('; ');
