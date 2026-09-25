@@ -14,6 +14,21 @@ for how a version is bumped and published.
 
 ---
 
+## v1.5.26268.8 (Sep 2026) - Price since last visit (F-26)
+
+- The extension now remembers each game's price (by game id only, on this
+  device). When a price changes between visits, the item shows a green
+  "▼ R 50.00" (dropped) or amber "▲ R 20.00" (went up) badge for 7 days;
+  hover it for the old and new price and dates.
+- When a sale starts after the extension has seen the game, a "Since 25 Sep"
+  badge shows next to the deal badges. For sales already running the first
+  time a game was seen, the start is unknown, so the discount badge's
+  tooltip says "On sale since at least ..." instead.
+- Export gains previousPrice, priceChanged, onSaleSince and
+  onSaleSinceKnown columns.
+- Nothing shows on the first visit after updating - it needs one earlier
+  visit to compare against.
+
 ## v1.5.26268.7 (Sep 2026) - Flag games (F-25), filter button dot
 
 - New star next to each item's refresh button: click it to flag the game.

@@ -241,6 +241,38 @@ ul.filter-groups {
     color: var(--ifc-warn);
 }
 
+/* F-26: "Since 22 Sep" (sale first seen) - same quiet chip as "Ends" */
+.ifc-deal-since {
+    margin-left: 6px;
+    padding: 1px 6px;
+    border-radius: 3px;
+    border: 1px solid var(--ifc-chip-border);
+    color: var(--ifc-text-soft);
+    font-size: 0.6875rem;
+    white-space: nowrap;
+    vertical-align: middle;
+}
+
+/* F-26: price change since the last visit - green when it dropped, amber when it went up */
+.ifc-price-change {
+    margin-left: 6px;
+    padding: 1px 6px;
+    border-radius: 3px;
+    border: 1px solid currentColor;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    white-space: nowrap;
+    vertical-align: middle;
+}
+
+.ifc-price-down {
+    color: var(--ifc-accent-text);
+}
+
+.ifc-price-up {
+    color: var(--ifc-warn);
+}
+
 /* ==================== ITEM TAGS (F-34) ==================== */
 /* "Just for you" (Xbox's magenta pill) and "Pre-order" under the item title */
 .ifc-item-tags {

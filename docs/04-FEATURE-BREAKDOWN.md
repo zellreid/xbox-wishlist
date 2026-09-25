@@ -483,6 +483,13 @@ Note (2026-09-23): the light mock was saved with our panel already injected (old
 | 4 | If price rose: show red `▲ was R{x}` badge |
 | 5 | Write current prices back to `xbw_price_history` with today's date |
 
+**Status (v1.5.26268.8) - Done, needs a live check:**
+- **Storage:** own key `ifc_xbox_wishlist_prices` (`CONFIG.storage.pricesKey`) through the storage adapter: `{ <productId>: { p, at, first, was, wasAt, changed, deal } }` - the shown price (`data-ifc-price`, so member prices count as seen), last seen, first tracked, the price before the last change and when it was last seen, when it changed, and when the current sale was first seen (`null` when not on sale). Product ids only, no names. Entries unseen for 365 days are dropped on load. Saved once per refresh when something changed.
+- **Recording** (`recordPrice`): once per product per page load (`state.priceRecorded`), so re-renders don't count as visits.
+- **Badges** (`injectPriceHistory`): `.ifc-price-change` at the end of the price row for 7 days after a change (`PRICE_CHANGE_SHOW_MS`): green ▼ when it dropped, amber ▲ when it went up (existing accent / warn tokens), tooltip "Price dropped from R x (seen d) to R y (d)". `.ifc-deal-since` "Since 25 Sep" after the deal-end badge, only when the start was seen (`deal > first`); otherwise the discount badge tooltip says "On sale since at least ...". Amounts use the existing `formatCurrency()` (`R 50.00`, as in the price slider).
+- **Data / export:** `data-ifc-price-was`, `-price-changed`, `-deal-since`, `-deal-since-known`; CSV/JSON `previousPrice`, `priceChanged`, `onSaleSince`, `onSaleSinceKnown`.
+- Harness (`20260923_1032?persist`): first visit stores 252 entries (every priced product), 90 on sale, no badges; a simulated earlier visit (sale item R50 dearer and not on sale; full-price item R20 cheaper; sale item already known on sale 10 days ago) gives `▼ R 50.00` + "Since Sep 25", `▲ R 20.00`, and only a tooltip "since at least Sep 15" respectively; badges survive a reload unchanged; aged past 7 days the change badges go while "Since" stays. PASS on all 5 mocks.
+
 ---
 
 ### F-27 — Price History Tracking

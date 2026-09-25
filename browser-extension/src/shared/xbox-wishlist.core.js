@@ -67,6 +67,9 @@ window.XboxWishlistCore = {
             capCache: {},
             // F-25: flagged (starred) product ids, upper case - saved under CONFIG.storage.flagsKey
             flags: new Set(),
+            // F-26: price seen per product id - { p, at, first, was, wasAt, changed, deal } (see recordPrice);
+            // saved under CONFIG.storage.pricesKey. priceRecorded = ids already recorded this page load
+            priceHistory: {}, priceRecorded: new Set(), priceDirty: false,
             details: { running: false, cancel: false, done: 0, total: 0, failed: 0, message: '',
                 itemStatus: {} }   // per product id: { busy, at, error } for the item refresh buttons
         };
@@ -116,7 +119,7 @@ window.XboxWishlistCore = {
             },
             classes: { button: [], svgIcon: [], activeButton: null },
             // capsKey: per-product capability cache (F-36), kept apart from the filter state
-            storage: { key: 'ifc_xbox_wishlist', capsKey: 'ifc_xbox_wishlist_caps', flagsKey: 'ifc_xbox_wishlist_flags' }
+            storage: { key: 'ifc_xbox_wishlist', capsKey: 'ifc_xbox_wishlist_caps', flagsKey: 'ifc_xbox_wishlist_flags', pricesKey: 'ifc_xbox_wishlist_prices' }
         };
 
         // ==================== SELECTOR PREFIXES ====================
@@ -162,6 +165,8 @@ window.XboxWishlistCore = {
                 await loadCapabilityCache();
                 // Items flagged with the star (F-25)
                 await loadFlags();
+                // Prices seen on earlier visits (F-26)
+                await loadPriceHistory();
                 const ce = getElement(`#${CONFIG.selectors.content}`, false);
                 const target = ce || document.body;
                 observer.observe(target, { childList: true, subtree: true });
@@ -938,6 +943,8 @@ window.XboxWishlistCore = {
             setDataAttribute(container, 'ifcHasAddOns', hasAddOns);
             setDataAttribute(container, 'ifcAddOnsCount', addOnsCount);
             injectDealEndBadge(container, dealEnds);
+            // F-26: price since the last visit and when the current sale was first seen
+            injectPriceHistory(container, recordPrice(container));
             // F-25: flagged with the star (1/0 so it sorts as a number)
             const flagged = isFlagged(container.dataset.ifcProductId);
             setDataAttribute(container, 'ifcFlagged', flagged ? 1 : 0);
@@ -1095,6 +1102,94 @@ window.XboxWishlistCore = {
         function saveFlags() {
             try { adapter.storage.save(CONFIG.storage.flagsKey, JSON.stringify(Array.from(state.flags))); }
             catch (ex) { console.error('Failed to save flags:', ex); }
+        }
+
+        // ==================== PRICE SINCE LAST VISIT (F-26) ====================
+        // Each product's shown price is remembered (by product id only, no names) so a change
+        // shows as a badge the next time, and the day a sale was first seen is kept while it runs.
+        const PRICE_CHANGE_SHOW_MS = 7 * 24 * 60 * 60 * 1000;    // how long a change stays badged
+        const PRICE_HISTORY_KEEP_MS = 365 * 24 * 60 * 60 * 1000; // entries unseen for a year are dropped
+
+        function loadPriceHistory() {
+            return new Promise(resolve => {
+                try {
+                    adapter.storage.load(CONFIG.storage.pricesKey, (saved) => {
+                        try {
+                            const parsed = saved ? JSON.parse(saved) : null;
+                            if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+                                const cutoff = Date.now() - PRICE_HISTORY_KEEP_MS;
+                                Object.entries(parsed).forEach(([id, e]) => {
+                                    if (e && typeof e.p === 'number' && typeof e.at === 'number' && e.at >= cutoff) state.priceHistory[id] = e;
+                                });
+                            }
+                        } catch (ex) { console.error('Failed to read price history:', ex); }
+                        resolve();
+                    });
+                } catch (ex) { console.error('Failed to load price history:', ex); resolve(); }
+            });
+        }
+        function savePriceHistory() {
+            state.priceDirty = false;
+            try { adapter.storage.save(CONFIG.storage.pricesKey, JSON.stringify(state.priceHistory)); }
+            catch (ex) { console.error('Failed to save price history:', ex); }
+        }
+
+        // Once per product per page load: compare with the price seen last time and note a sale's
+        // start. deal === first means the sale was already on when tracking began (start unknown).
+        function recordPrice(container) {
+            const id = (container.dataset.ifcProductId || '').toUpperCase(), price = parseFloat(container.dataset.ifcPrice);
+            if (!id || id === 'NULL' || isNaN(price)) return null;
+            let e = state.priceHistory[id];
+            if (state.priceRecorded.has(id)) return e || null;
+            state.priceRecorded.add(id);
+            const now = Date.now(), onSale = (parseFloat(container.dataset.ifcPriceDiscountPercent) || 0) > 0;
+            if (!e) e = { p: price, at: now, first: now, was: null, wasAt: null, changed: null, deal: onSale ? now : null };
+            else {
+                if (e.p !== price) { e.was = e.p; e.wasAt = e.at; e.changed = now; e.p = price; }
+                e.at = now;
+                if (!onSale) e.deal = null;
+                else if (!e.deal) e.deal = now;
+            }
+            state.priceHistory[id] = e; state.priceDirty = true;
+            return e;
+        }
+
+        function injectPriceHistory(container, e) {
+            try {
+                const day = ms => new Date(ms).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+                const changed = !!(e && e.changed && e.was !== null && e.was !== e.p && Date.now() - e.changed < PRICE_CHANGE_SHOW_MS);
+                const dealKnown = !!(e && e.deal && e.deal > e.first);
+                setDataAttribute(container, 'ifcPriceWas', e && e.was !== null ? e.was : null);
+                setDataAttribute(container, 'ifcPriceChanged', e && e.changed ? e.changed : null);
+                setDataAttribute(container, 'ifcDealSince', e && e.deal ? e.deal : null);
+                setDataAttribute(container, 'ifcDealSinceKnown', dealKnown);
+                const discount = container.querySelector('.ifc-discount-badge');
+                if (discount) discount.title = e && e.deal ? (dealKnown ? `On sale since ${day(e.deal)}` : `On sale since at least ${day(e.deal)} (already on sale when first seen)`) : '';
+                // "Since 22 Sep" after the deal badges - only when the start was actually seen
+                let since = container.querySelector('.ifc-deal-since');
+                if (!dealKnown || !discount) { if (since) since.remove(); }
+                else {
+                    if (!since) { since = document.createElement('span'); since.className = 'ifc-deal-since'; }
+                    const after = container.querySelector('.ifc-deal-ends') || discount;
+                    if (after.nextElementSibling !== since) after.insertAdjacentElement('afterend', since);
+                    since.textContent = `Since ${day(e.deal)}`;
+                    since.title = `First seen on sale ${new Date(e.deal).toLocaleString()}`;
+                }
+                // "▼ R 40.00" / "▲ R 40.00" at the end of the price row for a week after a change
+                let badge = container.querySelector('.ifc-price-change');
+                if (!changed) { if (badge) badge.remove(); return; }
+                if (!badge) {
+                    const pd = CONFIG.selectors.productDetails ? safeQuerySelector(container, CONFIG.selectors.productDetails) : null;
+                    const row = pd && pd.querySelector('div'); if (!row) return;
+                    row.classList.add('ifc-price-row');
+                    badge = document.createElement('span'); row.appendChild(badge);
+                }
+                const down = e.p < e.was, delta = Math.round(Math.abs(e.p - e.was) * 100) / 100;
+                badge.className = 'ifc-price-change ' + (down ? 'ifc-price-down' : 'ifc-price-up');
+                badge.textContent = `${down ? '▼' : '▲'} ${formatCurrency(delta)}`;
+                const text = `Price ${down ? 'dropped' : 'went up'} from ${formatCurrency(e.was)} (seen ${day(e.wasAt || e.changed)}) to ${formatCurrency(e.p)} (${day(e.changed)})`;
+                badge.title = text; badge.setAttribute('aria-label', text);
+            } catch (ex) { console.error('Failed to show price history:', ex); }
         }
 
         // "Ends 24 Sep" next to the discount badge; "Ends in 5h" (amber) inside 24 hours
@@ -1424,13 +1519,18 @@ window.XboxWishlistCore = {
                 // F-40: count is null until "Load details" / the per-item refresh has read it
                 hasAddOns: c.dataset.ifcHasAddOns === 'true', addOnsCount: num(c.dataset.ifcAddOnsCount),
                 flagged: c.dataset.ifcFlagged === '1',   // F-25
+                // F-26: the price before the last change (null if unchanged since first seen) and dates
+                previousPrice: num(c.dataset.ifcPriceWas),
+                priceChanged: num(c.dataset.ifcPriceChanged) === null ? null : new Date(num(c.dataset.ifcPriceChanged)).toISOString(),
+                onSaleSince: num(c.dataset.ifcDealSince) === null ? null : new Date(num(c.dataset.ifcDealSince)).toISOString(),
+                onSaleSinceKnown: c.dataset.ifcDealSinceKnown === 'true',
                 url: text(c.dataset.ifcUri)
             };
         }
 
         function toCsv(rows) {
             const cols = ['title', 'publisher', 'price', 'originalPrice', 'discountPercent', 'owned', 'unpurchasable',
-                'rating', 'ratingCount', 'genres', 'releaseDate', 'dealEnds', 'inPass', 'dealType', 'dealReason', 'preorder', 'platforms', 'capabilities', 'type', 'hasAddOns', 'addOnsCount', 'flagged', 'url'];
+                'rating', 'ratingCount', 'genres', 'releaseDate', 'dealEnds', 'inPass', 'dealType', 'dealReason', 'preorder', 'platforms', 'capabilities', 'type', 'hasAddOns', 'addOnsCount', 'flagged', 'previousPrice', 'priceChanged', 'onSaleSince', 'onSaleSinceKnown', 'url'];
             const cell = v => {
                 if (v === null || v === undefined) return '';
                 if (Array.isArray(v)) v = v.join('; ');
@@ -2971,6 +3071,7 @@ window.XboxWishlistCore = {
             unnumbered.forEach(c => { c.dataset.ifcId = nextId--; });
             state.ui.lowestItemId = nextId + 1;
             Array.from(containers).forEach(c => setContainerData(c, c.dataset.ifcId));
+            if (state.priceDirty) savePriceHistory();
             updateOwnedCounts(); collectPublishers(); updatePublishersCheckboxes(); updateSubscriptionsCheckboxes(); updateGenresCheckboxes(); updatePlatformsCheckboxes(); updateTypesCheckboxes(); updateCapabilitiesCheckboxes(); updatePriceSlider(); updateDiscountSlider();
             Array.from(containers).forEach(c => {
                 try {
