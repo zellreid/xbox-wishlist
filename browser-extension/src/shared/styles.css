@@ -27,6 +27,10 @@ body {
     --ifc-track: #3d3d3d;
     --ifc-check: #ffffff;
     --ifc-check-mark: #262626;
+    --ifc-tool-bg: #2d3036;
+    --ifc-tool-bg-hover: #515863;
+    --ifc-tool-bg-press: #222428;
+    --ifc-tool-text: #ffffff;
 }
 
 body[data-theme="light"] {
@@ -53,6 +57,10 @@ body[data-theme="light"] {
     --ifc-track: #d2d2d2;
     --ifc-check: #1a1a1a;
     --ifc-check-mark: #ffffff;
+    --ifc-tool-bg: #d8dade;
+    --ifc-tool-bg-hover: #f4f5f6;
+    --ifc-tool-bg-press: #bdc0c7;
+    --ifc-tool-text: #303030;
 }
 
 #ifc_btn_Filter:hover {
@@ -861,6 +869,56 @@ ul.filter-groups {
     .ifc-sort-add:hover {
         background-color: #0e7a0e;
     }
+
+/* Toolbar buttons on a shared (public) wishlist: the page has no menu buttons whose
+   Xbox classes we could copy, so these mirror them - Xbox's secondary icon button
+   in the wishlist menu size (32px, 4px corners, 16px icon), same colours per theme */
+.ifc-toolbar-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    position: relative;
+    box-sizing: border-box;
+    width: 32px;
+    height: 32px;
+    margin: 0 4px;
+    padding: 0;
+    border: 2px solid transparent;
+    border-radius: 4px;
+    background-color: var(--ifc-tool-bg);
+    color: var(--ifc-tool-text);
+    fill: currentColor;
+    cursor: pointer;
+}
+
+@media (any-hover: hover) {
+    .ifc-toolbar-button:not([disabled]):hover {
+        background-color: var(--ifc-tool-bg-hover);
+    }
+}
+
+.ifc-toolbar-button:focus {
+    outline: none;
+}
+
+.ifc-toolbar-button:focus-visible {
+    background-color: var(--ifc-tool-bg-hover);
+    outline: 1px solid var(--ifc-tool-text);
+    outline-offset: 2px;
+}
+
+.ifc-toolbar-button:not([disabled]):active {
+    background-color: var(--ifc-tool-bg-press);
+}
+
+.ifc-toolbar-icon {
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+    margin: 0;
+    fill: currentColor;
+}
 
 /* Active (panel open) toolbar button - mirrors Xbox's own active wishlist menu button
    (its "Edit wishlist" toggle): green with a white icon on a light page, white with a

@@ -45,6 +45,8 @@
 
 **Status (v1.5.26266.4):** Done - the shared core creates its own button container when the native menu container is missing ("public wishlist mode").
 
+**Fix (v1.5.26268.5):** the toolbar buttons copied Xbox's menu-button classes, which a shared wishlist doesn't have on the page, so they came out unstyled (no background; dark-grey icons on dark). When the menu-button class can't be resolved, the buttons now get `ifc-toolbar-button` / `ifc-toolbar-icon` instead of any Xbox classes: Xbox's secondary icon button at wishlist-menu size (32px, 4px corners, 2px transparent border, 16px icon) with its colours as theme tokens `--ifc-tool-*` (dark #2d3036 / hover #515863 / press #222428 / text #fff; light #d8dade / #f4f5f6 / #bdc0c7 / #303030), measured from the own-wishlist buttons. Verified with the harness's new `?public` option (removes Xbox's wishlist menu before boot): fallback computed styles equal the own-wishlist buttons in dark and light, hover and the active highlight correct in both, switch dark -> light correct; own wishlists still get the 8 Xbox classes. PASS on all 5 mocks, normal and `?public`.
+
 | Step | Task |
 |------|------|
 | 1 | Detect public wishlist: `!document.querySelector(CONFIG.selectors.buttonsArea)` |

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         XBOX Wishlist
 // @namespace    https://github.com/zellreid/xbox-wishlist
-// @version      1.5.26268.4
+// @version      1.5.26268.5
 // @description  Advanced filtering and sorting suite with multi-level sort (up to 3 criteria) - Resilient selectors - Public wishlist support
 // @author       ZellReid
 // @homepage     https://github.com/zellreid/xbox-wishlist
@@ -10,7 +10,7 @@
 // @match        https://www.xbox.com/*/wishlist*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=xbox.com
 // @run-at       document-body
-// @resource     CSSFilter https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/styles.css?ver=1.5.26268.4
+// @resource     CSSFilter https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/styles.css?ver=1.5.26268.5
 // @resource     IMGFilter https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/filter.svg
 // @resource     IMGSort https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/sort.svg
 // @resource     IMGExport https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/export.svg
@@ -258,18 +258,21 @@ window.XboxWishlistCore = {
             CONFIG.selectors.productPublisher = altTextClass ? `.${CSS.escape(altTextClass)}` : (prodDetailsClass ? `.${CSS.escape(prodDetailsClass)} p` : null);
             CONFIG.selectors.productPrices = prodDetailsClass ? `.${CSS.escape(prodDetailsClass)} div span` : null;
 
-            CONFIG.classes.button = [
-                resolveClass(PREFIXES.menuButton), resolveClass(PREFIXES.btnIconBase),
+            // A shared (public) wishlist has no menu buttons of its own to copy the look from,
+            // so our toolbar then uses its own classes, which mirror Xbox's in styles.css
+            const menuButtonClass = resolveClass(PREFIXES.menuButton);
+            CONFIG.classes.button = menuButtonClass ? [
+                menuButtonClass, resolveClass(PREFIXES.btnIconBase),
                 resolveClass(PREFIXES.btnBorderRadius), resolveClass(PREFIXES.btnSizeIcon),
                 resolveClass(PREFIXES.btnBase), resolveClass(PREFIXES.btnNoUnderline),
                 resolveClass(PREFIXES.btnTypeSecondary), resolveClass(PREFIXES.btnOverlaySolid)
-            ].filter(Boolean);
+            ].filter(Boolean) : ['ifc-toolbar-button'];
 
-            CONFIG.classes.svgIcon = [
+            CONFIG.classes.svgIcon = menuButtonClass ? [
                 resolveClass(PREFIXES.btnIcon), resolveClass(PREFIXES.btnNoMargin),
                 resolveClass(PREFIXES.pageIcon), resolveClass(PREFIXES.iconBase),
                 resolveClass(PREFIXES.iconXXSmall)
-            ].filter(Boolean);
+            ].filter(Boolean) : ['ifc-toolbar-icon'];
 
             CONFIG.classes.activeButton = 'ifc-active-button';
 

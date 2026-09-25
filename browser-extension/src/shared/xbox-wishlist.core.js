@@ -218,18 +218,21 @@ window.XboxWishlistCore = {
             CONFIG.selectors.productPublisher = altTextClass ? `.${CSS.escape(altTextClass)}` : (prodDetailsClass ? `.${CSS.escape(prodDetailsClass)} p` : null);
             CONFIG.selectors.productPrices = prodDetailsClass ? `.${CSS.escape(prodDetailsClass)} div span` : null;
 
-            CONFIG.classes.button = [
-                resolveClass(PREFIXES.menuButton), resolveClass(PREFIXES.btnIconBase),
+            // A shared (public) wishlist has no menu buttons of its own to copy the look from,
+            // so our toolbar then uses its own classes, which mirror Xbox's in styles.css
+            const menuButtonClass = resolveClass(PREFIXES.menuButton);
+            CONFIG.classes.button = menuButtonClass ? [
+                menuButtonClass, resolveClass(PREFIXES.btnIconBase),
                 resolveClass(PREFIXES.btnBorderRadius), resolveClass(PREFIXES.btnSizeIcon),
                 resolveClass(PREFIXES.btnBase), resolveClass(PREFIXES.btnNoUnderline),
                 resolveClass(PREFIXES.btnTypeSecondary), resolveClass(PREFIXES.btnOverlaySolid)
-            ].filter(Boolean);
+            ].filter(Boolean) : ['ifc-toolbar-button'];
 
-            CONFIG.classes.svgIcon = [
+            CONFIG.classes.svgIcon = menuButtonClass ? [
                 resolveClass(PREFIXES.btnIcon), resolveClass(PREFIXES.btnNoMargin),
                 resolveClass(PREFIXES.pageIcon), resolveClass(PREFIXES.iconBase),
                 resolveClass(PREFIXES.iconXXSmall)
-            ].filter(Boolean);
+            ].filter(Boolean) : ['ifc-toolbar-icon'];
 
             CONFIG.classes.activeButton = 'ifc-active-button';
 

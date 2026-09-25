@@ -14,6 +14,15 @@ for how a version is bumped and published.
 
 ---
 
+## v1.5.26268.5 (Sep 2026) - Toolbar buttons on shared wishlists
+
+- Fixed: on a shared (public) wishlist the toolbar buttons had no
+  background and, in dark mode, near-invisible icons. That page has no menu
+  buttons of its own to copy the look from, so the buttons now use their
+  own style mirroring Xbox's (same size, corners and colours per theme,
+  lighter on hover, darker when pressed, focus outline). The open-panel
+  highlight (green / white) works there too.
+
 ## v1.5.26268.4 (Sep 2026) - Remove dead styles (T-22)
 
 - Removed about 60 lines of unused styles (old subscription and discount

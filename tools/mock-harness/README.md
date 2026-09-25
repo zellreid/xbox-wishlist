@@ -76,6 +76,12 @@ result line says what was cleaned ("capture: ..."). Add `?keepCapture` to
 skip this and test how the extension copes with a page that already holds
 its elements (e.g. no duplicate toolbar buttons).
 
+**Shared (public) wishlists:** add `?public` to make an own-wishlist capture
+look like someone else's shared wishlist to the extension: Xbox's wishlist
+menu (and its menu buttons) is removed before boot, so the extension builds
+its own toolbar container and styles its buttons itself. The first result
+line says how many menu elements were removed.
+
 **Scripts:** the fixture strips every script so Xbox's app can't re-render the
 frozen page, but keeps external ones as inert `text/plain` placeholders with
 their `src` (browsers never fetch or run those). Code that looks up the page's

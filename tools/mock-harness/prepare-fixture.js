@@ -143,9 +143,18 @@ function buildHarnessBlock(outDir) {
         return removed || unmarked ? 'removed ' + removed + ' injected elements, unmarked ' + unmarked : 'nothing injected';
     }
 
+    // ?public turns an own-wishlist capture into a shared (public) one, as far as the extension
+    // can tell: Xbox's own wishlist menu (and with it the menu buttons whose look we copy) is removed.
+    function simulatePublic() {
+        if (!new URLSearchParams(location.search).has('public')) return '';
+        const menus = document.querySelectorAll('[class*="WishlistPage-module__menuContainer___"], [class*="WishlistPage-module__wishlistMenuButton___"]');
+        menus.forEach(el => el.remove());
+        return ', public (?public): removed ' + menus.length + ' menu elements';
+    }
+
     async function runHarness() {
         const failures = [];
-        const captureCleanup = cleanCapture();
+        const captureCleanup = cleanCapture() + simulatePublic();
         try {
             await loadScript('${coreUrl}');
             await loadScript('${contentUrl}');
