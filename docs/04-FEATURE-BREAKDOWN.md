@@ -361,7 +361,7 @@ Note (2026-09-23): the light mock was saved with our panel already injected (old
 | 2 | Harness on all mocks; computed-style compare on panels, toolbar and tiles (owned / un-purchasable tints) in light and dark, before vs after: expect 0 differences |
 | 3 | Bump version, CHANGELOG entry |
 
-**Status:** Todo - awaiting go-ahead (pre-existing dead code is only removed on request).
+**Status (v1.5.26268.4) - Done:** all rows removed (styles.css -62 lines, core -1). Verified: computed styles of every `ifc_` element, both panels opened, and the first 4 tiles with all their descendants (748 elements light / 743 dark, ~970,000 properties each), before vs after on the light (1603) and dark (1032) mocks: 0 differences apart from the two removed custom properties themselves; owned and un-purchasable tints unchanged on the dark page. Harness PASS on all 5 mocks.
 
 ---
 

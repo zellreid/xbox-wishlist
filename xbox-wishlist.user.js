@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         XBOX Wishlist
 // @namespace    https://github.com/zellreid/xbox-wishlist
-// @version      1.5.26268.3
+// @version      1.5.26268.4
 // @description  Advanced filtering and sorting suite with multi-level sort (up to 3 criteria) - Resilient selectors - Public wishlist support
 // @author       ZellReid
 // @homepage     https://github.com/zellreid/xbox-wishlist
@@ -10,7 +10,7 @@
 // @match        https://www.xbox.com/*/wishlist*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=xbox.com
 // @run-at       document-body
-// @resource     CSSFilter https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/styles.css?ver=1.5.26268.3
+// @resource     CSSFilter https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/styles.css?ver=1.5.26268.4
 // @resource     IMGFilter https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/filter.svg
 // @resource     IMGSort https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/sort.svg
 // @resource     IMGExport https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/export.svg
@@ -161,7 +161,6 @@ window.XboxWishlistCore = {
             menuContainer: 'WishlistPage-module__menuContainer___',
             imageContainer: 'WishlistProductItem-module__imageContainer___',
             productDetails: 'WishlistProductItem-module__productDetails___',
-            primaryText: 'WishlistProductItem-module__primaryText___',
             altText: 'WishlistProductItem-module__altText___',
             priceBaseContainer: 'Price-module__priceBaseContainer___',
             originalPrice: 'Price-module__originalPrice___',

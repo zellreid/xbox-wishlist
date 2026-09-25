@@ -121,7 +121,6 @@ window.XboxWishlistCore = {
             menuContainer: 'WishlistPage-module__menuContainer___',
             imageContainer: 'WishlistProductItem-module__imageContainer___',
             productDetails: 'WishlistProductItem-module__productDetails___',
-            primaryText: 'WishlistProductItem-module__primaryText___',
             altText: 'WishlistProductItem-module__altText___',
             priceBaseContainer: 'Price-module__priceBaseContainer___',
             originalPrice: 'Price-module__originalPrice___',

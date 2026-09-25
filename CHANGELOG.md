@@ -14,6 +14,14 @@ for how a version is bumped and published.
 
 ---
 
+## v1.5.26268.4 (Sep 2026) - Remove dead styles (T-22)
+
+- Removed about 60 lines of unused styles (old subscription and discount
+  tile tints, empty and unused panel rules, two unread colour variables,
+  dark-mode copies identical to the normal rule) and one unused class-name
+  prefix. No visible change: computed styles on the panels, toolbar and
+  tiles are identical before and after in light and dark.
+
 ## v1.5.26268.3 (Sep 2026) - Add-ons: hide games that list none
 
 - Fixed: some games (e.g. Torchlight II) are marked by the store as having
