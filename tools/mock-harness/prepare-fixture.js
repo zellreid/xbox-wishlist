@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Turns a raw "Save As -> Webpage, Complete" capture of the Xbox wishlist page
-// (dropped in mock_examples/#wishlist/) into a frozen test fixture that boots
+// (dropped in mock_examples/#wishlist/<market>/, e.g. en-za) into a frozen test fixture that boots
 // the real extension core against it. mock_examples/ also holds #products,
 // #deals and #games captures - reference material, not harness fixtures.
 //
@@ -11,9 +11,9 @@
 // <script> tags freezes the DOM exactly as captured.
 //
 // Usage:
-//   node tools/mock-harness/prepare-fixture.js "mock_examples/#wishlist/20260922_1138.html"
-//   node tools/mock-harness/prepare-fixture.js            (prepares every *.html in mock_examples/#wishlist/)
-// Open via the server with "#" URL-encoded, e.g. /mock_examples/%23wishlist/<name>.harness.html
+//   node tools/mock-harness/prepare-fixture.js "mock_examples/#wishlist/en-za/20260922_1138.html"
+//   node tools/mock-harness/prepare-fixture.js            (prepares every *.html in mock_examples/#wishlist/<market>/)
+// Open via the server with "#" URL-encoded, e.g. /mock_examples/%23wishlist/en-za/<name>.harness.html
 
 const fs = require('fs');
 const path = require('path');
@@ -257,12 +257,14 @@ function main() {
         prepareOne(path.resolve(REPO_ROOT, arg));
         return;
     }
-    const candidates = fs.readdirSync(MOCK_DIR).filter(f => f.endsWith('.html') && !f.endsWith('.harness.html'));
+    // Captures live in one folder per market (e.g. #wishlist/en-za/)
+    const candidates = fs.readdirSync(MOCK_DIR, { withFileTypes: true }).filter(d => d.isDirectory())
+        .flatMap(d => fs.readdirSync(path.join(MOCK_DIR, d.name)).filter(f => f.endsWith('.html') && !f.endsWith('.harness.html')).map(f => path.join(MOCK_DIR, d.name, f)));
     if (!candidates.length) {
-        console.error(`No .html files found directly in ${MOCK_DIR}`);
+        console.error(`No .html files found in a market folder under ${MOCK_DIR}`);
         process.exit(1);
     }
-    candidates.forEach(f => prepareOne(path.join(MOCK_DIR, f)));
+    candidates.forEach(prepareOne);
 }
 
 main();

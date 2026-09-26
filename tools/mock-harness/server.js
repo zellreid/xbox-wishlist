@@ -6,7 +6,7 @@
 //
 // Usage:
 //   node tools/mock-harness/server.js [port]
-//   -> then open http://localhost:<port>/mock_examples/%23wishlist/<name>.harness.html
+//   -> then open http://localhost:<port>/mock_examples/%23wishlist/en-za/<name>.harness.html
 
 const http = require('http');
 const fs = require('fs');
@@ -54,5 +54,5 @@ const server = http.createServer((req, res) => {
 
 server.listen(PORT, () => {
     console.log(`Mock harness server running at http://localhost:${PORT}`);
-    console.log(`Prepared fixtures: http://localhost:${PORT}/mock_examples/%23wishlist/<name>.harness.html`);
+    console.log(`Prepared fixtures: http://localhost:${PORT}/mock_examples/%23wishlist/en-za/<name>.harness.html`);
 });

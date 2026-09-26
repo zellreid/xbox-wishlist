@@ -34,8 +34,8 @@ updated: 2026-09-26
 + 4 more: F-28 to F-30 in docs/01-PRD.md, and Firefox/Safari support (planned in AGENTS.md)
 
 ## Recent sessions
+- 2026-09-26: Mock layout: renamed deals/games captures to 20260923_1319 / 20260923_1320 (+ _files, 76 internal links); prepare-fixture, server and README follow #type/market/; harness PASS
 - 2026-09-26: Per-market price history and currency (v1.5.26269.1): region-keyed storage, page currency symbol, fixed $1,299.00 parsing; T-24/F-26/F-27 confirmed; mock harness PASS on all 5 mocks
 - 2026-09-25: Filter panel (v1.5.26268.14): range sections equal and tighter (151 -> 110px), panel foot trimmed to its 15px padding; slider still filters; mock harness PASS on all 5 mocks
 - 2026-09-25: Filter panel (v1.5.26268.13): removed the divider under the last group (Discount Range); mock harness PASS on all 5 mocks
 - 2026-09-25: Filter panel layout (v1.5.26268.12): Saved filters under search, Quick filters heading, section dividers; mock harness PASS on all 5 mocks + ?public
-- 2026-09-25: T-23 confirmed; filter panel dividers (v1.5.26268.11): tag row divider moved above it, saved filters divider removed; mock harness PASS on all 5 mocks
