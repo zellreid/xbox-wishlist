@@ -14,7 +14,7 @@ A mock is a saved copy of a real Xbox page, kept offline and frozen, so changes 
    `<name>.html` plus a `<name>_files/` folder.
 3. Run `node tools/mock-harness/file-mocks.js --prepare`. It works out what the page is from the address it was
    saved from, renames the file and its `_files` folder, fixes the links inside, moves both to the right
-   `mock_examples/#<type>/<market>/` folder and regenerates the harness pages. It never overwrites, and leaves
+   `mock_examples/<type>/<market>/` folder and regenerates the harness pages. It never overwrites, and leaves
    anything it does not recognise in the inbox with the reason.
 4. Start the server (`node tools/mock-harness/server.js`) and open the `.harness.html` page (see "Running it").
 
@@ -22,17 +22,17 @@ A mock is a saved copy of a real Xbox page, kept offline and frozen, so changes 
 
 ### Naming convention
 
-`mock_examples/#<type>/<market>/<name>.html` and `<name>_files/`, where `<market>` is the lower-case locale from the
+`mock_examples/<type>/<market>/<name>.html` and `<name>_files/`, where `<market>` is the lower-case locale from the
 address (`en-za`, `en-us`, `sr-latn-rs`).
 
 | Page | Address after `/<locale>/` | Folder | Name |
 |---|---|---|---|
-| Wishlist | `wishlist` | `#wishlist` | `yyyyMMdd_HHmm` |
-| Game deals | `games/browse/DynamicChannel.GameDeals` | `#deals` | `yyyyMMdd_HHmm` |
-| Browse all games | `games/browse` | `#games` | `yyyyMMdd_HHmm` |
-| Product | `games/store/<slug>/<id>` | `#products` | `<id>_yyyyMMdd_HHmm_<slug>` |
-| Add-ons for a game | `games/browse/ProductAddOns_<ID>` | `#addons` | `<id>_yyyyMMdd_HHmm_<slug of the product>` |
-| Change locale | `Shell/ChangeLocale` | `_locale` | `yyyyMMdd_HHmm` |
+| Wishlist | `wishlist` | `wishlist` | `yyyyMMdd_HHmm` |
+| Game deals | `games/browse/DynamicChannel.GameDeals` | `deals` | `yyyyMMdd_HHmm` |
+| Browse all games | `games/browse` | `games` | `yyyyMMdd_HHmm` |
+| Product | `games/store/<slug>/<id>` | `products` | `<id>_yyyyMMdd_HHmm_<slug>` |
+| Add-ons for a game | `games/browse/ProductAddOns_<ID>` | `addons` | `<id>_yyyyMMdd_HHmm_<slug of the product>` |
+| Change locale | `Shell/ChangeLocale` | `locale` | `yyyyMMdd_HHmm` |
 
 - The date and time are when the page was saved (the file's created time, or modified time if that is earlier).
   Copying or editing a file changes those times, so file a capture straight after saving it.
@@ -58,23 +58,21 @@ alone: add a rule in `classify()` when a new kind of page needs mocks.
 
 | Folder | Contents | Harness checks |
 |---|---|---|
-| `#wishlist/<market>/` | Wishlist page captures, named `yyyyMMdd_HHmm` | Full: items, publishers, a real filter round trip |
-| `#deals/<market>/`, `#games/<market>/` | Game deals and Browse all games pages, named `yyyyMMdd_HHmm` | Smoke |
-| `#products/<market>/` | Product pages, named `{product id}_{yyyyMMdd}_{HHmm}_{slug}` (e.g. `9nm79b7n9jm6_20260923_1313_street-fighter-6`) | Smoke |
-| `#addons/<market>/` | "Add-ons for this game" pages, same naming as products | Smoke |
-| `_locale/<market>/` | The change-locale page - source of `locales.json` (see below) | None |
+| `wishlist/<market>/` | Wishlist page captures, named `yyyyMMdd_HHmm` | Full: items, publishers, a real filter round trip |
+| `deals/<market>/`, `games/<market>/` | Game deals and Browse all games pages, named `yyyyMMdd_HHmm` | Smoke |
+| `products/<market>/` | Product pages, named `{product id}_{yyyyMMdd}_{HHmm}_{slug}` (e.g. `9nm79b7n9jm6_20260923_1313_street-fighter-6`) | Smoke |
+| `addons/<market>/` | "Add-ons for this game" pages, same naming as products | Smoke |
+| `locale/<market>/` | The change-locale page - source of `locales.json` (see below) | None |
 
 `<market>` is the lower-case locale folder (`en-za`). The date and time are the capture's created time; the
 slug is the product's address slug (max 70 characters). **Smoke** means the page freezes, the extension loads
 and leaves it alone (the extension does not act on these pages yet: F-35, F-38), the embedded page state
 reads, and its locale matches the folder.
 
-`#` starts a URL fragment, so encode it as `%23` in harness URLs.
-
 ## Locales
 
 `locales.json` lists every language and region xbox.com offers (94 locales, 41 languages, 87 regions), built by
-`node tools/mock-harness/extract-locales.js` from the newest capture under `mock_examples/_locale/`. The page
+`node tools/mock-harness/extract-locales.js` from the newest capture under `mock_examples/locale/`. The page
 gives country and language names, not codes, so codes come from the locale table in the page's own bundle;
 14 names are mapped by hand in the script. `sr-Cyrl-RS` ("Srbija - Srpski") is assumed, not confirmed.
 
@@ -82,12 +80,12 @@ gives country and language names, not codes, so codes come from the locale table
 
 Prefer `file-mocks.js` (above). By hand:
 
-1. Save the capture into `mock_examples/#<type>/<market>/` named as in the table above (this produces
+1. Save the capture into `mock_examples/<type>/<market>/` named as in the table above (this produces
    `<name>.html` + a `<name>_files/` folder; rename both and replace the folder name inside the .html if the browser
    used the page title).
 2. Prepare it:
    ```
-   node tools/mock-harness/prepare-fixture.js "mock_examples/#wishlist/en-za/<name>.html"
+   node tools/mock-harness/prepare-fixture.js "mock_examples/wishlist/en-za/<name>.html"
    ```
    This strips the page's own `<script>` tags (otherwise the live React app
    re-hydrates on load, its API calls fail offline, and it wipes the saved
@@ -97,14 +95,14 @@ Prefer `file-mocks.js` (above). By hand:
    small harness script that loads the real extension code against the
    frozen DOM and runs a few sanity checks (wishlist pages: item count, publisher
    collection, an actual filter interaction). Output goes to
-   `mock_examples/#wishlist/<market>/<name>.harness.html` - **next to** the raw capture, not a
+   `mock_examples/wishlist/<market>/<name>.harness.html` - **next to** the raw capture, not a
    separate folder, because the saved page's own asset links are relative
    (`./<name>_files/...`) and only resolve if the fixture stays alongside
    its `_files` sibling. Git-ignored - regenerate any time from the raw
    capture.
 
    Omit the argument to prepare every `.html` capture under every
-   `mock_examples/#<type>/<market>/` in one pass (33 today). The fixture keeps Xbox's embedded
+   `mock_examples/<type>/<market>/` in one pass (33 today). The fixture keeps Xbox's embedded
    page-state script (as inert `text/plain`) so the product-data reader works
    offline; every other script is stripped.
 
@@ -114,7 +112,7 @@ Prefer `file-mocks.js` (above). By hand:
 node tools/mock-harness/server.js        # serves the repo at :8792
 ```
 
-Then open `http://localhost:8792/mock_examples/%23wishlist/en-za/<name>.harness.html`.
+Then open `http://localhost:8792/mock_examples/wishlist/en-za/<name>.harness.html`.
 A banner at the top of the page turns green ("HARNESS PASS") or red
 ("HARNESS FAIL") with details; the same summary is logged to the console as
 `[HARNESS RESULT] {...}` for scripted checks.

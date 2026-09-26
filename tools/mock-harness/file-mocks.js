@@ -3,15 +3,15 @@
 // mock_examples/_inbox/ under any name (or pass paths), then run this: each capture is
 // identified from the address it was saved from, renamed by the convention below, its
 // <name>_files folder is renamed with it (and the links inside the .html updated), and
-// both are moved to mock_examples/#<type>/<market>/. Nothing is ever overwritten.
+// both are moved to mock_examples/<type>/<market>/. Nothing is ever overwritten.
 //
 //   Page type   Address after /<locale>/                 Folder      File name
-//   wishlist    wishlist                                 #wishlist   yyyyMMdd_HHmm
-//   deals       games/browse/DynamicChannel.GameDeals    #deals      yyyyMMdd_HHmm
-//   games       games/browse                             #games      yyyyMMdd_HHmm
-//   product     games/store/<slug>/<id>                  #products   <id>_yyyyMMdd_HHmm_<slug>
-//   add-ons     games/browse/ProductAddOns_<ID>          #addons     <id>_yyyyMMdd_HHmm_<slug of the product>
-//   locale      Shell/ChangeLocale                       _locale     yyyyMMdd_HHmm
+//   wishlist    wishlist                                 wishlist   yyyyMMdd_HHmm
+//   deals       games/browse/DynamicChannel.GameDeals    deals       yyyyMMdd_HHmm
+//   games       games/browse                             games       yyyyMMdd_HHmm
+//   product     games/store/<slug>/<id>                  products    <id>_yyyyMMdd_HHmm_<slug>
+//   add-ons     games/browse/ProductAddOns_<ID>          addons      <id>_yyyyMMdd_HHmm_<slug of the product>
+//   locale      Shell/ChangeLocale                       locale       yyyyMMdd_HHmm
 //
 // <market> is the lower-case locale from the address (en-za). The time is the capture's
 // created time (or modified time if that is earlier, as for copied files). A name that
@@ -59,18 +59,18 @@ function classify(url) {
     if (!/^[a-z]{2,3}(-[a-z]{4})?-[a-z]{2}$/i.test(loc || '')) return null;
     const market = loc.toLowerCase(), rest = parts.join('/').toLowerCase();
     let m;
-    if (rest === 'wishlist' || rest.startsWith('wishlist/')) return { type: 'wishlist', dir: '#wishlist', market };
-    if (rest === 'shell/changelocale') return { type: 'locale', dir: '_locale', market };
-    if (rest === 'games/browse/dynamicchannel.gamedeals') return { type: 'deals', dir: '#deals', market };
-    if (rest === 'games/browse') return { type: 'games', dir: '#games', market };
-    if ((m = /^games\/browse\/productaddons_([0-9a-z]{12})$/.exec(rest))) return { type: 'addons', dir: '#addons', market, id: m[1] };
-    if ((m = /^games\/store\/([^/]+)\/([0-9a-z]{12})/.exec(rest))) return { type: 'products', dir: '#products', market, id: m[2], slug: m[1] };
+    if (rest === 'wishlist' || rest.startsWith('wishlist/')) return { type: 'wishlist', dir: 'wishlist', market };
+    if (rest === 'shell/changelocale') return { type: 'locale', dir: 'locale', market };
+    if (rest === 'games/browse/dynamicchannel.gamedeals') return { type: 'deals', dir: 'deals', market };
+    if (rest === 'games/browse') return { type: 'games', dir: 'games', market };
+    if ((m = /^games\/browse\/productaddons_([0-9a-z]{12})$/.exec(rest))) return { type: 'addons', dir: 'addons', market, id: m[1] };
+    if ((m = /^games\/store\/([^/]+)\/([0-9a-z]{12})/.exec(rest))) return { type: 'products', dir: 'products', market, id: m[2], slug: m[1] };
     return null;
 }
 
 // Slug for an add-ons page comes from the product page it belongs to (same product id)
 function knownSlug(id) {
-    const dir = path.join(MOCK_ROOT, '#products');
+    const dir = path.join(MOCK_ROOT, 'products');
     if (!fs.existsSync(dir)) return null;
     for (const mk of fs.readdirSync(dir, { withFileTypes: true }).filter(d => d.isDirectory())) {
         const hit = fs.readdirSync(path.join(dir, mk.name)).find(f => f.startsWith(id + '_') && f.endsWith('.html'));

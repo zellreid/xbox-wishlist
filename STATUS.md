@@ -19,7 +19,7 @@ updated: 2026-09-26
 ## Now
 - Live at v1.5.26269.3. T-25 built: the price range is saved per currency (page currency code), saved filters remember their price currency, prices show in the page's currency and locale style (R 948,27 / $948.27). Tested in the harness with a rand store opened as a dollar page (range off, rand range kept, old preset applies without its price part, back on rand everything intact); harness PASS on all mocks tried (10). Needs a live check on en-ZA (same look, slightly different number style) and en-US.
 - Page data review (docs/07-DATA-FIELDS.md): a free, language-free read also gives Owned (entitlements isOwned), date added to the wishlist (all 310 items), and which games your pass covers now with its end date. Ranked list in the doc.
-- New captures: save into mock_examples/_inbox/, run `node tools/mock-harness/file-mocks.js --prepare`. Harness: `?locale=xx-YY&currency=ZZZ` simulates another market.
+- Mocks: folders are now mock_examples/<type>/<market>/ (no # prefix, locale not _locale); tools and docs follow. New real captures wishlist/en-gb and wishlist/en-us (2026-09-26 14:11) pass the harness with ?realpath: GBP and USD detected, prices parse, ranges and history keyed per market. New captures: save into mock_examples/_inbox/, run `node tools/mock-harness/file-mocks.js --prepare`. Harness: `?realpath`, `?locale=xx-YY&currency=ZZZ`.
 
 ## TODO
 | ID | Item | Priority | Status | Next action |
@@ -34,12 +34,13 @@ updated: 2026-09-26
 | F-35 | Deals / games browse page support | Low | Todo | Same state kind as wishlist (no capabilities); decide scope, needs manifest change (HITL); deals and games mocks are harness fixtures (smoke only) |
 | T-20 | Remove the unused public-catalogue host permission from manifest.json | Low | Todo | HITL: approve the manifest change, then check Load details and refresh still work |
 | T-28 | Mock tidy-up: confirm the Serbian Cyrillic locale code (sr-Cyrl-RS assumed); 2 orphan Batman "Return to Arkham" _files folders with no page | Low | Todo | Recapture the Serbian locale in Cyrillic to confirm; delete or recapture the two orphan folders |
+| T-32 | Save more wishlist mocks (list in chat): non-English markets (de-DE, fr-FR, pt-BR, ja-JP, ar-SA), owned-heavy, empty, tiny, partial "Viewing 20 of N", shared, narrow window | Medium | Todo | Save into mock_examples/_inbox/ (use --tag for same-day variants), run file-mocks.js --prepare |
 
 + 4 more: F-28 to F-30 in docs/01-PRD.md, and Firefox/Safari support (planned in AGENTS.md)
 
 ## Recent sessions
+- 2026-09-26: Followed the mock folder renames (no # prefix, locale); analysed the new en-gb/en-us wishlist captures (harness PASS, GBP/USD detected); recommended further wishlist mocks (T-32)
 - 2026-09-26: T-25 done (v1.5.26269.3): price range per currency, presets remember currency, Intl price format; harness ?currency; page data review found addedDate, pass entitlements, isOwned; changelog and docs/07 updated
 - 2026-09-26: T-25 analysis: found language-free ownership (state entitlements isOwned) and a per-price currency code in the page data; no code changed
 - 2026-09-26: Mock intake: file-mocks.js names and files captures from mock_examples/_inbox by the address they were saved from; mock conventions documented in tools/mock-harness/README.md, pointer in docs/06-TESTING.md
 - 2026-09-26: Harness extended to all mock areas (33 fixtures, all PASS), ?locale rewrite tested, product mocks renamed {id}_{date}_{time}_{slug} + #addons, locales.json (94 locales), getMarket handles script codes (v1.5.26269.2)
-- 2026-09-26: Mock layout: renamed deals/games captures to 20260923_1319 / 20260923_1320 (+ _files, 76 internal links); prepare-fixture, server and README follow #type/market/; harness PASS

@@ -8,7 +8,7 @@ exporter that turns a chosen Xbox icon into a repo icon.
 | Source | Where |
 |---|---|
 | Our icons | `browser-extension/src/shared/icons/*.svg` |
-| Xbox JS bundles | every `*_files/*.js` saved with the mocks in `mock_examples/` (`#wishlist`, `#products`, `#deals`, `#games`) - each bundle read once |
+| Xbox JS bundles | every `*_files/*.js` saved with the mocks in `mock_examples/` (`wishlist`, `products`, `deals`, `games`) - each bundle read once |
 | Xbox page inline SVG | every saved page `mock_examples/**/*.html` (rendered DOM - catches icons that exist only at runtime) |
 
 Icons are de-duplicated by their path data; each keeps the list of places it

@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 // Turns a raw "Save As -> Webpage, Complete" capture of the Xbox wishlist page
-// (dropped in mock_examples/#wishlist/<market>/, e.g. en-za) into a frozen test fixture that boots
-// the real extension core against it. mock_examples/ also holds #products,
-// #deals and #games captures - reference material, not harness fixtures.
+// (dropped in mock_examples/wishlist/<market>/, e.g. en-za) into a frozen test fixture that boots
+// the real extension core against it. mock_examples/ also holds products,
+// deals, games and addons captures (smoke checks only, see below).
 //
 // Why: opening the raw saved page directly lets its original React bundles
 // re-execute (browsers run classic <script> tags regardless of file
@@ -11,9 +11,9 @@
 // <script> tags freezes the DOM exactly as captured.
 //
 // Usage:
-//   node tools/mock-harness/prepare-fixture.js "mock_examples/#wishlist/en-za/20260922_1138.html"
-//   node tools/mock-harness/prepare-fixture.js            (prepares every *.html in mock_examples/#wishlist/<market>/)
-// Open via the server with "#" URL-encoded, e.g. /mock_examples/%23wishlist/en-za/<name>.harness.html
+//   node tools/mock-harness/prepare-fixture.js "mock_examples/wishlist/en-za/20260922_1138.html"
+//   node tools/mock-harness/prepare-fixture.js            (prepares every *.html in mock_examples/wishlist/<market>/)
+// Open via the server, e.g. /mock_examples/wishlist/en-za/<name>.harness.html
 
 const fs = require('fs');
 const path = require('path');
@@ -329,7 +329,7 @@ function prepareOne(inputPath) {
     const sourceUrl = (html.slice(0, 800).match(/saved from url=\(\d+\)(\S+)/) || [])[1] || '';
     let sourcePath = '/en-ZA/wishlist';
     try { sourcePath = new URL(sourceUrl).pathname; } catch (ex) { console.warn(`  no source address in ${base}, using ${sourcePath}`); }
-    const meta = { type: rel[0].replace(/^#/, ''), folder: rel[1], sourceUrl, sourcePath };
+    const meta = { type: rel[0], folder: rel[1], sourceUrl, sourcePath };
     const harnessBlock = buildHarnessBlock(outDir, meta);
     const withHarness = /<\/body>/i.test(stripped)
         ? stripped.replace(/<\/body>/i, `${harnessBlock}</body>`)
@@ -344,10 +344,10 @@ function main() {
         prepareOne(path.resolve(REPO_ROOT, arg));
         return;
     }
-    // Captures live in mock_examples/#<type>/<market>/ (e.g. #wishlist/en-za/)
+    // Captures live in mock_examples/<type>/<market>/ (e.g. wishlist/en-za/)
     const candidates = [];
     PAGE_TYPES.forEach(type => {
-        const typeDir = path.join(MOCK_ROOT, `#${type}`);
+        const typeDir = path.join(MOCK_ROOT, type);
         if (!fs.existsSync(typeDir)) return;
         fs.readdirSync(typeDir, { withFileTypes: true }).filter(d => d.isDirectory()).forEach(d => {
             fs.readdirSync(path.join(typeDir, d.name)).filter(f => f.endsWith('.html') && !f.endsWith('.harness.html'))

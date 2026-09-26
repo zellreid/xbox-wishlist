@@ -238,7 +238,7 @@
 
 | Step | Task |
 |------|------|
-| 1 | Go through the mocks in `mock_examples/#products` (20 captured) - their state has named capabilities (Optimized for X\|S, Smart Delivery, Play Anywhere, 4K, 60 fps, ...) |
+| 1 | Go through the mocks in `mock_examples/products` (20 captured) - their state has named capabilities (Optimized for X\|S, Smart Delivery, Play Anywhere, 4K, 60 fps, ...) |
 | 2 | Map the wishlist page's badge codes to those names by comparing the same products; extract the badge icons (X\|S, Smart Delivery, Play Anywhere, pre-order, sale tag) from the product pages' code into the icon catalogue |
 | 3 | Add per-item fields: dealType (just-for-you / sale / member), dealReason, preorder, platforms, badges |
 | 4 | UI: small indicator icons on items + quick filters (e.g. "Just for you", "Pre-order") + Platforms filter; export columns |
@@ -294,7 +294,7 @@
 | 1 | Decide the strategy: (a) on demand per item (click/expand), (b) background fill for visible items, throttled, (c) opt-in "Load details" button - all cached by product id in storage with a TTL |
 | 2 | `fetchPageState(product url)` -> read the page product's capabilities -> cache |
 | 3 | Indicators: Play Anywhere (Xbox sphere icon #19522 - `node tools/icons/catalogue.js export 19522 play-anywhere`), X\|S and Smart Delivery as text chips (their store images are Microsoft branding) |
-| 4 | Capabilities filter; harness test against the `#products` mocks |
+| 4 | Capabilities filter; harness test against the `products` mocks |
 
 ---
 
@@ -304,7 +304,7 @@
 
 | Step | Task |
 |------|------|
-| 1 | Prepare a harness for the light-mode mock `mock_examples/#wishlist/20260923_1603.html`; screenshot every panel, pill, tag, chip, badge and the export menu to list the clashes |
+| 1 | Prepare a harness for the light-mode mock `mock_examples/wishlist/en-za/20260923_1603.html`; screenshot every panel, pill, tag, chip, badge and the export menu to list the clashes |
 | 2 | Move `styles.css` colours into CSS variables on our own root, with a dark set (current values) and a light set, chosen from the page's theme attribute |
 | 3 | Re-check both mocks (dark `20260923_1032`, light `20260923_1603`) visually |
 
@@ -419,7 +419,7 @@ Note (2026-09-23): the light mock was saved with our panel already injected (old
 |------|------|
 | 1 | Manifest `content_scripts.matches` + userscript `@match` for `/games/store/*` - **manifest change, HITL approval required** |
 | 2 | Core: detect page type (wishlist vs product) and only start the wishlist UI on wishlist pages; on product pages start just the tooling needed (e.g. the T-17 test) |
-| 3 | Harness fixture from `mock_examples/#products/DEAD OR ALIVE 6_ Core Fighters _ XBOX.html` (prepare-fixture currently targets `#wishlist` only - extend it) |
+| 3 | Harness fixture from `mock_examples/products/en-za/btb7hc3zdl2v_20260923_1559_dead-or-alive-6-core-fighters.html` (prepare-fixture now prepares product pages too, with smoke checks) |
 
 ---
 
@@ -437,7 +437,7 @@ Note (2026-09-23): the light mock was saved with our panel already injected (old
 | 1 | Per item: `data-ifc-has-dlc` from the has-add-ons flag; a "DLC" chip-link on games (not on DLC items themselves) opening the add-ons page in a new tab |
 | 2 | Count: fetch the add-ons page via `fetchPageState()`, read its total, cache per product id (own key, TTL); show "DLC (462)"; include in per-item refresh and "Load details" |
 | 3 | Filter / quick filter "Has DLC"; export `hasDlc`, `dlcCount` |
-| 4 | Harness: use `mock_examples/#products/DEAD OR ALIVE 6_ Core Fighters _ XBOX_Add-ons for this game _ XBOX.html` as the fetched add-ons page |
+| 4 | Harness: use `mock_examples/addons/en-za/btb7hc3zdl2v_20260923_1559_dead-or-alive-6-core-fighters.html` as the fetched add-ons page |
 
 **Status (v1.5.26268.3) - Done, confirmed live 2026-09-25 (including the 0-count fix):**
 - **Chip-link "Add-ons" / "Add-ons (462)"** on games whose summary has `hasAddOns` (never on DLC or consumables - they keep the F-37 "DLC" chip; different word to avoid confusion). Opens `https://www.xbox.com/<locale>/games/browse/ProductAddOns_<ID>` in a new tab (locale from the item's own URL; format checked against the real page the capture was saved from). Outlined like the Pre-order chip; scoped `.ifc-item-tags a.ifc-item-tag-addons` because Xbox's `a` / `.theme-dark a` link colours otherwise win (green text).
@@ -451,7 +451,7 @@ Note (2026-09-23): the light mock was saved with our panel already injected (old
 
 ### F-35 - Deals and Games Browse Page Support
 
-**Goal:** Bring the filter/sort tooling to xbox.com's "Game deals" and "Browse all games" pages (mocks in `mock_examples/#deals` and `#games`).
+**Goal:** Bring the filter/sort tooling to xbox.com's "Game deals" and "Browse all games" pages (mocks in `mock_examples/deals` and `games`).
 
 | Step | Task |
 |------|------|

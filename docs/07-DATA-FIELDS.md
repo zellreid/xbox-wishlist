@@ -13,7 +13,7 @@
 
 The embedded state is Xbox's own app data. It is personal to the signed-in viewer (member prices, "Just for you" offers, ownership), so it is read live and never stored beyond the filter/sort/preset settings.
 
-Verified against the mocks in `mock_examples/#wishlist` (2 captures) and `mock_examples/#products` (KINGDOM HEARTS Collection) on 2026-09-23.
+Verified against the mocks in `mock_examples/wishlist` (2 captures) and `mock_examples/products` (KINGDOM HEARTS Collection) on 2026-09-23.
 
 ---
 
@@ -58,7 +58,7 @@ Verified against the mocks in `mock_examples/#wishlist` (2 captures) and `mock_e
 
 | Field | Notes |
 |---|---|
-| **Capabilities (named)** | 24 seen across the `#products` mocks: **Optimized for Xbox Series X\|S**, **Smart Delivery**, **Xbox Play Anywhere**, Xbox One X Enhanced, FPS Boost, 4K Ultra HD, 60 fps+, HDR10, Variable Refresh Rate, Dolby Atmos, Spatial Sound, Single player, online / local / cross-platform co-op and multiplayer, shared/split screen, cross-gen multiplayer, achievements, cloud saves, presence, PC Game Pad. Also not on the deals / browse-games pages. The product page's header tags (X\|S, Smart Delivery, Play Anywhere, cloud, X Enhanced) are driven by these. |
+| **Capabilities (named)** | 24 seen across the `products` mocks: **Optimized for Xbox Series X\|S**, **Smart Delivery**, **Xbox Play Anywhere**, Xbox One X Enhanced, FPS Boost, 4K Ultra HD, 60 fps+, HDR10, Variable Refresh Rate, Dolby Atmos, Spatial Sound, Single player, online / local / cross-platform co-op and multiplayer, shared/split screen, cross-gen multiplayer, achievements, cloud saves, presence, PC Game Pad. Also not on the deals / browse-games pages. The product page's header tags (X\|S, Smart Delivery, Play Anywhere, cloud, X Enhanced) are driven by these. |
 | Accessibility features | Counted by the product page's accessibility tag |
 | Bundle contents | Product ids included in a bundle |
 | Editions | Other editions of the product |
@@ -87,4 +87,4 @@ Verified against the mocks in `mock_examples/#wishlist` (2 captures) and `mock_e
 - Use the product page only for fields in the second table, loaded lazily, cached per product id and throttled - never for the whole list at once (hundreds of multi-MB requests).
 - Capabilities cannot be derived from the wishlist page (its badge codes are subscription logos). They are loaded per item from the product page on request ("Load details", F-36), cached 7 days per product.
 - The store app also has an internal bulk product lookup (many ids per request). It is a separate Xbox service; the app attaches the signed-in user's authorization when available but marks it **not required**. Not used yet: it is undocumented and can change without notice, its address isn't in the saved pages (resolved at runtime), a cross-origin call from the content script only works if that service allows the xbox.com origin (unverified), and whether its response includes capabilities is unverified. Reading or forwarding the user's token ourselves stays off-limits (TIER 1). See T-17 for the live check.
-- `mock_examples/#deals` and `#games` embed the same kind of state (25 products each) but without capabilities, and the deals page carries no personal offers.
+- `mock_examples/deals` and `games` embed the same kind of state (25 products each) but without capabilities, and the deals page carries no personal offers.

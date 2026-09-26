@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Builds tools/mock-harness/locales.json - every language + region xbox.com offers -
 // from a capture of the "change locale" page (xbox.com/<locale>/Shell/ChangeLocale)
-// saved to mock_examples/_locale/<market>/<yyyyMMdd_HHmm>.html.
+// saved to mock_examples/locale/<market>/<yyyyMMdd_HHmm>.html.
 //
 // The page lists "Country - Language" buttons per world region but no codes, so each
 // button is matched to a code from the locale enum in the page's own JS bundle (by
@@ -9,13 +9,13 @@
 // do not match (Arabic, Chinese, and a few spelling variants).
 //
 // Usage: node tools/mock-harness/extract-locales.js [path-to-capture.html]
-//        (default: the newest .html under mock_examples/_locale/)
+//        (default: the newest .html under mock_examples/locale/)
 
 const fs = require('fs');
 const path = require('path');
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
-const LOCALE_DIR = path.join(REPO_ROOT, 'mock_examples', '_locale');
+const LOCALE_DIR = path.join(REPO_ROOT, 'mock_examples', 'locale');
 const OUT = path.join(__dirname, 'locales.json');
 
 // Button labels whose names do not match Intl's native names
