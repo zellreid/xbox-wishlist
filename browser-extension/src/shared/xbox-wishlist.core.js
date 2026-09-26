@@ -282,7 +282,7 @@ window.XboxWishlistCore = {
         }
         // Market (region) from the /en-ZA/ path segment - prices, currency and price history are per market
         function getMarket() {
-            const m = /^[a-z]{2,3}-([a-z]{2})$/i.exec(location.pathname.split('/').filter(Boolean)[0] || '');
+            const m = /^[a-z]{2,3}(?:-[a-z]{4})?-([a-z]{2})$/i.exec(location.pathname.split('/').filter(Boolean)[0] || '');
             return m ? m[1].toUpperCase() : 'XX';
         }
         // "R1 299,00", "$1,299.00", "1.299,00 EUR" -> number: the last , or . followed by 1-2 digits is the decimal mark

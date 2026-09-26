@@ -9,19 +9,34 @@ xbox.com or waiting on the Chrome Web Store / Tampermonkey update cycle.
 
 `mock_examples/` (git-ignored - personal browsing data) is split by page type:
 
-| Folder | Contents | Harness fixture? |
+| Folder | Contents | Harness checks |
 |---|---|---|
-| `#wishlist/` | Wishlist page captures | Yes - `prepare-fixture.js` targets this folder, one subfolder per market (`en-za`) |
-| `#products/` | Product page captures | No - reference for product-page-only data (F-34) |
-| `#deals/` | Game deals browse page (`en-za/20260923_1319`) | No - reference for possible future deals-page support |
-| `#games/` | Browse all games page (`en-za/20260923_1320`) | No - reference for possible future games-page support |
+| `#wishlist/<market>/` | Wishlist page captures, named `yyyyMMdd_HHmm` | Full: items, publishers, a real filter round trip |
+| `#deals/<market>/`, `#games/<market>/` | Game deals and Browse all games pages, named `yyyyMMdd_HHmm` | Smoke |
+| `#products/<market>/` | Product pages, named `{product id}_{yyyyMMdd}_{HHmm}_{slug}` (e.g. `9nm79b7n9jm6_20260923_1313_street-fighter-6`) | Smoke |
+| `#addons/<market>/` | "Add-ons for this game" pages, same naming as products | Smoke |
+| `_locale/<market>/` | The change-locale page - source of `locales.json` (see below) | None |
+
+`<market>` is the lower-case locale folder (`en-za`). The date and time are the capture's created time; the
+slug is the product's address slug (max 70 characters). **Smoke** means the page freezes, the extension loads
+and leaves it alone (the extension does not act on these pages yet: F-35, F-38), the embedded page state
+reads, and its locale matches the folder.
 
 `#` starts a URL fragment, so encode it as `%23` in harness URLs.
 
+## Locales
+
+`locales.json` lists every language and region xbox.com offers (94 locales, 41 languages, 87 regions), built by
+`node tools/mock-harness/extract-locales.js` from the newest capture under `mock_examples/_locale/`. The page
+gives country and language names, not codes, so codes come from the locale table in the page's own bundle;
+14 names are mapped by hand in the script. `sr-Cyrl-RS` ("Srbija - Srpski") is assumed, not confirmed.
+
 ## Adding a new fixture
 
-1. On the Xbox wishlist page, `Ctrl+S` -> "Webpage, Complete" -> save into
-   `mock_examples/#wishlist/<market>/` (e.g. `en-za`; this produces `<name>.html` + a `<name>_files/` folder).
+1. On the Xbox page, `Ctrl+S` -> "Webpage, Complete" -> save into
+   `mock_examples/#<type>/<market>/` (e.g. `#wishlist/en-za`), named as in the table above; this produces
+   `<name>.html` + a `<name>_files/` folder. If the browser saves the `_files` folder under the page title,
+   rename both and replace the folder name inside the .html.
 2. Prepare it:
    ```
    node tools/mock-harness/prepare-fixture.js "mock_examples/#wishlist/en-za/<name>.html"
@@ -32,7 +47,7 @@ xbox.com or waiting on the Chrome Web Store / Tampermonkey update cycle.
    `shared/styles.css` (the real extension gets this from `manifest.json`;
    the harness has no manifest, so it links it explicitly), and appends a
    small harness script that loads the real extension code against the
-   frozen DOM and runs a few sanity checks (item count, publisher
+   frozen DOM and runs a few sanity checks (wishlist pages: item count, publisher
    collection, an actual filter interaction). Output goes to
    `mock_examples/#wishlist/<market>/<name>.harness.html` - **next to** the raw capture, not a
    separate folder, because the saved page's own asset links are relative
@@ -40,8 +55,8 @@ xbox.com or waiting on the Chrome Web Store / Tampermonkey update cycle.
    its `_files` sibling. Git-ignored - regenerate any time from the raw
    capture.
 
-   Omit the argument to prepare every `.html` file directly under
-   `mock_examples/#wishlist/<market>/` in one pass. The fixture keeps Xbox's embedded
+   Omit the argument to prepare every `.html` capture under every
+   `mock_examples/#<type>/<market>/` in one pass (33 today). The fixture keeps Xbox's embedded
    page-state script (as inert `text/plain`) so the product-data reader works
    offline; every other script is stripped.
 
@@ -59,6 +74,12 @@ A banner at the top of the page turns green ("HARNESS PASS") or red
 The `chrome.storage` stand-in answers asynchronously (like the real one) and
 keeps its data in `sessionStorage`. By default every load starts with an
 empty store, so the sanity checks always see a clean slate.
+
+**Testing another market:** add `?locale=xx-YY` (e.g. `?locale=en-US`, or `?realpath` for the capture's own
+locale). The harness rewrites the address bar to the capture's real path with that locale
+(`/en-US/wishlist`), so the core sees that market as it does live; only the address changes, the page stays
+the capture's. On wishlist fixtures the run then checks the price history was saved under that market
+(`..._prices_US`). Do not reload afterwards (Refresh): the server has no such path.
 
 **Testing persistence:** add `?persist` to the URL
 (`.../<name>.harness.html?persist`). Filters set on one load are then

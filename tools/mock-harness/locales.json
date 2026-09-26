@@ -1,0 +1,758 @@
+{
+  "source": "mock_examples/_locale/en-za/20260926_1324.html",
+  "count": 94,
+  "locales": [
+    {
+      "code": "es-AR",
+      "language": "es",
+      "region": "AR",
+      "script": null,
+      "group": "AMERICA",
+      "label": "Argentina - Español"
+    },
+    {
+      "code": "es-BO",
+      "language": "es",
+      "region": "BO",
+      "script": null,
+      "group": "AMERICA",
+      "label": "Bolivia - Español"
+    },
+    {
+      "code": "pt-BR",
+      "language": "pt",
+      "region": "BR",
+      "script": null,
+      "group": "AMERICA",
+      "label": "Brasil - Português"
+    },
+    {
+      "code": "en-CA",
+      "language": "en",
+      "region": "CA",
+      "script": null,
+      "group": "AMERICA",
+      "label": "Canada - English"
+    },
+    {
+      "code": "fr-CA",
+      "language": "fr",
+      "region": "CA",
+      "script": null,
+      "group": "AMERICA",
+      "label": "Canada - Français"
+    },
+    {
+      "code": "es-CL",
+      "language": "es",
+      "region": "CL",
+      "script": null,
+      "group": "AMERICA",
+      "label": "Chile - Español"
+    },
+    {
+      "code": "es-CO",
+      "language": "es",
+      "region": "CO",
+      "script": null,
+      "group": "AMERICA",
+      "label": "Colombia - Español"
+    },
+    {
+      "code": "es-CR",
+      "language": "es",
+      "region": "CR",
+      "script": null,
+      "group": "AMERICA",
+      "label": "Costa Rica - Español"
+    },
+    {
+      "code": "es-EC",
+      "language": "es",
+      "region": "EC",
+      "script": null,
+      "group": "AMERICA",
+      "label": "Ecuador - Español"
+    },
+    {
+      "code": "es-SV",
+      "language": "es",
+      "region": "SV",
+      "script": null,
+      "group": "AMERICA",
+      "label": "El Salvador - Español"
+    },
+    {
+      "code": "es-GT",
+      "language": "es",
+      "region": "GT",
+      "script": null,
+      "group": "AMERICA",
+      "label": "Guatemala - Español"
+    },
+    {
+      "code": "es-HN",
+      "language": "es",
+      "region": "HN",
+      "script": null,
+      "group": "AMERICA",
+      "label": "Honduras - Español"
+    },
+    {
+      "code": "es-MX",
+      "language": "es",
+      "region": "MX",
+      "script": null,
+      "group": "AMERICA",
+      "label": "México - Español"
+    },
+    {
+      "code": "es-NI",
+      "language": "es",
+      "region": "NI",
+      "script": null,
+      "group": "AMERICA",
+      "label": "Nicaragua - Español"
+    },
+    {
+      "code": "es-PA",
+      "language": "es",
+      "region": "PA",
+      "script": null,
+      "group": "AMERICA",
+      "label": "Panamá - Español"
+    },
+    {
+      "code": "es-PY",
+      "language": "es",
+      "region": "PY",
+      "script": null,
+      "group": "AMERICA",
+      "label": "Paraguay - Español"
+    },
+    {
+      "code": "es-PE",
+      "language": "es",
+      "region": "PE",
+      "script": null,
+      "group": "AMERICA",
+      "label": "Perú - Español"
+    },
+    {
+      "code": "en-US",
+      "language": "en",
+      "region": "US",
+      "script": null,
+      "group": "AMERICA",
+      "label": "United States - English"
+    },
+    {
+      "code": "es-UY",
+      "language": "es",
+      "region": "UY",
+      "script": null,
+      "group": "AMERICA",
+      "label": "Uruguay - Español"
+    },
+    {
+      "code": "nl-BE",
+      "language": "nl",
+      "region": "BE",
+      "script": null,
+      "group": "EUROPE",
+      "label": "België - Nederlands"
+    },
+    {
+      "code": "fr-BE",
+      "language": "fr",
+      "region": "BE",
+      "script": null,
+      "group": "EUROPE",
+      "label": "Belgique - Français"
+    },
+    {
+      "code": "bs-Latn-BA",
+      "language": "bs",
+      "region": "BA",
+      "script": "Latn",
+      "group": "EUROPE",
+      "label": "Bosna-Hersek – Bosanski"
+    },
+    {
+      "code": "cs-CZ",
+      "language": "cs",
+      "region": "CZ",
+      "script": null,
+      "group": "EUROPE",
+      "label": "Česká Republika - Čeština"
+    },
+    {
+      "code": "sr-Latn-RS",
+      "language": "sr",
+      "region": "RS",
+      "script": "Latn",
+      "group": "EUROPE",
+      "label": "Srbija - Latinica Srpski"
+    },
+    {
+      "code": "sr-Latn-ME",
+      "language": "sr",
+      "region": "ME",
+      "script": "Latn",
+      "group": "EUROPE",
+      "label": "Crna Gora - Srpski"
+    },
+    {
+      "code": "en-CY",
+      "language": "en",
+      "region": "CY",
+      "script": null,
+      "group": "EUROPE",
+      "label": "Cyprus - English"
+    },
+    {
+      "code": "da-DK",
+      "language": "da",
+      "region": "DK",
+      "script": null,
+      "group": "EUROPE",
+      "label": "Danmark - Dansk"
+    },
+    {
+      "code": "de-DE",
+      "language": "de",
+      "region": "DE",
+      "script": null,
+      "group": "EUROPE",
+      "label": "Deutschland - Deutsch"
+    },
+    {
+      "code": "es-ES",
+      "language": "es",
+      "region": "ES",
+      "script": null,
+      "group": "EUROPE",
+      "label": "España - Español"
+    },
+    {
+      "code": "et-EE",
+      "language": "et",
+      "region": "EE",
+      "script": null,
+      "group": "EUROPE",
+      "label": "Eesti - Eesti"
+    },
+    {
+      "code": "fr-FR",
+      "language": "fr",
+      "region": "FR",
+      "script": null,
+      "group": "EUROPE",
+      "label": "France - Français"
+    },
+    {
+      "code": "hr-HR",
+      "language": "hr",
+      "region": "HR",
+      "script": null,
+      "group": "EUROPE",
+      "label": "Hrvatska - Hrvatski"
+    },
+    {
+      "code": "en-IE",
+      "language": "en",
+      "region": "IE",
+      "script": null,
+      "group": "EUROPE",
+      "label": "Ireland - English"
+    },
+    {
+      "code": "is-IS",
+      "language": "is",
+      "region": "IS",
+      "script": null,
+      "group": "EUROPE",
+      "label": "Ísland - Íslenska"
+    },
+    {
+      "code": "it-IT",
+      "language": "it",
+      "region": "IT",
+      "script": null,
+      "group": "EUROPE",
+      "label": "Italia - Italiano"
+    },
+    {
+      "code": "lv-LV",
+      "language": "lv",
+      "region": "LV",
+      "script": null,
+      "group": "EUROPE",
+      "label": "Latvija - Latviešu"
+    },
+    {
+      "code": "de-LI",
+      "language": "de",
+      "region": "LI",
+      "script": null,
+      "group": "EUROPE",
+      "label": "Liechtenstein - Deutsch"
+    },
+    {
+      "code": "lt-LT",
+      "language": "lt",
+      "region": "LT",
+      "script": null,
+      "group": "EUROPE",
+      "label": "Lietuva - Lietuvių"
+    },
+    {
+      "code": "fr-LU",
+      "language": "fr",
+      "region": "LU",
+      "script": null,
+      "group": "EUROPE",
+      "label": "Luxembourg - Français"
+    },
+    {
+      "code": "de-LU",
+      "language": "de",
+      "region": "LU",
+      "script": null,
+      "group": "EUROPE",
+      "label": "Luxemburg - Deutsch"
+    },
+    {
+      "code": "hu-HU",
+      "language": "hu",
+      "region": "HU",
+      "script": null,
+      "group": "EUROPE",
+      "label": "Magyarország - Magyar"
+    },
+    {
+      "code": "mk-MK",
+      "language": "mk",
+      "region": "MK",
+      "script": null,
+      "group": "EUROPE",
+      "label": "Северна Македонија - Македонија"
+    },
+    {
+      "code": "mt-MT",
+      "language": "mt",
+      "region": "MT",
+      "script": null,
+      "group": "EUROPE",
+      "label": "Malta - Maltese"
+    },
+    {
+      "code": "nl-NL",
+      "language": "nl",
+      "region": "NL",
+      "script": null,
+      "group": "EUROPE",
+      "label": "Nederland - Nederlands"
+    },
+    {
+      "code": "nb-NO",
+      "language": "nb",
+      "region": "NO",
+      "script": null,
+      "group": "EUROPE",
+      "label": "Norge - Norsk bokmål"
+    },
+    {
+      "code": "de-AT",
+      "language": "de",
+      "region": "AT",
+      "script": null,
+      "group": "EUROPE",
+      "label": "Österreich - Deutsch"
+    },
+    {
+      "code": "pl-PL",
+      "language": "pl",
+      "region": "PL",
+      "script": null,
+      "group": "EUROPE",
+      "label": "Polska - Polski"
+    },
+    {
+      "code": "pt-PT",
+      "language": "pt",
+      "region": "PT",
+      "script": null,
+      "group": "EUROPE",
+      "label": "Portugal - Português"
+    },
+    {
+      "code": "ro-MD",
+      "language": "ro",
+      "region": "MD",
+      "script": null,
+      "group": "EUROPE",
+      "label": "Republica Moldova - Română"
+    },
+    {
+      "code": "ru-MD",
+      "language": "ru",
+      "region": "MD",
+      "script": null,
+      "group": "EUROPE",
+      "label": "Республика Молдова - Русский"
+    },
+    {
+      "code": "ro-RO",
+      "language": "ro",
+      "region": "RO",
+      "script": null,
+      "group": "EUROPE",
+      "label": "România - Română"
+    },
+    {
+      "code": "de-CH",
+      "language": "de",
+      "region": "CH",
+      "script": null,
+      "group": "EUROPE",
+      "label": "Schweiz - Deutsch"
+    },
+    {
+      "code": "sq-AL",
+      "language": "sq",
+      "region": "AL",
+      "script": null,
+      "group": "EUROPE",
+      "label": "Shqipëri - Shqip"
+    },
+    {
+      "code": "sl-SI",
+      "language": "sl",
+      "region": "SI",
+      "script": null,
+      "group": "EUROPE",
+      "label": "Slovenija - Slovenščina"
+    },
+    {
+      "code": "sk-SK",
+      "language": "sk",
+      "region": "SK",
+      "script": null,
+      "group": "EUROPE",
+      "label": "Slovensko - Slovenčina"
+    },
+    {
+      "code": "sr-Cyrl-RS",
+      "language": "sr",
+      "region": "RS",
+      "script": "Cyrl",
+      "group": "EUROPE",
+      "label": "Srbija - Srpski"
+    },
+    {
+      "code": "fr-CH",
+      "language": "fr",
+      "region": "CH",
+      "script": null,
+      "group": "EUROPE",
+      "label": "Suisse - Français"
+    },
+    {
+      "code": "fi-FI",
+      "language": "fi",
+      "region": "FI",
+      "script": null,
+      "group": "EUROPE",
+      "label": "Suomi - Suomi"
+    },
+    {
+      "code": "sv-SE",
+      "language": "sv",
+      "region": "SE",
+      "script": null,
+      "group": "EUROPE",
+      "label": "Sverige - Svenska"
+    },
+    {
+      "code": "en-GB",
+      "language": "en",
+      "region": "GB",
+      "script": null,
+      "group": "EUROPE",
+      "label": "United Kingdom - English"
+    },
+    {
+      "code": "el-GR",
+      "language": "el",
+      "region": "GR",
+      "script": null,
+      "group": "EUROPE",
+      "label": "Ελλάδα - Ελληνικά"
+    },
+    {
+      "code": "bg-BG",
+      "language": "bg",
+      "region": "BG",
+      "script": null,
+      "group": "EUROPE",
+      "label": "България - Български"
+    },
+    {
+      "code": "ru-RU",
+      "language": "ru",
+      "region": "RU",
+      "script": null,
+      "group": "EUROPE",
+      "label": "Россия - Русский"
+    },
+    {
+      "code": "uk-UA",
+      "language": "uk",
+      "region": "UA",
+      "script": null,
+      "group": "EUROPE",
+      "label": "Україна - Українська"
+    },
+    {
+      "code": "ka-GE",
+      "language": "ka",
+      "region": "GE",
+      "script": null,
+      "group": "EUROPE",
+      "label": "საქართველო - ქართული"
+    },
+    {
+      "code": "en-AU",
+      "language": "en",
+      "region": "AU",
+      "script": null,
+      "group": "ASIA + PACIFIC",
+      "label": "Australia - English"
+    },
+    {
+      "code": "en-HK",
+      "language": "en",
+      "region": "HK",
+      "script": null,
+      "group": "ASIA + PACIFIC",
+      "label": "Hong Kong SAR / Macao SAR - English"
+    },
+    {
+      "code": "en-IN",
+      "language": "en",
+      "region": "IN",
+      "script": null,
+      "group": "ASIA + PACIFIC",
+      "label": "India - English"
+    },
+    {
+      "code": "id-ID",
+      "language": "id",
+      "region": "ID",
+      "script": null,
+      "group": "ASIA + PACIFIC",
+      "label": "Indonesia - Bahasa Indonesia"
+    },
+    {
+      "code": "en-MY",
+      "language": "en",
+      "region": "MY",
+      "script": null,
+      "group": "ASIA + PACIFIC",
+      "label": "Malaysia - English"
+    },
+    {
+      "code": "en-NZ",
+      "language": "en",
+      "region": "NZ",
+      "script": null,
+      "group": "ASIA + PACIFIC",
+      "label": "New Zealand - English"
+    },
+    {
+      "code": "en-PH",
+      "language": "en",
+      "region": "PH",
+      "script": null,
+      "group": "ASIA + PACIFIC",
+      "label": "Philippines - English"
+    },
+    {
+      "code": "en-SG",
+      "language": "en",
+      "region": "SG",
+      "script": null,
+      "group": "ASIA + PACIFIC",
+      "label": "Singapore - English"
+    },
+    {
+      "code": "vi-VN",
+      "language": "vi",
+      "region": "VN",
+      "script": null,
+      "group": "ASIA + PACIFIC",
+      "label": "Việt Nam - Tiếng việt"
+    },
+    {
+      "code": "th-TH",
+      "language": "th",
+      "region": "TH",
+      "script": null,
+      "group": "ASIA + PACIFIC",
+      "label": "ไทย - ไทย"
+    },
+    {
+      "code": "ko-KR",
+      "language": "ko",
+      "region": "KR",
+      "script": null,
+      "group": "ASIA + PACIFIC",
+      "label": "대한민국 - 한국어"
+    },
+    {
+      "code": "zh-CN",
+      "language": "zh",
+      "region": "CN",
+      "script": null,
+      "group": "ASIA + PACIFIC",
+      "label": "中国 - 中文"
+    },
+    {
+      "code": "zh-TW",
+      "language": "zh",
+      "region": "TW",
+      "script": null,
+      "group": "ASIA + PACIFIC",
+      "label": "台灣 - 繁體中文"
+    },
+    {
+      "code": "ja-JP",
+      "language": "ja",
+      "region": "JP",
+      "script": null,
+      "group": "ASIA + PACIFIC",
+      "label": "日本 - 日本語"
+    },
+    {
+      "code": "zh-HK",
+      "language": "zh",
+      "region": "HK",
+      "script": null,
+      "group": "ASIA + PACIFIC",
+      "label": "香港特別行政區/澳門特別行政區 - 繁體中文"
+    },
+    {
+      "code": "ar-DZ",
+      "language": "ar",
+      "region": "DZ",
+      "script": null,
+      "group": "MIDDLE EAST + AFRICA",
+      "label": "الجزائر - عربي"
+    },
+    {
+      "code": "ar-MA",
+      "language": "ar",
+      "region": "MA",
+      "script": null,
+      "group": "MIDDLE EAST + AFRICA",
+      "label": "المغرب - عربي"
+    },
+    {
+      "code": "en-ZA",
+      "language": "en",
+      "region": "ZA",
+      "script": null,
+      "group": "MIDDLE EAST + AFRICA",
+      "label": "South Africa - English"
+    },
+    {
+      "code": "ar-TN",
+      "language": "ar",
+      "region": "TN",
+      "script": null,
+      "group": "MIDDLE EAST + AFRICA",
+      "label": "تونس - العربية"
+    },
+    {
+      "code": "tr-TR",
+      "language": "tr",
+      "region": "TR",
+      "script": null,
+      "group": "MIDDLE EAST + AFRICA",
+      "label": "Türkiye - Türkçe"
+    },
+    {
+      "code": "he-IL",
+      "language": "he",
+      "region": "IL",
+      "script": null,
+      "group": "MIDDLE EAST + AFRICA",
+      "label": "ישראל - עברית"
+    },
+    {
+      "code": "ar-AE",
+      "language": "ar",
+      "region": "AE",
+      "script": null,
+      "group": "MIDDLE EAST + AFRICA",
+      "label": "الإمارات العربية المتحدة - العربية"
+    },
+    {
+      "code": "ar-SA",
+      "language": "ar",
+      "region": "SA",
+      "script": null,
+      "group": "MIDDLE EAST + AFRICA",
+      "label": "المملكة العربية السعودية - العربية"
+    },
+    {
+      "code": "ar-LY",
+      "language": "ar",
+      "region": "LY",
+      "script": null,
+      "group": "MIDDLE EAST + AFRICA",
+      "label": "ليبيا - العربية"
+    },
+    {
+      "code": "ar-EG",
+      "language": "ar",
+      "region": "EG",
+      "script": null,
+      "group": "MIDDLE EAST + AFRICA",
+      "label": "مصر - العربية"
+    },
+    {
+      "code": "ar-BH",
+      "language": "ar",
+      "region": "BH",
+      "script": null,
+      "group": "MIDDLE EAST + AFRICA",
+      "label": "البحرين - عربي"
+    },
+    {
+      "code": "ar-KW",
+      "language": "ar",
+      "region": "KW",
+      "script": null,
+      "group": "MIDDLE EAST + AFRICA",
+      "label": "الكويت - عربي"
+    },
+    {
+      "code": "ar-OM",
+      "language": "ar",
+      "region": "OM",
+      "script": null,
+      "group": "MIDDLE EAST + AFRICA",
+      "label": "عمان - عربي"
+    },
+    {
+      "code": "ar-QA",
+      "language": "ar",
+      "region": "QA",
+      "script": null,
+      "group": "MIDDLE EAST + AFRICA",
+      "label": "قطر - عربي"
+    }
+  ]
+}

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         XBOX Wishlist
 // @namespace    https://github.com/zellreid/xbox-wishlist
-// @version      1.5.26269.1
+// @version      1.5.26269.2
 // @description  Advanced filtering and sorting suite with multi-level sort (up to 3 criteria) - Resilient selectors - Public wishlist support
 // @author       ZellReid
 // @homepage     https://github.com/zellreid/xbox-wishlist
@@ -10,7 +10,7 @@
 // @match        https://www.xbox.com/*/wishlist*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=xbox.com
 // @run-at       document-body
-// @resource     CSSFilter https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/styles.css?ver=1.5.26269.1
+// @resource     CSSFilter https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/styles.css?ver=1.5.26269.2
 // @resource     IMGFilter https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/filter.svg
 // @resource     IMGSort https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/sort.svg
 // @resource     IMGExport https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/export.svg
@@ -324,7 +324,7 @@ window.XboxWishlistCore = {
         }
         // Market (region) from the /en-ZA/ path segment - prices, currency and price history are per market
         function getMarket() {
-            const m = /^[a-z]{2,3}-([a-z]{2})$/i.exec(location.pathname.split('/').filter(Boolean)[0] || '');
+            const m = /^[a-z]{2,3}(?:-[a-z]{4})?-([a-z]{2})$/i.exec(location.pathname.split('/').filter(Boolean)[0] || '');
             return m ? m[1].toUpperCase() : 'XX';
         }
         // "R1 299,00", "$1,299.00", "1.299,00 EUR" -> number: the last , or . followed by 1-2 digits is the decimal mark
