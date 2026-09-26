@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         XBOX Wishlist
 // @namespace    https://github.com/zellreid/xbox-wishlist
-// @version      1.5.26269.3
+// @version      1.5.26269.4
 // @description  Advanced filtering and sorting suite with multi-level sort (up to 3 criteria) - Resilient selectors - Public wishlist support
 // @author       ZellReid
 // @homepage     https://github.com/zellreid/xbox-wishlist
@@ -10,7 +10,7 @@
 // @match        https://www.xbox.com/*/wishlist*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=xbox.com
 // @run-at       document-body
-// @resource     CSSFilter https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/styles.css?ver=1.5.26269.3
+// @resource     CSSFilter https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/styles.css?ver=1.5.26269.4
 // @resource     IMGFilter https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/filter.svg
 // @resource     IMGSort https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/sort.svg
 // @resource     IMGExport https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/export.svg
@@ -50,6 +50,7 @@
 //       keys: 'CSSFilter', 'IMGFilter', 'IMGSort', 'IMGExpand', 'IMGCollapse'
 //   adapter.storage.save(key, value)     -> void
 //   adapter.storage.load(key, callback)  -> callback(value | null)
+//   adapter.storage.keys(callback)       -> callback([key, ...])   (optional; used by "Clear cached data")
 //
 window.XboxWishlistCore = {
     init(adapter) {
@@ -107,6 +108,8 @@ window.XboxWishlistCore = {
             productData: new Map(), productDataLoadedAt: null,
             // Product-page capabilities by upper-case product id: { caps: { key: label }, at: ms } (F-36)
             capCache: {},
+            // Set while stored data is being cleared (clearStoredData): nothing may be written back until the reload
+            resetting: false,
             // F-25: flagged (starred) product ids, upper case - saved under CONFIG.storage.flagsKey
             flags: new Set(),
             // F-26/F-27: price seen per product id - { p, at, first, was, wasAt, changed, deal, h } (see recordPrice);
@@ -152,6 +155,7 @@ window.XboxWishlistCore = {
                 savedPresetsList: 'ifc_saved_presets_list',
                 savedPresetName: 'ifc_input_preset_name',
                 savedPresetSave: 'ifc_btn_SavePreset',
+                storedData: 'ifc_stored_data',
                 ownedSelect: 'ifc_select_owned',
                 publishersSelect: 'ifc_select_publishers',
                 subscriptionsSelect: 'ifc_select_subscriptions',
@@ -396,6 +400,7 @@ window.XboxWishlistCore = {
 
         // ==================== STATE PERSISTENCE ====================
         function saveFilterState() {
+            if (state.resetting) return;
             try {
                 state.priceRangesByCurrency[state.currency.code || LEGACY_CURRENCY] = { ...state.filters.priceRange };
                 const saveData = {
@@ -1224,6 +1229,7 @@ window.XboxWishlistCore = {
             });
         }
         function saveFlags() {
+            if (state.resetting) return;
             try { adapter.storage.save(CONFIG.storage.flagsKey, JSON.stringify(Array.from(state.flags))); }
             catch (ex) { console.error('Failed to save flags:', ex); }
         }
@@ -1279,6 +1285,7 @@ window.XboxWishlistCore = {
         }
         function savePriceHistory() {
             state.priceDirty = false;
+            if (state.resetting) return;
             try { adapter.storage.save(pricesStorageKey(), JSON.stringify(state.priceHistory)); }
             catch (ex) { console.error('Failed to save price history:', ex); }
         }
@@ -1736,6 +1743,49 @@ window.XboxWishlistCore = {
             } catch (ex) { console.error('Failed to export wishlist:', ex); }
         }
 
+        // ==================== STORED DATA (CLEAR / RESET) ====================
+        // For fresh testing: drops what the extension has stored, then reloads so only the page's own data remains.
+        //   cached data = price history (every market) and the game details cache (capabilities, add-on counts)
+        //   everything  = the above plus filters, saved filters, price ranges, sort, theme and starred games
+        // Values are overwritten with null (works the same in the extension and the userscript); the extension
+        // adapter also lists its keys so price history saved for other markets is found.
+        async function clearStoredData(everything) {
+            state.resetting = true;   // the save functions do nothing from here, so nothing is written back
+            try {
+                const all = adapter.storage.keys ? await new Promise(resolve => adapter.storage.keys(resolve)) : [];
+                const wipe = new Set([CONFIG.storage.capsKey, CONFIG.storage.pricesKey, pricesStorageKey()]);
+                if (everything) [CONFIG.storage.key, CONFIG.storage.flagsKey].forEach(k => wipe.add(k));
+                all.forEach(k => {
+                    if (k.startsWith(CONFIG.storage.pricesKey) || (everything && k.startsWith(CONFIG.storage.key))) wipe.add(k);
+                });
+                wipe.forEach(k => adapter.storage.save(k, null));
+            } catch (ex) { console.error('Failed to clear stored data:', ex); }
+            setTimeout(() => location.reload(), 250);   // lets the storage writes finish first
+        }
+
+        function buildStoredDataSection() {
+            const box = document.createElement('div');
+            box.id = CONFIG.ids.storedData; box.className = 'ifc-stored-data ifc-panel-section';
+            const heading = document.createElement('div');
+            heading.className = 'ifc-section-heading'; heading.textContent = 'Stored data';
+            const row = document.createElement('div'); row.className = 'ifc-quick-filters';
+            const make = (label, everything, tip) => {
+                const btn = document.createElement('button');
+                btn.type = 'button'; btn.className = 'ifc-quick-filter-btn'; btn.textContent = label; btn.title = tip;
+                // Two clicks: the first arms the button for a few seconds, the second does it
+                btn.addEventListener('click', () => {
+                    if (btn.dataset.ifcArmed) { clearTimeout(btn._armTimer); clearStoredData(everything); return; }
+                    btn.dataset.ifcArmed = 'true'; btn.textContent = 'Click again to confirm'; btn.classList.add('ifc-Danger');
+                    btn._armTimer = setTimeout(() => { delete btn.dataset.ifcArmed; btn.textContent = label; btn.classList.remove('ifc-Danger'); }, 5000);
+                });
+                row.appendChild(btn);
+            };
+            make('Clear cached data', false, 'Removes the saved price history (every market) and the saved game details (capabilities, add-on counts). Filters, saved filters and starred games stay. The page reloads.');
+            make('Reset everything', true, 'Removes everything the extension stored: the cached data above plus filters, saved filters, price ranges, sort, theme and starred games. The page reloads.');
+            box.appendChild(heading); box.appendChild(row);
+            return box;
+        }
+
         function addFilterContainer() {
             if (state.ui.divFilter) return;
             try {
@@ -1761,7 +1811,7 @@ window.XboxWishlistCore = {
                 tc.id = CONFIG.ids.tagContainer; tc.className = 'ifc-tag-container ifc-hidden';
                 const fg = document.createElement('ul');
                 fg.classList.add('filter-groups');
-                fl.appendChild(headerRow); fl.appendChild(tc); fl.appendChild(fg); fc.appendChild(fl);
+                fl.appendChild(headerRow); fl.appendChild(tc); fl.appendChild(fg); fl.appendChild(buildStoredDataSection()); fc.appendChild(fl);
                 document.body.appendChild(fc);
                 // (the Filter button wires its own click in addFilterButton - see reinitAfterRerender)
                 state.ui.divFilter = true; state.ui.tagContainer = true;
@@ -2519,6 +2569,7 @@ window.XboxWishlistCore = {
             });
         }
         function saveCapabilityCache() {
+            if (state.resetting) return;
             try { adapter.storage.save(CONFIG.storage.capsKey, JSON.stringify(state.capCache)); }
             catch (ex) { console.error('Failed to save capability cache:', ex); }
         }

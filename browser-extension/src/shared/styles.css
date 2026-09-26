@@ -215,6 +215,13 @@ ul.filter-groups {
     color: #ffffff;
 }
 
+.ifc-quick-filter-btn.ifc-Danger,
+.ifc-quick-filter-btn.ifc-Danger:hover {
+    background-color: #b3261e;
+    border-color: #b3261e;
+    color: #ffffff;
+}
+
 .ifc-quick-filter-btn:disabled {
     opacity: 0.4;
     cursor: default;

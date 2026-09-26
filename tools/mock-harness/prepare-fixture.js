@@ -125,7 +125,8 @@ function buildHarnessBlock(outDir, meta) {
                 set: (obj) => { Object.assign(memoryStore, obj); persist(); },
                 get: (keys, cb) => {
                     const result = {};
-                    keys.forEach(k => { if (k in memoryStore) result[k] = memoryStore[k]; });
+                    // get(null) returns everything, like chrome.storage.local
+                    (keys === null ? Object.keys(memoryStore) : keys).forEach(k => { if (k in memoryStore) result[k] = memoryStore[k]; });
                     setTimeout(() => cb(result), 50);
                 }
             }

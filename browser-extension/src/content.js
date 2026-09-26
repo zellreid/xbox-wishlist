@@ -38,6 +38,11 @@
             load: (key, callback) => {
                 if (!isAlive()) { callback(null); return; }
                 chrome.storage.local.get([key], (result) => callback(result[key] ?? null));
+            },
+            // Every stored key (optional; the core uses it to find price history saved for other markets)
+            keys: (callback) => {
+                if (!isAlive()) { callback([]); return; }
+                chrome.storage.local.get(null, (all) => callback(Object.keys(all || {})));
             }
         }
     };

@@ -14,6 +14,17 @@ for how a version is bumped and published.
 
 ---
 
+## v1.5.26269.4 (Sep 2026) - Stored data: clear cached data / reset everything
+
+- New "Stored data" section at the foot of the filter panel, for fresh testing. Each button needs a
+  second click ("Click again to confirm", 5 seconds) and reloads the page afterwards.
+  - **Clear cached data**: removes the saved price history (every market) and the saved game
+    details (capabilities, add-on counts). Filters, saved filters and starred games stay.
+  - **Reset everything**: also removes filters, saved filters, price ranges, sort, theme and
+    starred games.
+- In the userscript the price history of markets other than the current one is not found (the
+  script has no list of stored values); the extension finds all of them.
+
 ## v1.5.26269.3 (Sep 2026) - Prices per market and currency (v1.5.26269.1 to .3)
 
 - Price history is saved per market (the region in the address, e.g. ZA, US), so switching
