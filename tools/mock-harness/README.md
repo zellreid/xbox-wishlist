@@ -127,7 +127,10 @@ empty store, so the sanity checks always see a clean slate.
 locale). The harness rewrites the address bar to the capture's real path with that locale
 (`/en-US/wishlist`), so the core sees that market as it does live; only the address changes, the page stays
 the capture's. On wishlist fixtures the run then checks the price history was saved under that market
-(`..._prices_US`). Do not reload afterwards (Refresh): the server has no such path.
+(`..._prices_US`). It also rewrites the locale in the embedded page state, where the core reads it. Add `&currency=USD` to relabel
+the prices' currency code the same way (the numbers stay the capture's), e.g. `?persist&locale=en-US&currency=USD`
+to test per-currency price ranges against a store seeded from the rand page. Do not reload afterwards
+(Refresh): the server has no such path.
 
 **Testing persistence:** add `?persist` to the URL
 (`.../<name>.harness.html?persist`). Filters set on one load are then

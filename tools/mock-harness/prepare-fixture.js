@@ -83,6 +83,18 @@ function buildHarnessBlock(outDir, meta) {
         try { history.replaceState(null, '', '/' + parts.join('/') + location.search); }
         catch (e) { console.warn('[harness] address rewrite failed: ' + e.message); }
     })();
+    // ?currency=USD (and ?locale=xx-YY) also rewrite the currency code and locale in the embedded page state, which is
+    // where the core reads them from. Prices stay the capture's numbers; only their labels change.
+    const STATE_EDIT = { currency: new URLSearchParams(location.search).get('currency'), locale: new URLSearchParams(location.search).get('locale') };
+    (function () {
+        if (!STATE_EDIT.currency && !STATE_EDIT.locale) return;
+        const el = document.querySelector('script[data-harness-kept="preloaded-state"]');
+        if (!el) return;
+        let t = el.textContent;
+        if (STATE_EDIT.currency) t = t.replace(/"currency":"[A-Za-z]{3}"/g, '"currency":"' + STATE_EDIT.currency.toUpperCase() + '"');
+        if (STATE_EDIT.locale) t = t.replace(/"locale":"[A-Za-z-]+"/g, '"locale":"' + STATE_EDIT.locale + '"');
+        el.textContent = t;
+    })();
     // ok: true = PASS, false = FAIL, null = SKIPPED (checks deliberately not run)
     function report(ok, lines) {
         banner.className = ok === null ? 'skip' : ok ? 'pass' : 'fail';
@@ -200,7 +212,7 @@ function buildHarnessBlock(outDir, meta) {
         if (st) {
             const mi = st.appContext && st.appContext.marketInfo || {};
             lines.push('page state market: ' + mi.locale + ' (language ' + mi.language + ', market ' + mi.market + ')');
-            if (String(mi.locale || '').toLowerCase() !== META.folder) failures.push('page state locale ' + mi.locale + ' does not match folder ' + META.folder);
+            if (!STATE_EDIT.locale && String(mi.locale || '').toLowerCase() !== META.folder) failures.push('page state locale ' + mi.locale + ' does not match folder ' + META.folder);
         }
         const injected = document.querySelectorAll('[id^="ifc_"]').length;
         lines.push('extension elements on this page: ' + injected);

@@ -3,7 +3,7 @@ project: Xbox Wishlist
 label: Personal
 phase: Live
 priority: Medium
-next_milestone: Live check of per-market price history (v1.5.26269.2) on en-ZA and en-US; then T-25 (price range per market) and T-26 (localise Owned and other labels)
+next_milestone: Live check of v1.5.26269.3 on en-ZA and en-US (price history, price range per currency, currency format); then T-29 (Owned from page data) and the date added / pass entitlement features
 target_date: none
 hard_deadline: false
 blockers: []
@@ -17,17 +17,18 @@ updated: 2026-09-26
 > Never put credentials, keys, connection strings or secrets in this file.
 
 ## Now
-- Live at v1.5.26269.2 (locale detection now handles codes like sr-Latn-RS). Price history is saved per market (region in the URL), the currency symbol comes from the page, and prices like $1,299.00 parse correctly. Needs a live check on en-ZA (old history still shows) and en-US (starts empty, dollar prices).
-- Mock harness now covers every mock area: 33 fixtures (5 wishlist full checks, 28 smoke on deals, games, products, add-ons), all PASS. `?locale=en-US` rewrites the address so the core sees that market; verified it saves price history under `_prices_US`. Product mocks are named {id}_{date}_{time}_{slug}; `tools/mock-harness/locales.json` lists all 94 xbox.com locales.
-- New captures: save into mock_examples/_inbox/, run `node tools/mock-harness/file-mocks.js --prepare` (names, files, regenerates harness pages).
-- Next: T-25 (saved price range and saved filters are still one set for all markets) and T-26 (localise Owned and other fixed English labels).
+- Live at v1.5.26269.3. T-25 built: the price range is saved per currency (page currency code), saved filters remember their price currency, prices show in the page's currency and locale style (R 948,27 / $948.27). Tested in the harness with a rand store opened as a dollar page (range off, rand range kept, old preset applies without its price part, back on rand everything intact); harness PASS on all mocks tried (10). Needs a live check on en-ZA (same look, slightly different number style) and en-US.
+- Page data review (docs/07-DATA-FIELDS.md): a free, language-free read also gives Owned (entitlements isOwned), date added to the wishlist (all 310 items), and which games your pass covers now with its end date. Ranked list in the doc.
+- New captures: save into mock_examples/_inbox/, run `node tools/mock-harness/file-mocks.js --prepare`. Harness: `?locale=xx-YY&currency=ZZZ` simulates another market.
 
 ## TODO
 | ID | Item | Priority | Status | Next action |
 |---|---|---|---|---|
-| T-27 | Per-market price history, currency symbol and price parsing | High | In Progress | Live check: en-ZA keeps old history, en-US starts empty with $ prices and a correct price slider |
-| T-25 | Saved price range and saved filters per market | Medium | Todo | Decide: key filter state by market, or clear the price range when the market changes |
-| T-26 | Localise Owned and other fixed English labels | Medium | Todo | List the labels the page shows per language (Owned, "with", Add-ons); decide detection from the page text or URL language |
+| T-27 | Live check of v1.5.26269.3: per-market price history, price range per currency, currency format | High | In Progress | en-ZA: old history and range intact, number style R 948,27; en-US: empty history, no price filter, $ prices; switch back and check the rand range returned |
+| T-26 | Localise our own UI labels (Owned, Not Owned, quick filters); detection stays language-free via T-29 | Low | Todo | After T-29: decide whether our labels stay English or follow the page language; keep stored filter values as stable keys |
+| T-29 | Owned from the page data (entitlements isOwned) instead of the word "Owned" and the BUY text | Medium | Todo | Capture a wishlist with several owned games and a Game Pass one first; switch, keep the text check as fallback |
+| T-30 | Date added: sort and "added in the last N days" filter (state addedDate, all items) | Medium | Todo | Decide the shape (sort only, or sort plus quick filters like Last 30 days) |
+| T-31 | "In my pass" from entitlements (satisfyingProductId, endDate): filter and end-date chip | Medium | Todo | Decide: replace or sit beside the existing "In a pass"; show the pass end date |
 | F-38 | Run on product pages (diagnostics first) | Medium | Todo | HITL: approve manifest/@match change for /games/store/*; 26 product mocks are ready as harness fixtures, replace their smoke check with real ones |
 | T-06 | Live check in Chrome and the Tampermonkey userscript (Edge done) | Low | Todo | Push the new icons, then repeat the Edge checks in Chrome and Tampermonkey |
 | F-35 | Deals / games browse page support | Low | Todo | Same state kind as wishlist (no capabilities); decide scope, needs manifest change (HITL); deals and games mocks are harness fixtures (smoke only) |
@@ -37,8 +38,8 @@ updated: 2026-09-26
 + 4 more: F-28 to F-30 in docs/01-PRD.md, and Firefox/Safari support (planned in AGENTS.md)
 
 ## Recent sessions
+- 2026-09-26: T-25 done (v1.5.26269.3): price range per currency, presets remember currency, Intl price format; harness ?currency; page data review found addedDate, pass entitlements, isOwned; changelog and docs/07 updated
+- 2026-09-26: T-25 analysis: found language-free ownership (state entitlements isOwned) and a per-price currency code in the page data; no code changed
 - 2026-09-26: Mock intake: file-mocks.js names and files captures from mock_examples/_inbox by the address they were saved from; mock conventions documented in tools/mock-harness/README.md, pointer in docs/06-TESTING.md
 - 2026-09-26: Harness extended to all mock areas (33 fixtures, all PASS), ?locale rewrite tested, product mocks renamed {id}_{date}_{time}_{slug} + #addons, locales.json (94 locales), getMarket handles script codes (v1.5.26269.2)
 - 2026-09-26: Mock layout: renamed deals/games captures to 20260923_1319 / 20260923_1320 (+ _files, 76 internal links); prepare-fixture, server and README follow #type/market/; harness PASS
-- 2026-09-26: Per-market price history and currency (v1.5.26269.1): region-keyed storage, page currency symbol, fixed $1,299.00 parsing; T-24/F-26/F-27 confirmed; mock harness PASS on all 5 mocks
-- 2026-09-25: Filter panel (v1.5.26268.14): range sections equal and tighter (151 -> 110px), panel foot trimmed to its 15px padding; slider still filters; mock harness PASS on all 5 mocks

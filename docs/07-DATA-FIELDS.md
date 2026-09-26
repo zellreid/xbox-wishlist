@@ -23,7 +23,11 @@ Verified against the mocks in `mock_examples/#wishlist` (2 captures) and `mock_e
 |---|---|---|---|
 | Title, publisher, image, store URL, product id | DOM | Yes | Product id links DOM items to the embedded state |
 | Current price, original price, discount % / amount | DOM | Yes | Shown price, including member prices the viewer sees |
-| Owned / Un-purchasable | DOM | Yes | |
+| Owned | State (`core2.products.entitlements[id].data.isOwned`) | No - still read from the DOM text "Owned" (T-29) | Language-free. Matched the DOM exactly on the 4 mocks that have an owned game (1 owned item each) |
+| Un-purchasable | DOM | Yes | No price shown (price is null), no language involved |
+| Available through your pass | State (`entitlements[id].data`: `isOwned: false`, `isSatisfyingEntitlement: true`, `satisfyingProductId` = the pass, `endDate`, `status`, `isTrial`, `autoRenew`) | No | 24 of 310 on the mocks, by 4 different passes; the wishlist's own `actions` reads `BuyToOwn` for these (`Buy` for normal, `View` for owned and unpurchasable). Pass ids match `includedWithPassesProductIds`. Not the same as "In a pass", which is any pass |
+| Date added to the wishlist | State (`core2.wishlist.wishlists[0].products[].addedDate`) | No | All 310 items, 2018 to 2026, language-free. Enables a Date added sort and "added recently" filter. The wishlist name in the same object is personal - never store it |
+| Currency code and locale | State (a price's `currency`, `appContext.marketInfo.locale`) | Yes (T-25): price range and formatting | `ZAR`, `en-ZA`. Identifies the currency without reading symbols |
 | Member-price badges ("with Game Pass", "with EA Play") | DOM | Yes (Subscriptions filter) | |
 | Average rating, rating count | State | Yes (F-33 sort, export) | 0 ratings = unrated |
 | Genres (categories) | State | Yes (F-33 filter, export) | 16 genres on the mocks; items can have several |
@@ -31,7 +35,7 @@ Verified against the mocks in `mock_examples/#wishlist` (2 captures) and `mock_e
 | Included with a pass | State | Yes (F-33 "In a pass") | Pass ids only - names not in the data |
 | Date added to a pass | State | No | Per pass |
 | Deal end date | State | Yes (F-33 badge, sort, export) | Only meaningful on discounted offers; full-price offers carry far-future placeholders |
-| Offer list price / MSRP | State | Stored (`data-ifc-state-price`, `-msrp`) | For a future in-place price update (F-26) |
+| Offer list price / MSRP | State | Stored (`data-ifc-state-price`, `-msrp`) | Numbers, no text parsing. Checked on the 2026-09-23 wishlist: MSRP equals the DOM original price on 252 of 252 items; the lowest list price equals the DOM price on 251 of 252. The exception has a second, eligibility-based offer (20% off) that the store does not show the viewer, so a state-based price must pick the offer the store displays, not the lowest |
 | "Just for you" personal offer + reason | State | Yes (F-34 pill, quick filter, export) | Deal type `personal`; reason text ("Because of your loyalty to the franchise"), discount, end date |
 | Deal type (personal / sale / member) | State | Yes (F-34 filter, export) | Only for discounts the page shows the viewer |
 | Product kind (Game / DLC / Consumable) | State | Yes (Type filter, chip, export) | `Durable` = add-on / DLC, `Consumable` = in-game items |
@@ -78,7 +82,8 @@ Verified against the mocks in `mock_examples/#wishlist` (2 captures) and `mock_e
 
 ## Guidance
 
-- Prefer the wishlist page state: one free read covers every item.
+- Prefer the wishlist page state: one free read covers every item. Everything in the "Available from the Wishlist Page" table marked State comes from that one read (about 2.4 MB; product summaries 1.5 MB, wishlist 33 KB, entitlements 7 KB), with no network.
+- Ranked by value for effort, still unused: date added (sort, recently added), pass entitlement with end date ("playable now with my pass", "pass ends soon"), Owned from the state (T-29), developer, age rating, install size (sort or filter). Prices could also come from the state instead of parsing text, but only with the store's own offer choice (see the price row).
 - Use the product page only for fields in the second table, loaded lazily, cached per product id and throttled - never for the whole list at once (hundreds of multi-MB requests).
 - Capabilities cannot be derived from the wishlist page (its badge codes are subscription logos). They are loaded per item from the product page on request ("Load details", F-36), cached 7 days per product.
 - The store app also has an internal bulk product lookup (many ids per request). It is a separate Xbox service; the app attaches the signed-in user's authorization when available but marks it **not required**. Not used yet: it is undocumented and can change without notice, its address isn't in the saved pages (resolved at runtime), a cross-origin call from the content script only works if that service allows the xbox.com origin (unverified), and whether its response includes capabilities is unverified. Reading or forwarding the user's token ourselves stays off-limits (TIER 1). See T-17 for the live check.

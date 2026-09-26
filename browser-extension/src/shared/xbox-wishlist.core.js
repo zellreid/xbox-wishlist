@@ -70,8 +70,11 @@ window.XboxWishlistCore = {
             // F-26/F-27: price seen per product id - { p, at, first, was, wasAt, changed, deal, h } (see recordPrice);
             // saved under CONFIG.storage.pricesKey + '_' + market (see pricesStorageKey). priceRecorded = ids already recorded this page load
             priceHistory: {}, priceRecorded: new Set(), priceDirty: false,
-            // Currency symbol as the page shows it (set by readPrice); suffix = written after the amount
-            currency: { symbol: 'R', suffix: false },
+            // The page's currency: code (ZAR, USD...) and locale come from the embedded page state (noteMarketFromState);
+            // symbol/suffix are scraped from the price text (readPrice) and only used until the code is known
+            currency: { symbol: 'R', suffix: false, code: null, locale: null, formatter: null },
+            // Price range per currency code (a range in rand means nothing in dollars); the active one is state.filters.priceRange
+            priceRangesByCurrency: {},
             details: { running: false, cancel: false, done: 0, total: 0, failed: 0, message: '',
                 itemStatus: {} }   // per product id: { busy, at, error } for the item refresh buttons
         };
@@ -163,6 +166,8 @@ window.XboxWishlistCore = {
                 // Parse this page's embedded product data once (local, ~20 ms) so the first
                 // updateScreen() can attach rating/genre/release/deal data to every item
                 await loadProductData();
+                // Now the page's currency is known: swap in the price range saved for it
+                selectPriceRangeForCurrency();
                 // Capabilities fetched on earlier visits via "Load details" (F-36)
                 await loadCapabilityCache();
                 // Items flagged with the star (F-25)
@@ -293,11 +298,19 @@ window.XboxWishlistCore = {
         // Reads a price element and remembers the page's own currency symbol (R, $, EUR...) for display
         function readPrice(el) {
             const t = el.innerText.trim(), symbol = t.replace(/[0-9.,\s +-]/g, '');
-            if (symbol && symbol.length <= 4) state.currency = { symbol, suffix: /^\d/.test(t) };
+            if (symbol && symbol.length <= 4) { state.currency.symbol = symbol; state.currency.suffix = /^\d/.test(t); }
             return parsePriceText(t);
         }
+        // Amounts in the page's currency and locale style (R 948,27 / $948.27); falls back to the scraped symbol
         function formatCurrency(value) {
-            const { symbol, suffix } = state.currency, v = value.toFixed(2);
+            const c = state.currency;
+            if (c.code) {
+                try {
+                    if (!c.formatter) c.formatter = new Intl.NumberFormat(c.locale || undefined, { style: 'currency', currency: c.code });
+                    return c.formatter.format(value);
+                } catch (ex) { c.code = null; }   // unknown code or locale: use the symbol below
+            }
+            const { symbol, suffix } = c, v = value.toFixed(2);
             return suffix ? `${v} ${symbol}` : `${symbol}${/[a-z]$/i.test(symbol) ? ' ' : ''}${v}`;
         }
         function formatPercentage(value) { return `${Math.round(value)}%`; }
@@ -342,8 +355,11 @@ window.XboxWishlistCore = {
         // ==================== STATE PERSISTENCE ====================
         function saveFilterState() {
             try {
+                state.priceRangesByCurrency[state.currency.code || LEGACY_CURRENCY] = { ...state.filters.priceRange };
                 const saveData = {
                     ...state.filters,
+                    priceRange: undefined,   // replaced by the per-currency map (older saves still load, as rand)
+                    priceRanges: state.priceRangesByCurrency,
                     owned: { selected: state.filters.owned.selected, options: state.filters.owned.options },   // counts are rebuilt
                     publishers: { selected: state.filters.publishers.selected, list: Array.from(state.filters.publishers.list.entries()) },
                     subscriptions: { selected: state.filters.subscriptions.selected, list: Array.from(state.filters.subscriptions.list.entries()) },
@@ -402,8 +418,16 @@ window.XboxWishlistCore = {
                             if (parsed.types && Array.isArray(parsed.types.selected)) {
                                 state.filters.types.selected = parsed.types.selected.filter(t => typeof t === 'string');
                             }
-                            if (parsed.priceRange && typeof parsed.priceRange === 'object') {
-                                state.filters.priceRange = { ...state.filters.priceRange, ...parsed.priceRange, enabled: parsed.priceRange.enabled === true };
+                            // Price ranges are saved per currency; one saved before that has no currency and was set in rand.
+                            // Until the page's currency is known (selectPriceRangeForCurrency) the rand one is in use.
+                            const isRange = r => r && typeof r === 'object' && ['min', 'max', 'currentMin', 'currentMax'].every(k => typeof r[k] === 'number');
+                            if (parsed.priceRanges && typeof parsed.priceRanges === 'object') {
+                                Object.entries(parsed.priceRanges).forEach(([code, r]) => { if (isRange(r)) state.priceRangesByCurrency[code] = { ...r, enabled: r.enabled === true }; });
+                            } else if (isRange(parsed.priceRange)) {
+                                state.priceRangesByCurrency[LEGACY_CURRENCY] = { ...parsed.priceRange, enabled: parsed.priceRange.enabled === true };
+                            }
+                            if (state.priceRangesByCurrency[LEGACY_CURRENCY]) {
+                                state.filters.priceRange = { ...state.filters.priceRange, ...state.priceRangesByCurrency[LEGACY_CURRENCY] };
                             }
                             if (parsed.discountRange && typeof parsed.discountRange === 'object') {
                                 state.filters.discountRange = { ...state.filters.discountRange, ...parsed.discountRange, enabled: parsed.discountRange.enabled === true };
@@ -872,8 +896,37 @@ window.XboxWishlistCore = {
                 const pageState = fresh ? await fetchPageState(location.href) : parseEmbeddedState(document);
                 const map = productSummariesFrom(pageState);
                 state.productData = map; state.productDataLoadedAt = Date.now();
+                noteMarketFromState(pageState);
                 return map;
             } catch (ex) { console.error('Failed to load product data:', ex); return state.productData; }
+        }
+
+        // The page's currency code and locale from its state: the first price on the page names its
+        // currency (offers carry `currency: "ZAR"`), the market info names the locale (en-ZA)
+        const LEGACY_CURRENCY = 'ZAR';   // everything saved before prices were per currency was set in rand
+        function noteMarketFromState(pageState) {
+            try {
+                const loc = pageState && pageState.appContext && pageState.appContext.marketInfo && pageState.appContext.marketInfo.locale;
+                let code = null;
+                const summaries = pageState && pageState.core2 && pageState.core2.products && pageState.core2.products.productSummaries;
+                Object.values(summaries || {}).some(p => {
+                    const sp = p && p.specificPrices, offer = sp && [...(sp.purchaseable || []), ...(sp.giftable || [])].find(o => o && typeof o.currency === 'string');
+                    if (offer) code = offer.currency.toUpperCase();
+                    return !!offer;
+                });
+                if (code && /^[A-Z]{3}$/.test(code)) { state.currency.code = code; state.currency.formatter = null; }
+                if (typeof loc === 'string' && loc) { state.currency.locale = loc; state.currency.formatter = null; }
+            } catch (ex) { console.error('Failed to read the page currency:', ex); }
+        }
+
+        // The price range belongs to a currency: use the one saved for this page's currency, or
+        // start unset (the ranges saved for other currencies are kept for when you come back)
+        function defaultPriceRange() { return { min: 0, max: 3000, currentMin: 0, currentMax: 3000, enabled: false }; }
+        function selectPriceRangeForCurrency() {
+            const code = state.currency.code;
+            if (!code) return;
+            const saved = state.priceRangesByCurrency[code];
+            state.filters.priceRange = saved ? { ...defaultPriceRange(), ...saved, enabled: saved.enabled === true } : defaultPriceRange();
         }
 
         // By product id - items carry theirs as data-ifc-product-id (from the store URL)
@@ -1881,7 +1934,8 @@ window.XboxWishlistCore = {
                 platforms: [...f.platforms.selected], justForYou: f.justForYou === true, preorder: f.preorder === true,
                 hasAddOns: f.hasAddOns === true, flagged: f.flagged === true,
                 capabilities: [...f.capabilities.selected], types: [...f.types.selected],
-                priceRange: snapshotRange(f.priceRange), discountRange: snapshotRange(f.discountRange)
+                priceRange: snapshotRange(f.priceRange), discountRange: snapshotRange(f.discountRange),
+                priceCurrency: state.currency.code || LEGACY_CURRENCY   // the price range is in this currency
             };
         }
         // Validates a stored preset; anything malformed is dropped (returns null)
@@ -1903,10 +1957,13 @@ window.XboxWishlistCore = {
                     flagged: f.flagged === true,          // before F-25
                     capabilities: list(f.capabilities),   // before F-36
                     types: list(f.types),                 // before the Type filter
-                    priceRange: range(f.priceRange), discountRange: range(f.discountRange)
+                    priceRange: range(f.priceRange), discountRange: range(f.discountRange),
+                    priceCurrency: typeof f.priceCurrency === 'string' && f.priceCurrency ? f.priceCurrency : LEGACY_CURRENCY   // before per-currency prices: rand
                 }
             };
         }
+        // A saved filter's price range only applies on a page in the same currency
+        function presetPriceApplies(pf) { return pf.priceCurrency === (state.currency.code || LEGACY_CURRENCY); }
         function hasPresetableFilters() {
             const f = state.filters;
             return f.owned.selected.length > 0 || f.publishers.selected.length > 0 || f.subscriptions.selected.length > 0
@@ -1932,7 +1989,7 @@ window.XboxWishlistCore = {
                 && sameSet(f.genres.selected, pf.genres) && f.inPass === pf.inPass
                 && sameSet(f.platforms.selected, pf.platforms) && f.justForYou === pf.justForYou && f.preorder === pf.preorder && f.hasAddOns === pf.hasAddOns && f.flagged === pf.flagged
                 && sameSet(f.capabilities.selected, pf.capabilities) && sameSet(f.types.selected, pf.types)
-                && rangeIs(f.priceRange, pf.priceRange) && rangeIs(f.discountRange, pf.discountRange);
+                && (presetPriceApplies(pf) ? rangeIs(f.priceRange, pf.priceRange) : !f.priceRange.enabled) && rangeIs(f.discountRange, pf.discountRange);
         }
         // Replaces the current filter selections with the preset's (search text is left alone)
         function applyPreset(p) {
@@ -1949,7 +2006,9 @@ window.XboxWishlistCore = {
                 updateCheckboxes(CONFIG.ids.platformsSelect, f.platforms.selected);
                 updateCheckboxes(CONFIG.ids.capabilitiesSelect, f.capabilities.selected);
                 updateCheckboxes(CONFIG.ids.typesSelect, f.types.selected);
-                f.priceRange = presetRangeOnPage(pf.priceRange, f.priceRange);
+                // Saved in another currency: everything else applies, the price range is left off
+                f.priceRange = presetPriceApplies(pf) ? presetRangeOnPage(pf.priceRange, f.priceRange)
+                    : rerangeSelection({ ...f.priceRange, enabled: false }, f.priceRange.min, f.priceRange.max);
                 f.discountRange = presetRangeOnPage(pf.discountRange, f.discountRange);
                 syncPriceSliderUI(); syncDiscountSliderUI();
                 updateScreen();

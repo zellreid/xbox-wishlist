@@ -14,6 +14,22 @@ for how a version is bumped and published.
 
 ---
 
+## v1.5.26269.3 (Sep 2026) - Prices per market and currency (v1.5.26269.1 to .3)
+
+- Price history is saved per market (the region in the address, e.g. ZA, US), so switching
+  between en-ZA and en-US never mixes rand and dollar prices. History saved before this is
+  read as South African rand.
+- The price range filter is saved per currency, using the currency code in the page's own
+  data (ZAR, USD...). A range set in rand is not applied on a dollar page; it is kept and
+  comes back when you return. A range saved before this counts as rand.
+- Saved filters remember the currency of their price range. Opened on a page in another
+  currency, everything else applies and the price range is left off.
+- Prices are shown in the page's currency and locale style (R 948,27 / $948.27) instead of a
+  fixed "R 948.27".
+- Prices like $1,299.00 were read as 1.299 (the comma was taken as a decimal mark). Fixed:
+  the last comma or dot followed by 1-2 digits is the decimal mark.
+- Markets with a script in the code (sr-Latn-RS, bs-Latn-BA) are recognised.
+
 ## v1.5.26268.14 (Sep 2026) - Filter panel: tighter range sections and foot
 
 - Price Range and Discount Range use the same, tighter spacing: equal
