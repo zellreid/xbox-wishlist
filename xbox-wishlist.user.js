@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         XBOX Wishlist
 // @namespace    https://github.com/zellreid/xbox-wishlist
-// @version      1.5.26268.14
+// @version      1.5.26269.1
 // @description  Advanced filtering and sorting suite with multi-level sort (up to 3 criteria) - Resilient selectors - Public wishlist support
 // @author       ZellReid
 // @homepage     https://github.com/zellreid/xbox-wishlist
@@ -10,7 +10,7 @@
 // @match        https://www.xbox.com/*/wishlist*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=xbox.com
 // @run-at       document-body
-// @resource     CSSFilter https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/styles.css?ver=1.5.26268.14
+// @resource     CSSFilter https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/styles.css?ver=1.5.26269.1
 // @resource     IMGFilter https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/filter.svg
 // @resource     IMGSort https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/sort.svg
 // @resource     IMGExport https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/export.svg
@@ -110,8 +110,10 @@ window.XboxWishlistCore = {
             // F-25: flagged (starred) product ids, upper case - saved under CONFIG.storage.flagsKey
             flags: new Set(),
             // F-26/F-27: price seen per product id - { p, at, first, was, wasAt, changed, deal, h } (see recordPrice);
-            // saved under CONFIG.storage.pricesKey. priceRecorded = ids already recorded this page load
+            // saved under CONFIG.storage.pricesKey + '_' + market (see pricesStorageKey). priceRecorded = ids already recorded this page load
             priceHistory: {}, priceRecorded: new Set(), priceDirty: false,
+            // Currency symbol as the page shows it (set by readPrice); suffix = written after the amount
+            currency: { symbol: 'R', suffix: false },
             details: { running: false, cancel: false, done: 0, total: 0, failed: 0, message: '',
                 itemStatus: {} }   // per product id: { busy, at, error } for the item refresh buttons
         };
@@ -320,7 +322,26 @@ window.XboxWishlistCore = {
             try { return container.querySelector(selector) ?? defaultValue; }
             catch (ex) { return defaultValue; }
         }
-        function formatCurrency(value) { return `R ${value.toFixed(2)}`; }
+        // Market (region) from the /en-ZA/ path segment - prices, currency and price history are per market
+        function getMarket() {
+            const m = /^[a-z]{2,3}-([a-z]{2})$/i.exec(location.pathname.split('/').filter(Boolean)[0] || '');
+            return m ? m[1].toUpperCase() : 'XX';
+        }
+        // "R1 299,00", "$1,299.00", "1.299,00 EUR" -> number: the last , or . followed by 1-2 digits is the decimal mark
+        function parsePriceText(text) {
+            const s = String(text).replace(/[^0-9.,-]/g, ''), m = /^(.*?)[.,](\d{1,2})$/.exec(s);
+            return m ? parseFloat(`${m[1].replace(/[.,]/g, '')}.${m[2]}`) : parseFloat(s.replace(/[.,]/g, ''));
+        }
+        // Reads a price element and remembers the page's own currency symbol (R, $, EUR...) for display
+        function readPrice(el) {
+            const t = el.innerText.trim(), symbol = t.replace(/[0-9.,\s +-]/g, '');
+            if (symbol && symbol.length <= 4) state.currency = { symbol, suffix: /^\d/.test(t) };
+            return parsePriceText(t);
+        }
+        function formatCurrency(value) {
+            const { symbol, suffix } = state.currency, v = value.toFixed(2);
+            return suffix ? `${v} ${symbol}` : `${symbol}${/[a-z]$/i.test(symbol) ? ' ' : ''}${v}`;
+        }
         function formatPercentage(value) { return `${Math.round(value)}%`; }
 
         // ==================== RESOURCE MANAGEMENT ====================
@@ -1177,10 +1198,13 @@ window.XboxWishlistCore = {
             return e;
         }
 
+        // Prices differ per market (currency and deals), so each market has its own saved history
+        function pricesStorageKey() { return `${CONFIG.storage.pricesKey}_${getMarket()}`; }
+
         function loadPriceHistory() {
             return new Promise(resolve => {
                 try {
-                    adapter.storage.load(CONFIG.storage.pricesKey, (saved) => {
+                    const read = (saved) => {
                         try {
                             const parsed = saved ? JSON.parse(saved) : null;
                             if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
@@ -1191,13 +1215,18 @@ window.XboxWishlistCore = {
                             }
                         } catch (ex) { console.error('Failed to read price history:', ex); }
                         resolve();
+                    };
+                    adapter.storage.load(pricesStorageKey(), (saved) => {
+                        // Before per-market keys, everything was saved under one key, all in South African rand
+                        if (!saved && getMarket() === 'ZA') adapter.storage.load(CONFIG.storage.pricesKey, read);
+                        else read(saved);
                     });
                 } catch (ex) { console.error('Failed to load price history:', ex); resolve(); }
             });
         }
         function savePriceHistory() {
             state.priceDirty = false;
-            try { adapter.storage.save(CONFIG.storage.pricesKey, JSON.stringify(state.priceHistory)); }
+            try { adapter.storage.save(pricesStorageKey(), JSON.stringify(state.priceHistory)); }
             catch (ex) { console.error('Failed to save price history:', ex); }
         }
 
@@ -3055,13 +3084,13 @@ window.XboxWishlistCore = {
 
             let priceBase = null, priceDiscount = null;
             const opc = resolveClass(PREFIXES.originalPrice), dpc = resolveClass(PREFIXES.discountPrice), btc = resolveClass(PREFIXES.boldText);
-            if (opc) { const el = container.querySelector(`.${CSS.escape(opc)}`); if (el) priceBase = parseFloat(el.innerText.replace(/[^0-9.,-]/g, '').replace(',', '.')); }
-            if (dpc) { const el = container.querySelector(`.${CSS.escape(dpc)}`); if (el) priceDiscount = parseFloat(el.innerText.replace(/[^0-9.,-]/g, '').replace(',', '.')); }
-            if (priceBase === null && priceDiscount === null && btc) { const el = container.querySelector(`.${CSS.escape(btc)}`); if (el) priceBase = parseFloat(el.innerText.replace(/[^0-9.,-]/g, '').replace(',', '.')); }
+            if (opc) { const el = container.querySelector(`.${CSS.escape(opc)}`); if (el) priceBase = readPrice(el); }
+            if (dpc) { const el = container.querySelector(`.${CSS.escape(dpc)}`); if (el) priceDiscount = readPrice(el); }
+            if (priceBase === null && priceDiscount === null && btc) { const el = container.querySelector(`.${CSS.escape(btc)}`); if (el) priceBase = readPrice(el); }
             if (priceBase === null && priceDiscount === null && CONFIG.selectors.productPrices) {
                 const prices = container.querySelectorAll(CONFIG.selectors.productPrices);
-                priceBase = prices[0] ? parseFloat(prices[0].innerText.replace(/[^0-9.,-]/g, '').replace(',', '.')) : null;
-                priceDiscount = prices[1] ? parseFloat(prices[1].innerText.replace(/[^0-9.,-]/g, '').replace(',', '.')) : null;
+                priceBase = prices[0] ? readPrice(prices[0]) : null;
+                priceDiscount = prices[1] ? readPrice(prices[1]) : null;
             }
             const pbr = priceBase && !isNaN(priceBase) ? Math.round(priceBase * 100) / 100 : null;
             const pdr = priceDiscount && !isNaN(priceDiscount) ? Math.round(priceDiscount * 100) / 100 : null;
