@@ -7,6 +7,10 @@ via HITL approval). Until that changes, verification is manual. This
 checklist is the canonical one — run it before merging any change to either
 channel, and extend it when a bug fix warrants a new regression check.
 
+Beyond the manual checklists, the offline mock harness boots the real extension code
+against saved copies of Xbox pages. How mocks are saved, named and filed, and how to run
+the harness, is in [tools/mock-harness/README.md](../tools/mock-harness/README.md).
+
 ## Userscript — manual QA checklist
 
 Setup: install the script in Tampermonkey pointed at your local

@@ -1,9 +1,56 @@
-# Mock wishlist test harness
+# Mock test harness
 
 Boots the real extension code (`browser-extension/src/shared/xbox-wishlist.core.js`
 + `browser-extension/src/content.js`) against a frozen, offline copy of a real
 Xbox wishlist page, so a change can be sanity-checked without touching
 xbox.com or waiting on the Chrome Web Store / Tampermonkey update cycle.
+
+## How we do mocks (short version)
+
+A mock is a saved copy of a real Xbox page, kept offline and frozen, so changes can be tested without xbox.com.
+
+1. Open the page in Edge or Chrome (any market or language) and `Ctrl+S` -> **Webpage, Complete**.
+2. Save it into `mock_examples/_inbox/` - under the browser's own name (`Game deals _ XBOX.html`) or your own. You get
+   `<name>.html` plus a `<name>_files/` folder.
+3. Run `node tools/mock-harness/file-mocks.js --prepare`. It works out what the page is from the address it was
+   saved from, renames the file and its `_files` folder, fixes the links inside, moves both to the right
+   `mock_examples/#<type>/<market>/` folder and regenerates the harness pages. It never overwrites, and leaves
+   anything it does not recognise in the inbox with the reason.
+4. Start the server (`node tools/mock-harness/server.js`) and open the `.harness.html` page (see "Running it").
+
+`mock_examples/` is git-ignored (personal browsing data), so mocks live only on this machine.
+
+### Naming convention
+
+`mock_examples/#<type>/<market>/<name>.html` and `<name>_files/`, where `<market>` is the lower-case locale from the
+address (`en-za`, `en-us`, `sr-latn-rs`).
+
+| Page | Address after `/<locale>/` | Folder | Name |
+|---|---|---|---|
+| Wishlist | `wishlist` | `#wishlist` | `yyyyMMdd_HHmm` |
+| Game deals | `games/browse/DynamicChannel.GameDeals` | `#deals` | `yyyyMMdd_HHmm` |
+| Browse all games | `games/browse` | `#games` | `yyyyMMdd_HHmm` |
+| Product | `games/store/<slug>/<id>` | `#products` | `<id>_yyyyMMdd_HHmm_<slug>` |
+| Add-ons for a game | `games/browse/ProductAddOns_<ID>` | `#addons` | `<id>_yyyyMMdd_HHmm_<slug of the product>` |
+| Change locale | `Shell/ChangeLocale` | `_locale` | `yyyyMMdd_HHmm` |
+
+- The date and time are when the page was saved (the file's created time, or modified time if that is earlier).
+  Copying or editing a file changes those times, so file a capture straight after saving it.
+- The product id is the 12-character id from the address, lower case. The slug is the address slug, at most 70 characters.
+  An add-ons page takes the slug of the product page with the same id, if one is filed.
+- A name that already follows the convention is kept as is, including a trailing tag such as `_Dark` or `_Light`
+  (`20260924_1542_Dark`). To tag while filing, use `--tag Dark` (non-product pages).
+- Files starting with an id are ordered by product, then time: every capture of one game sits together.
+
+### `file-mocks.js`
+
+```
+node tools/mock-harness/file-mocks.js [--dry-run] [--prepare] [--tag <Tag>] [paths...]
+```
+
+No paths means everything in `mock_examples/_inbox/`. `--dry-run` shows what would happen. `--prepare` runs
+`prepare-fixture.js` afterwards. Address shapes it does not know (for example a Game Pass page) are reported and left
+alone: add a rule in `classify()` when a new kind of page needs mocks.
 
 ## Mock layout
 
@@ -31,12 +78,13 @@ reads, and its locale matches the folder.
 gives country and language names, not codes, so codes come from the locale table in the page's own bundle;
 14 names are mapped by hand in the script. `sr-Cyrl-RS` ("Srbija - Srpski") is assumed, not confirmed.
 
-## Adding a new fixture
+## Adding a new fixture by hand
 
-1. On the Xbox page, `Ctrl+S` -> "Webpage, Complete" -> save into
-   `mock_examples/#<type>/<market>/` (e.g. `#wishlist/en-za`), named as in the table above; this produces
-   `<name>.html` + a `<name>_files/` folder. If the browser saves the `_files` folder under the page title,
-   rename both and replace the folder name inside the .html.
+Prefer `file-mocks.js` (above). By hand:
+
+1. Save the capture into `mock_examples/#<type>/<market>/` named as in the table above (this produces
+   `<name>.html` + a `<name>_files/` folder; rename both and replace the folder name inside the .html if the browser
+   used the page title).
 2. Prepare it:
    ```
    node tools/mock-harness/prepare-fixture.js "mock_examples/#wishlist/en-za/<name>.html"
