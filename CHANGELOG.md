@@ -14,6 +14,17 @@ for how a version is bumped and published.
 
 ---
 
+## v1.5.26271.1 (Sep 2026) - Date Added: real dates, new default sort, quick filter
+
+- "Default" sort is renamed **Date Added** and now sorts by when each game was actually added to
+  the wishlist (the page's own data), newest first - not the approximate page-order guess used
+  before. Confirmed distinct from the game's release date.
+- New **Added Recently** quick filter (games added in the last 30 days); only offered when at
+  least one game qualifies.
+- New `addedDate` column in the CSV/JSON export.
+- Checked in the harness: every wishlist capture's data covers all its items, sorts newest first,
+  and the export date differs from the release date.
+
 ## v1.5.26269.5 (Sep 2026) - Item data from the page's own data first
 
 - Title, publisher, price, original price, discount and ownership now come from the data the page already

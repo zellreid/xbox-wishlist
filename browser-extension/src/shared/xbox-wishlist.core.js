@@ -39,6 +39,7 @@ window.XboxWishlistCore = {
                 platforms: { selected: [], list: new Map() },
                 justForYou: false,
                 preorder: false,
+                recentlyAdded: false,   // T-30: added to the wishlist within RECENTLY_ADDED_MS
                 hasAddOns: false,   // F-40: games with add-ons (DLC) on the store
                 flagged: false,     // F-25: only items flagged with the star
                 // F-36: capability labels; an item must have ALL selected ones
@@ -49,9 +50,11 @@ window.XboxWishlistCore = {
                 discountRange: { min: 0, max: 100, currentMin: 0, currentMax: 100, enabled: false }
             },
             sort: {
-                criteria: [{ field: 'ifcId', order: 'desc', label: 'Default' }],
+                // T-30: the wishlist's own "date added" (core2.wishlist.wishlists[].products[].addedDate),
+                // not a page-order guess - see wishlistAddedDatesFrom(). Newest first.
+                criteria: [{ field: 'ifcAddedDate', order: 'desc', label: 'Date Added' }],
                 fields: [
-                    { value: 'ifcId', label: 'Default' }, { value: 'ifcName', label: 'Name' },
+                    { value: 'ifcAddedDate', label: 'Date Added' }, { value: 'ifcName', label: 'Name' },
                     { value: 'ifcPublisher', label: 'Publisher' }, { value: 'ifcPrice', label: 'Price' },
                     { value: 'ifcPriceDiscountPercent', label: 'Discount %' },
                     { value: 'ifcPriceDiscountAmount', label: 'Discount Amount' },
@@ -70,6 +73,8 @@ window.XboxWishlistCore = {
             // Per product id: { isOwned, isSatisfyingEntitlement, satisfyingProductId, endDate, ... } from the page data;
             // null when the page has no entitlements section (ownership is then read from the tiles)
             entitlements: null,
+            // T-30: product id (upper case) -> ms when added to the wishlist, from the page's own wishlist data
+            wishlistAddedDates: new Map(),
             // Set while stored data is being cleared (clearStoredData): nothing may be written back until the reload
             resetting: false,
             // F-25: flagged (starred) product ids, upper case - saved under CONFIG.storage.flagsKey
@@ -419,6 +424,7 @@ window.XboxWishlistCore = {
                             if (typeof parsed.justForYou === 'boolean') state.filters.justForYou = parsed.justForYou;
                             if (parsed.theme === 'light' || parsed.theme === 'dark') state.theme = parsed.theme;
                             if (typeof parsed.preorder === 'boolean') state.filters.preorder = parsed.preorder;
+                            if (typeof parsed.recentlyAdded === 'boolean') state.filters.recentlyAdded = parsed.recentlyAdded;
                             if (typeof parsed.hasAddOns === 'boolean') state.filters.hasAddOns = parsed.hasAddOns;
                             if (typeof parsed.flagged === 'boolean') state.filters.flagged = parsed.flagged;
                             if (parsed.capabilities && Array.isArray(parsed.capabilities.selected)) {
@@ -498,6 +504,7 @@ window.XboxWishlistCore = {
             });
             if (state.filters.justForYou) tags.push({ type: 'justForYou', value: 'justForYou', label: 'Just for you' });
             if (state.filters.preorder) tags.push({ type: 'preorder', value: 'preorder', label: 'Pre-order' });
+            if (state.filters.recentlyAdded) tags.push({ type: 'recentlyAdded', value: 'recentlyAdded', label: `Added in the last ${RECENTLY_ADDED_DAYS} days` });
             if (state.filters.hasAddOns) tags.push({ type: 'hasAddOns', value: 'hasAddOns', label: 'Has add-ons' });
             if (state.filters.flagged) tags.push({ type: 'flagged', value: 'flagged', label: 'Flagged' });
             state.filters.capabilities.selected.forEach(cap => {
@@ -559,6 +566,7 @@ window.XboxWishlistCore = {
                     updateCheckboxes(CONFIG.ids.platformsSelect, state.filters.platforms.selected); break;
                 case 'justForYou': state.filters.justForYou = false; break;
                 case 'preorder': state.filters.preorder = false; break;
+                case 'recentlyAdded': state.filters.recentlyAdded = false; break;
                 case 'hasAddOns': state.filters.hasAddOns = false; break;
                 case 'flagged': state.filters.flagged = false; break;
                 case 'capability':
@@ -907,6 +915,7 @@ window.XboxWishlistCore = {
                 state.productData = map; state.productDataLoadedAt = Date.now();
                 noteMarketFromState(pageState);
                 state.entitlements = entitlementsFrom(pageState);
+                state.wishlistAddedDates = wishlistAddedDatesFrom(pageState);
                 return map;
             } catch (ex) { console.error('Failed to load product data:', ex); return state.productData; }
         }
@@ -916,6 +925,24 @@ window.XboxWishlistCore = {
             const ent = pageState && pageState.core2 && pageState.core2.products && pageState.core2.products.entitlements;
             if (!ent || typeof ent !== 'object') return null;
             return new Map(Object.entries(ent).map(([id, e]) => [id.toUpperCase(), e && e.data && typeof e.data === 'object' ? e.data : {}]));
+        }
+
+        // T-30: when each item was added to the wishlist (not the game's release date - that's
+        // ifcReleaseDate, from the product data). Only the wishlist page's own state carries this;
+        // it is not refreshed by a store page read (applyStorePage), since a product page does not
+        // know which wishlist(s) it is on. The viewer's default wishlist (or the first one listed).
+        function wishlistAddedDatesFrom(pageState) {
+            const wl = pageState && pageState.core2 && pageState.core2.wishlist;
+            const lists = wl && wl.wishlists && typeof wl.wishlists === 'object' ? Object.values(wl.wishlists) : [];
+            const mine = lists.find(w => w && w.id === wl.defaultWishlistId) || lists[0];
+            const products = mine && Array.isArray(mine.products) ? mine.products : [];
+            const map = new Map();
+            products.forEach(item => {
+                const id = item && typeof item.productId === 'string' ? item.productId.toUpperCase() : null;
+                const at = id && item.addedDate ? Date.parse(item.addedDate) : NaN;
+                if (id && !isNaN(at) && !map.has(id)) map.set(id, at);   // first entry for a product id wins
+            });
+            return map;
         }
 
         // The page's currency code and locale from its state: the first price on the page names its
@@ -999,6 +1026,9 @@ window.XboxWishlistCore = {
             setDataAttribute(container, 'ifcRatingCount', p ? (p.ratingCount || 0) : null);
             setDataAttribute(container, 'ifcGenres', JSON.stringify(p && Array.isArray(p.categories) ? p.categories : []));
             setDataAttribute(container, 'ifcReleaseDate', isNaN(release) ? null : release);
+            // T-30: date added to the wishlist (distinct from the game's release date above)
+            const added = state.wishlistAddedDates.get((container.dataset.ifcProductId || '').toUpperCase());
+            setDataAttribute(container, 'ifcAddedDate', typeof added === 'number' ? added : null);
             setDataAttribute(container, 'ifcInPass', !!(p && Array.isArray(p.includedWithPassesProductIds) && p.includedWithPassesProductIds.length > 0));
             // Only for deals the page actually shows this viewer (some discounted offers in
             // the data never render a discount), so sort, badge and export agree
@@ -1658,6 +1688,8 @@ window.XboxWishlistCore = {
                 rating: num(c.dataset.ifcRating), ratingCount: num(c.dataset.ifcRatingCount),
                 genres: getItemGenres(c),
                 releaseDate: num(c.dataset.ifcReleaseDate) === null ? null : new Date(num(c.dataset.ifcReleaseDate)).toISOString().slice(0, 10),
+                // T-30: date added to the wishlist (distinct from releaseDate above)
+                addedDate: num(c.dataset.ifcAddedDate) === null ? null : new Date(num(c.dataset.ifcAddedDate)).toISOString().slice(0, 10),
                 dealEnds: num(c.dataset.ifcDealEnds) === null ? null : new Date(num(c.dataset.ifcDealEnds)).toISOString(),
                 inPass: c.dataset.ifcInPass === 'true',
                 // F-34: deal type personal | sale | member (null = no discount shown)
@@ -1683,7 +1715,7 @@ window.XboxWishlistCore = {
 
         function toCsv(rows) {
             const cols = ['title', 'publisher', 'price', 'originalPrice', 'discountPercent', 'owned', 'unpurchasable',
-                'rating', 'ratingCount', 'genres', 'releaseDate', 'dealEnds', 'inPass', 'dealType', 'dealReason', 'preorder', 'platforms', 'capabilities', 'type', 'hasAddOns', 'addOnsCount', 'flagged', 'previousPrice', 'priceChanged', 'onSaleSince', 'onSaleSinceKnown', 'lowestPrice', 'priceHistory', 'url'];
+                'rating', 'ratingCount', 'genres', 'releaseDate', 'addedDate', 'dealEnds', 'inPass', 'dealType', 'dealReason', 'preorder', 'platforms', 'capabilities', 'type', 'hasAddOns', 'addOnsCount', 'flagged', 'previousPrice', 'priceChanged', 'onSaleSince', 'onSaleSinceKnown', 'lowestPrice', 'priceHistory', 'url'];
             const cell = v => {
                 if (v === null || v === undefined) return '';
                 if (Array.isArray(v)) v = v.join('; ');
@@ -1921,6 +1953,11 @@ window.XboxWishlistCore = {
                     apply: () => { state.filters.justForYou = true; }, clear: () => { state.filters.justForYou = false; } },
                 { key: 'preorder', label: 'Pre-order', isActive: () => state.filters.preorder === true,
                     apply: () => { state.filters.preorder = true; }, clear: () => { state.filters.preorder = false; } },
+                // T-30: added to the wishlist within RECENTLY_ADDED_DAYS - only offered once at least one item qualifies
+                { key: 'recentlyAdded', label: 'Added Recently',
+                    isAvailable: () => Array.from(document.getElementsByClassName(CONFIG.selectors.items)).some(isRecentlyAdded),
+                    isActive: () => state.filters.recentlyAdded === true,
+                    apply: () => { state.filters.recentlyAdded = true; }, clear: () => { state.filters.recentlyAdded = false; } },
                 // Games with add-ons (DLC) on the store (F-40, from the page's product data)
                 { key: 'hasAddOns', label: 'Has add-ons', isActive: () => state.filters.hasAddOns === true,
                     apply: () => { state.filters.hasAddOns = true; }, clear: () => { state.filters.hasAddOns = false; } },
@@ -1962,6 +1999,7 @@ window.XboxWishlistCore = {
                 state.filters.platforms.selected = [];
                 state.filters.justForYou = false;
                 state.filters.preorder = false;
+                state.filters.recentlyAdded = false;
                 state.filters.hasAddOns = false;
                 state.filters.flagged = false;
                 state.filters.capabilities.selected = [];
@@ -1995,7 +2033,7 @@ window.XboxWishlistCore = {
             return {
                 owned: [...f.owned.selected], publishers: [...f.publishers.selected], subscriptions: [...f.subscriptions.selected],
                 genres: [...f.genres.selected], inPass: f.inPass === true,
-                platforms: [...f.platforms.selected], justForYou: f.justForYou === true, preorder: f.preorder === true,
+                platforms: [...f.platforms.selected], justForYou: f.justForYou === true, preorder: f.preorder === true, recentlyAdded: f.recentlyAdded === true,
                 hasAddOns: f.hasAddOns === true, flagged: f.flagged === true,
                 capabilities: [...f.capabilities.selected], types: [...f.types.selected],
                 priceRange: snapshotRange(f.priceRange), discountRange: snapshotRange(f.discountRange),
@@ -2017,6 +2055,7 @@ window.XboxWishlistCore = {
                     owned: list(f.owned), publishers: list(f.publishers), subscriptions: list(f.subscriptions),
                     genres: list(f.genres), inPass: f.inPass === true,   // absent in presets saved before F-33
                     platforms: list(f.platforms), justForYou: f.justForYou === true, preorder: f.preorder === true,   // before F-34
+                    recentlyAdded: f.recentlyAdded === true,   // before T-30
                     hasAddOns: f.hasAddOns === true,      // before F-40
                     flagged: f.flagged === true,          // before F-25
                     capabilities: list(f.capabilities),   // before F-36
@@ -2031,7 +2070,7 @@ window.XboxWishlistCore = {
         function hasPresetableFilters() {
             const f = state.filters;
             return f.owned.selected.length > 0 || f.publishers.selected.length > 0 || f.subscriptions.selected.length > 0
-                || f.genres.selected.length > 0 || f.inPass || f.platforms.selected.length > 0 || f.justForYou || f.preorder || f.hasAddOns || f.flagged
+                || f.genres.selected.length > 0 || f.inPass || f.platforms.selected.length > 0 || f.justForYou || f.preorder || f.recentlyAdded || f.hasAddOns || f.flagged
                 || f.capabilities.selected.length > 0 || f.types.selected.length > 0
                 || f.priceRange.enabled || f.discountRange.enabled;
         }
@@ -2051,7 +2090,7 @@ window.XboxWishlistCore = {
             return sameSet(f.owned.selected, pf.owned) && sameSet(f.publishers.selected, pf.publishers)
                 && sameSet(f.subscriptions.selected, pf.subscriptions)
                 && sameSet(f.genres.selected, pf.genres) && f.inPass === pf.inPass
-                && sameSet(f.platforms.selected, pf.platforms) && f.justForYou === pf.justForYou && f.preorder === pf.preorder && f.hasAddOns === pf.hasAddOns && f.flagged === pf.flagged
+                && sameSet(f.platforms.selected, pf.platforms) && f.justForYou === pf.justForYou && f.preorder === pf.preorder && f.recentlyAdded === pf.recentlyAdded && f.hasAddOns === pf.hasAddOns && f.flagged === pf.flagged
                 && sameSet(f.capabilities.selected, pf.capabilities) && sameSet(f.types.selected, pf.types)
                 && (presetPriceApplies(pf) ? rangeIs(f.priceRange, pf.priceRange) : !f.priceRange.enabled) && rangeIs(f.discountRange, pf.discountRange);
         }
@@ -2061,7 +2100,7 @@ window.XboxWishlistCore = {
                 const f = state.filters, pf = p.filters;
                 f.owned.selected = [...pf.owned]; f.publishers.selected = [...pf.publishers]; f.subscriptions.selected = [...pf.subscriptions];
                 f.genres.selected = [...pf.genres]; f.inPass = pf.inPass;
-                f.platforms.selected = [...pf.platforms]; f.justForYou = pf.justForYou; f.preorder = pf.preorder; f.hasAddOns = pf.hasAddOns; f.flagged = pf.flagged;
+                f.platforms.selected = [...pf.platforms]; f.justForYou = pf.justForYou; f.preorder = pf.preorder; f.recentlyAdded = pf.recentlyAdded === true; f.hasAddOns = pf.hasAddOns; f.flagged = pf.flagged;
                 f.capabilities.selected = [...pf.capabilities]; f.types.selected = [...pf.types];
                 updateCheckboxes(CONFIG.ids.ownedSelect, f.owned.selected);
                 updateCheckboxes(CONFIG.ids.publishersSelect, f.publishers.selected);
@@ -3054,7 +3093,7 @@ window.XboxWishlistCore = {
 
         function isDefaultSort() {
             const c = state.sort.criteria;
-            return c.length === 1 && c[0].field === 'ifcId' && c[0].order === 'desc';
+            return c.length === 1 && c[0].field === 'ifcAddedDate' && c[0].order === 'desc';
         }
 
         // Dot on the sort button while a non-default sort is active - including one
@@ -3101,14 +3140,14 @@ window.XboxWishlistCore = {
                             if (aMissing) continue;
                         }
                         // Same for product-data fields: unrated, unreleased or no current deal sorts last
-                        if (['ifcRating', 'ifcReleaseDate', 'ifcDealEnds'].includes(c.field)) {
+                        if (['ifcRating', 'ifcReleaseDate', 'ifcDealEnds', 'ifcAddedDate'].includes(c.field)) {
                             const aMissing = isNaN(parseFloat(a.dataset[c.field])), bMissing = isNaN(parseFloat(b.dataset[c.field]));
                             if (aMissing !== bMissing) return aMissing ? 1 : -1;
                             if (aMissing) continue;
                         }
                         const aVal = a.dataset[c.field], bVal = b.dataset[c.field];
                         let cmp = 0;
-                        if (['ifcId', 'ifcPrice', 'ifcPriceDiscountPercent', 'ifcPriceDiscountAmount', 'ifcRating', 'ifcReleaseDate', 'ifcDealEnds', 'ifcFlagged'].includes(c.field)) {
+                        if (['ifcId', 'ifcAddedDate', 'ifcPrice', 'ifcPriceDiscountPercent', 'ifcPriceDiscountAmount', 'ifcRating', 'ifcReleaseDate', 'ifcDealEnds', 'ifcFlagged'].includes(c.field)) {
                             cmp = (parseFloat(aVal) || 0) - (parseFloat(bVal) || 0);
                         } else { cmp = (aVal || '').toString().toLowerCase().localeCompare((bVal || '').toString().toLowerCase()); }
                         if (cmp !== 0) return c.order === 'asc' ? cmp : -cmp;
@@ -3266,6 +3305,14 @@ window.XboxWishlistCore = {
             setDataAttribute(container, 'ifcUnpurchasable', isUnPurchasable);
         }
 
+        // T-30: "added recently" is relative to now, so it is computed at read time from ifcAddedDate,
+        // not stored - same rule for the quick filter's availability check and the filter itself.
+        const RECENTLY_ADDED_DAYS = 30, RECENTLY_ADDED_MS = RECENTLY_ADDED_DAYS * 24 * 60 * 60 * 1000;
+        function isRecentlyAdded(container) {
+            const at = parseFloat(container.dataset.ifcAddedDate);
+            return !isNaN(at) && Date.now() - at < RECENTLY_ADDED_MS;
+        }
+
         function shouldShowContainer(container) {
             const isOwned = container.dataset.ifcOwned === 'true';
             const isUnPurchasable = container.dataset.ifcUnpurchasable === 'true';
@@ -3307,6 +3354,7 @@ window.XboxWishlistCore = {
             }
             if (state.filters.justForYou && container.dataset.ifcDealType !== 'personal') return false;
             if (state.filters.preorder && container.dataset.ifcPreorder !== 'true') return false;
+            if (state.filters.recentlyAdded && !isRecentlyAdded(container)) return false;
             if (state.filters.hasAddOns && container.dataset.ifcHasAddOns !== 'true') return false;
             if (state.filters.flagged && container.dataset.ifcFlagged !== '1') return false;
             if (state.filters.capabilities.selected.length > 0) {
@@ -3331,12 +3379,11 @@ window.XboxWishlistCore = {
 
         function toggleContainers() {
             const containers = document.getElementsByClassName(CONFIG.selectors.items);
-            // ifcId records the wishlist's own order (the order items were added - the
-            // page exposes no date-added). Number each item once, the first time it is
-            // seen, while the list is still in page order: re-deriving it from DOM
-            // position on every update picked up whatever sort was applied last, so
-            // "Default" no longer restored the original order. Items that appear later
-            // continue below the lowest id, so they sort after the ones already seen.
+            // ifcId is an internal stand-in for "page order", numbered once per item the first time it is
+            // seen (T-30 sorts by the wishlist's own ifcAddedDate instead, so this is no longer the default
+            // sort - it stays as a tie-breaker and for anything keyed by original DOM order). Re-deriving it
+            // from DOM position on every update picked up whatever sort was applied last, so number it once;
+            // items that appear later continue below the lowest id, so they sort after the ones already seen.
             const unnumbered = Array.from(containers).filter(c => !c.dataset.ifcId);
             let nextId = (state.ui.lowestItemId ?? unnumbered.length + 1) - 1;
             unnumbered.forEach(c => { c.dataset.ifcId = nextId--; });
