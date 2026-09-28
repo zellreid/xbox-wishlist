@@ -85,11 +85,13 @@ function buildHarnessBlock(outDir, meta) {
     })();
     // ?currency=USD (and ?locale=xx-YY) also rewrite the currency code and locale in the embedded page state, which is
     // where the core reads them from. Prices stay the capture's numbers; only their labels change.
-    const STATE_EDIT = { currency: new URLSearchParams(location.search).get('currency'), locale: new URLSearchParams(location.search).get('locale') };
+    // ?nostate removes the page state altogether, to test the fallback to what the tiles say.
+    const STATE_EDIT = { currency: new URLSearchParams(location.search).get('currency'), locale: new URLSearchParams(location.search).get('locale'), nostate: new URLSearchParams(location.search).has('nostate') };
     (function () {
-        if (!STATE_EDIT.currency && !STATE_EDIT.locale) return;
+        if (!STATE_EDIT.currency && !STATE_EDIT.locale && !STATE_EDIT.nostate) return;
         const el = document.querySelector('script[data-harness-kept="preloaded-state"]');
         if (!el) return;
+        if (STATE_EDIT.nostate) { el.remove(); return; }
         let t = el.textContent;
         if (STATE_EDIT.currency) t = t.replace(/"currency":"[A-Za-z]{3}"/g, '"currency":"' + STATE_EDIT.currency.toUpperCase() + '"');
         if (STATE_EDIT.locale) t = t.replace(/"locale":"[A-Za-z-]+"/g, '"locale":"' + STATE_EDIT.locale + '"');
@@ -123,6 +125,7 @@ function buildHarnessBlock(outDir, meta) {
         storage: {
             local: {
                 set: (obj) => { Object.assign(memoryStore, obj); persist(); },
+                remove: (key) => { [].concat(key).forEach(k => delete memoryStore[k]); persist(); },
                 get: (keys, cb) => {
                     const result = {};
                     // get(null) returns everything, like chrome.storage.local
@@ -293,6 +296,24 @@ function buildHarnessBlock(outDir, meta) {
                     failures.push('filter reset did not restore filteredCount to totalCount');
                 }
             }
+        }
+
+        // Payload first: every value taken from the page data must equal what the tile itself says
+        // (price, original price, ownership). Skipped with ?nostate, where both come from the tiles.
+        if (!STATE_EDIT.nostate && state.debug && state.debug.scrape) {
+            const cs = Array.from(document.querySelectorAll('[data-ifc-product-id]')), miss = [];
+            let fromData = 0;
+            cs.forEach(c => {
+                const s = state.debug.scrape.prices(c), name = c.dataset.ifcName;
+                const base = c.dataset.ifcPriceBase === 'null' ? null : parseFloat(c.dataset.ifcPriceBase);
+                const disc = c.dataset.ifcPriceDiscount === 'null' ? null : parseFloat(c.dataset.ifcPriceDiscount);
+                if (c.dataset.ifcPriceShownFor !== 'null') fromData++;
+                if (s.base !== base || s.discount !== disc) miss.push('price ' + name + ': data ' + base + '/' + disc + ' tile ' + s.base + '/' + s.discount);
+                if (state.debug.scrape.owned(c) !== (c.dataset.ifcOwned === 'true')) miss.push('owned ' + name);
+            });
+            lines.push('payload vs tiles: ' + cs.length + ' items, ' + fromData + ' priced from the data, ' + miss.length + ' differences');
+            miss.slice(0, 5).forEach(m => failures.push(m));
+            if (miss.length > 5) failures.push('... and ' + (miss.length - 5) + ' more');
         }
 
         // Per-market storage: with ?locale=xx-YY the price history must be saved under that market

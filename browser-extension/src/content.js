@@ -40,6 +40,7 @@
                 chrome.storage.local.get([key], (result) => callback(result[key] ?? null));
             },
             // Every stored key (optional; the core uses it to find price history saved for other markets)
+            remove: (key) => { if (isAlive()) chrome.storage.local.remove(key); },
             keys: (callback) => {
                 if (!isAlive()) { callback([]); return; }
                 chrome.storage.local.get(null, (all) => callback(Object.keys(all || {})));

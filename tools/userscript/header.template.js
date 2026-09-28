@@ -27,6 +27,8 @@
 // @grant        GM_getResourceURL
 // @grant        GM_setValue
 // @grant        GM_getValue
+// @grant        GM_listValues
+// @grant        GM_deleteValue
 // @grant        GM_info
 // @downloadURL  https://update.greasyfork.org/scripts/567587/XBOX%20Wishlist.user.js
 // @updateURL    https://update.greasyfork.org/scripts/567587/XBOX%20Wishlist.meta.js

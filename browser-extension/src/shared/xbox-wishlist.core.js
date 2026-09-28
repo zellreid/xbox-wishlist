@@ -9,6 +9,7 @@
 //   adapter.storage.save(key, value)     -> void
 //   adapter.storage.load(key, callback)  -> callback(value | null)
 //   adapter.storage.keys(callback)       -> callback([key, ...])   (optional; used by "Clear cached data")
+//   adapter.storage.remove(key)          -> void                   (optional; the key is written as null without it)
 //
 window.XboxWishlistCore = {
     init(adapter) {
@@ -66,6 +67,9 @@ window.XboxWishlistCore = {
             productData: new Map(), productDataLoadedAt: null,
             // Product-page capabilities by upper-case product id: { caps: { key: label }, at: ms } (F-36)
             capCache: {},
+            // Per product id: { isOwned, isSatisfyingEntitlement, satisfyingProductId, endDate, ... } from the page data;
+            // null when the page has no entitlements section (ownership is then read from the tiles)
+            entitlements: null,
             // Set while stored data is being cleared (clearStoredData): nothing may be written back until the reload
             resetting: false,
             // F-25: flagged (starred) product ids, upper case - saved under CONFIG.storage.flagsKey
@@ -902,8 +906,16 @@ window.XboxWishlistCore = {
                 const map = productSummariesFrom(pageState);
                 state.productData = map; state.productDataLoadedAt = Date.now();
                 noteMarketFromState(pageState);
+                state.entitlements = entitlementsFrom(pageState);
                 return map;
             } catch (ex) { console.error('Failed to load product data:', ex); return state.productData; }
+        }
+
+        // Entitlements from a page state: a Map by product id (upper case) of each entry's data, or null if the page has none
+        function entitlementsFrom(pageState) {
+            const ent = pageState && pageState.core2 && pageState.core2.products && pageState.core2.products.entitlements;
+            if (!ent || typeof ent !== 'object') return null;
+            return new Map(Object.entries(ent).map(([id, e]) => [id.toUpperCase(), e && e.data && typeof e.data === 'object' ? e.data : {}]));
         }
 
         // The page's currency code and locale from its state: the first price on the page names its
@@ -1349,7 +1361,9 @@ window.XboxWishlistCore = {
 
         // Inspection hooks for DevTools / the mock harness. detailsDelayMs (undefined = 1 s base gap)
         // lets the harness run "Load details" without the real pause between requests.
-        state.debug = { loadProductData, getProductData, fetchPageState, loadDetails, detailsDelayMs: undefined };
+        state.debug = { loadProductData, getProductData, fetchPageState, loadDetails, detailsDelayMs: undefined,
+            scrape: { prices: scrapePrices, owned: scrapeOwned }, payload: { prices: payloadPrices, owned: payloadOwned },
+            refreshItem, applyStorePage };
 
         // ==================== LIGHT / DARK TOGGLE (F-39) ====================
         // Xbox marks its theme on <body> (data-theme="light|dark" + the dark class), on the
@@ -1716,7 +1730,7 @@ window.XboxWishlistCore = {
                 all.forEach(k => {
                     if (k.startsWith(CONFIG.storage.pricesKey) || (everything && k.startsWith(CONFIG.storage.key))) wipe.add(k);
                 });
-                wipe.forEach(k => adapter.storage.save(k, null));
+                wipe.forEach(k => (adapter.storage.remove ? adapter.storage.remove(k) : adapter.storage.save(k, null)));
             } catch (ex) { console.error('Failed to clear stored data:', ex); }
             setTimeout(() => location.reload(), 250);   // lets the storage writes finish first
         }
@@ -2576,6 +2590,20 @@ window.XboxWishlistCore = {
                 .filter(e => e.id && e.id !== 'NULL' && e.url && e.url !== 'null' && !seen.has(e.id) && seen.add(e.id));
         }
 
+        // What a store page returns updates the item: its product summary replaces the one from the wishlist page
+        // (fresher price and deal, rating, pre-order, add-ons flag ...) and its entitlement for this product replaces
+        // ours (ownership). The next updateScreen() re-reads every fact from them, and a price that moved is
+        // recorded again, so the price-change badge shows it. The tile's own price text is Xbox's markup and stays
+        // as it was until the page reloads.
+        function applyStorePage(id, pageState) {
+            const summary = productSummariesFrom(pageState).get(id);
+            if (summary) state.productData.set(id, summary);
+            const ent = entitlementsFrom(pageState);
+            if (ent && state.entitlements) { if (ent.has(id)) state.entitlements.set(id, ent.get(id)); else state.entitlements.delete(id); }
+            state.priceRecorded.delete(id);
+            return summary;
+        }
+
         async function loadDetails() {
             const d = state.details;
             if (d.running) return;
@@ -2594,7 +2622,7 @@ window.XboxWishlistCore = {
                     // Only what's missing: the store page (capabilities) and/or the add-ons page (count)
                     const needCaps = !isCapabilityFresh(id);
                     if (needCaps) {
-                        const summary = productSummariesFrom(await fetchPageState(url)).get(id);
+                        const summary = applyStorePage(id, await fetchPageState(url));
                         const caps = {};
                         if (summary && summary.capabilities && typeof summary.capabilities === 'object') {
                             Object.entries(summary.capabilities).forEach(([k, v]) => { if (typeof v === 'string' && v.trim()) caps[k] = v.trim(); });
@@ -2635,9 +2663,8 @@ window.XboxWishlistCore = {
             status[id] = { busy: true };
             updateScreen();
             try {
-                const summary = productSummariesFrom(await fetchPageState(url)).get(id);
+                const summary = applyStorePage(id, await fetchPageState(url));
                 if (!summary) throw new Error('no data on its store page');
-                state.productData.set(id, summary);
                 const caps = {};
                 if (summary.capabilities && typeof summary.capabilities === 'object') {
                     Object.entries(summary.capabilities).forEach(([k, v]) => { if (typeof v === 'string' && v.trim()) caps[k] = v.trim(); });
@@ -3139,29 +3166,82 @@ window.XboxWishlistCore = {
             return found;
         }
 
-        function setContainerData(container, id) {
-            setDataAttribute(container, 'ifcId', id);
-            const img = CONFIG.selectors.imageContainer ? safeQuerySelector(container, CONFIG.selectors.imageContainer) : null;
-            setDataAttribute(container, 'ifcImage', img?.src);
-            const link = CONFIG.selectors.productLink ? safeQuerySelector(container, CONFIG.selectors.productLink) : null;
-            setDataAttribute(container, 'ifcName', link?.innerText);
-            setDataAttribute(container, 'ifcUri', link?.href);
-            setDataAttribute(container, 'ifcProductId', extractProductId(link?.href));
-            const publisher = CONFIG.selectors.productPublisher ? safeQuerySelector(container, CONFIG.selectors.productPublisher) : null;
-            setDataAttribute(container, 'ifcPublisher', publisher?.innerText);
+        // ==================== PAYLOAD-FIRST ITEM FACTS ====================
+        // Title, publisher, price, original price, discount and ownership come from the page's own data
+        // (state.productData, state.entitlements): no text parsing, so they read the same in every language
+        // and currency. The tile is only asked what the data cannot say (whether a price is shown, the
+        // subscription badges) and is the fallback for a product that is not in the data.
+        const round2 = n => Math.round(n * 100) / 100;
 
+        // The offer the store shows this viewer: the lowest list price among the offers they can use (one marked
+        // eligibility Remediation is not theirs). Checked against the tiles of 7 wishlist captures: 1780 of 1780.
+        function payloadPrices(p) {
+            const offers = p && p.specificPrices && Array.isArray(p.specificPrices.purchaseable) ? p.specificPrices.purchaseable : [];
+            const priced = offers.filter(o => o && typeof o.listPrice === 'number' && typeof o.msrp === 'number');
+            if (!priced.length) return null;
+            const usable = priced.filter(o => !(o.eligibilityInfo && o.eligibilityInfo.eligibility === 'Remediation'));
+            const best = (usable.length ? usable : priced).reduce((a, b) => (b.listPrice < a.listPrice ? b : a));
+            const list = round2(best.listPrice), msrp = round2(best.msrp);
+            const base = list < msrp ? msrp : list, discount = list < msrp ? list : null;
+            return base || discount ? { base: base || null, discount: discount || null } : null;
+        }
+        function payloadOwned(productId) {
+            return state.entitlements ? !!(state.entitlements.get(String(productId || '').toUpperCase()) || {}).isOwned : null;
+        }
+
+        // A price is shown on the tile when a price element holds a digit (any script) - no parsing
+        function domPriceShown(container) {
+            const has = el => !!el && /\p{Nd}/u.test(el.textContent || '');
+            const q = cls => (cls ? container.querySelector('.' + CSS.escape(cls)) : null);
+            if (has(q(resolveClass(PREFIXES.originalPrice))) || has(q(resolveClass(PREFIXES.discountPrice))) || has(q(resolveClass(PREFIXES.boldText)))) return true;
+            return CONFIG.selectors.productPrices ? Array.from(container.querySelectorAll(CONFIG.selectors.productPrices)).slice(0, 2).some(has) : false;
+        }
+
+        // Fallbacks: what the tile's markup says (text parsing). Also exposed to the harness (state.debug.scrape),
+        // which checks the payload against them on every wishlist capture.
+        function scrapePrices(container) {
             let priceBase = null, priceDiscount = null;
             const opc = resolveClass(PREFIXES.originalPrice), dpc = resolveClass(PREFIXES.discountPrice), btc = resolveClass(PREFIXES.boldText);
-            if (opc) { const el = container.querySelector(`.${CSS.escape(opc)}`); if (el) priceBase = readPrice(el); }
-            if (dpc) { const el = container.querySelector(`.${CSS.escape(dpc)}`); if (el) priceDiscount = readPrice(el); }
-            if (priceBase === null && priceDiscount === null && btc) { const el = container.querySelector(`.${CSS.escape(btc)}`); if (el) priceBase = readPrice(el); }
+            if (opc) { const el = container.querySelector('.' + CSS.escape(opc)); if (el) priceBase = readPrice(el); }
+            if (dpc) { const el = container.querySelector('.' + CSS.escape(dpc)); if (el) priceDiscount = readPrice(el); }
+            if (priceBase === null && priceDiscount === null && btc) { const el = container.querySelector('.' + CSS.escape(btc)); if (el) priceBase = readPrice(el); }
             if (priceBase === null && priceDiscount === null && CONFIG.selectors.productPrices) {
                 const prices = container.querySelectorAll(CONFIG.selectors.productPrices);
                 priceBase = prices[0] ? readPrice(prices[0]) : null;
                 priceDiscount = prices[1] ? readPrice(prices[1]) : null;
             }
-            const pbr = priceBase && !isNaN(priceBase) ? Math.round(priceBase * 100) / 100 : null;
-            const pdr = priceDiscount && !isNaN(priceDiscount) ? Math.round(priceDiscount * 100) / 100 : null;
+            return {
+                base: priceBase && !isNaN(priceBase) ? round2(priceBase) : null,
+                discount: priceDiscount && !isNaN(priceDiscount) ? round2(priceDiscount) : null
+            };
+        }
+        function scrapeOwned(container) {
+            const button = safeQuerySelector(container, 'button');
+            const buttonText = button?.innerText;
+            const hasOwnedText = container.innerText.indexOf('Owned') !== -1;
+            // FIX: Include 'BUY AS A GIFT' for public wishlists
+            const isBuyButton = buttonText === 'BUY' || buttonText === 'BUY TO OWN' || buttonText === 'BUY AS A GIFT';
+            return hasOwnedText && !isBuyButton;
+        }
+
+        function setContainerData(container, id) {
+            setDataAttribute(container, 'ifcId', id);
+            const img = CONFIG.selectors.imageContainer ? safeQuerySelector(container, CONFIG.selectors.imageContainer) : null;
+            setDataAttribute(container, 'ifcImage', img?.src);
+            const link = CONFIG.selectors.productLink ? safeQuerySelector(container, CONFIG.selectors.productLink) : null;
+            setDataAttribute(container, 'ifcUri', link?.href);
+            const productId = extractProductId(link?.href);
+            setDataAttribute(container, 'ifcProductId', productId);
+            const p = getProductData(productId);
+            const publisher = p && p.publisherName ? null : (CONFIG.selectors.productPublisher ? safeQuerySelector(container, CONFIG.selectors.productPublisher) : null);
+            setDataAttribute(container, 'ifcName', p && p.title ? String(p.title).trim() : link?.innerText);
+            setDataAttribute(container, 'ifcPublisher', p && p.publisherName ? String(p.publisherName).trim() : publisher?.innerText);
+
+            // Whether the tile shows a price is remembered per product once seen (the tile may render late,
+            // so "not shown" is looked at again every cycle); the values come from the data, or the markup as fallback
+            if (container.dataset.ifcPriceShownFor !== String(productId)) setDataAttribute(container, 'ifcPriceShownFor', domPriceShown(container) ? productId : null);
+            const fromData = container.dataset.ifcPriceShownFor === String(productId) ? payloadPrices(p) : null;
+            const { base: pbr, discount: pdr } = fromData || scrapePrices(container);
             setDataAttribute(container, 'ifcPriceBase', pbr);
             setDataAttribute(container, 'ifcPriceDiscount', pdr);
             setDataAttribute(container, 'ifcPrice', pdr ?? pbr);
@@ -3177,17 +3257,13 @@ window.XboxWishlistCore = {
             }
             setDataAttribute(container, 'ifcSubscriptions', JSON.stringify(extractSubscriptions(container)));
             setProductDataAttributes(container);
-            const button = safeQuerySelector(container, 'button');
-            const buttonText = button?.innerText;
-            const hasOwnedText = container.innerText.indexOf('Owned') !== -1;
-            // FIX: Include 'BUY AS A GIFT' for public wishlists
-            const isBuyButton = buttonText === 'BUY' || buttonText === 'BUY TO OWN' || buttonText === 'BUY AS A GIFT';
-            const isOwned = hasOwnedText && !isBuyButton;
-            if (isOwned) { container.classList.add('ifc-Owned'); setDataAttribute(container, 'ifcOwned', true); }
-            else { setDataAttribute(container, 'ifcOwned', false); }
+            const owned = payloadOwned(productId);
+            const isOwned = owned !== null ? owned : scrapeOwned(container);
+            container.classList.toggle('ifc-Owned', isOwned);
+            setDataAttribute(container, 'ifcOwned', isOwned);
             const isUnPurchasable = !isOwned && container.dataset.ifcPrice === 'null';
-            if (isUnPurchasable) { container.classList.add('ifc-UnPurchasable'); setDataAttribute(container, 'ifcUnpurchasable', true); }
-            else { setDataAttribute(container, 'ifcUnpurchasable', false); }
+            container.classList.toggle('ifc-UnPurchasable', isUnPurchasable);
+            setDataAttribute(container, 'ifcUnpurchasable', isUnPurchasable);
         }
 
         function shouldShowContainer(container) {

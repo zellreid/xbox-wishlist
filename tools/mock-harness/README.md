@@ -130,6 +130,11 @@ the prices' currency code the same way (the numbers stay the capture's), e.g. `?
 to test per-currency price ranges against a store seeded from the rand page. Do not reload afterwards
 (Refresh): the server has no such path.
 
+**Testing the tile fallback:** add `?nostate` to remove the page's embedded data before the extension loads. Title,
+publisher, prices and ownership are then read from the tiles, as they are for any product missing from the data.
+Without it, wishlist runs also check that every price and ownership value taken from the data equals what the
+tile itself says ("payload vs tiles" line; any difference fails).
+
 **Testing persistence:** add `?persist` to the URL
 (`.../<name>.harness.html?persist`). Filters set on one load are then
 restored on the next reload. If restored filters are active, the banner

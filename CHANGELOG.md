@@ -14,6 +14,21 @@ for how a version is bumped and published.
 
 ---
 
+## v1.5.26269.5 (Sep 2026) - Item data from the page's own data first
+
+- Title, publisher, price, original price, discount and ownership now come from the data the page already
+  carries, not from the tile's text. Same values in every language and currency; a price like "R1 299,00"
+  or "$1,299.00" is never parsed. Checked against the tiles of 7 wishlist captures (2,169 items): no
+  differences. A product missing from the data still falls back to its tile.
+- Ownership uses the account's entitlements in the data instead of the word "Owned" and the BUY button text.
+- The page no longer re-parses price text and forces layout on every tile at every update (it did that
+  each time a filter changed).
+- A store page read by Load details or the per-item refresh now updates the item too: price, discount,
+  deal end, rating, pre-order and ownership follow the fresher data, and a price that moved shows in the
+  price-change badge. The tile's own price text is Xbox's and stays until the page reloads.
+- Userscript: "Clear cached data" / "Reset everything" now find price history saved for other markets
+  (new grants GM_listValues and GM_deleteValue) and remove keys instead of overwriting them.
+
 ## v1.5.26269.4 (Sep 2026) - Stored data: clear cached data / reset everything
 
 - New "Stored data" section at the foot of the filter panel, for fresh testing. Each button needs a
