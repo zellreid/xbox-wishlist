@@ -101,8 +101,13 @@ Prefer `file-mocks.js` (above). By hand:
    its `_files` sibling. Git-ignored - regenerate any time from the raw
    capture.
 
-   Omit the argument to prepare every `.html` capture under every
-   `mock_examples/<type>/<market>/` in one pass (33 today). The fixture keeps Xbox's embedded
+   The argument can also be a directory - every `.html` capture under it is prepared (skipping
+   `.harness.html` and `_files` folders): `mock_examples` for everything already filed,
+   `mock_examples/wishlist` for one page type, and so on. With no argument at all, it defaults to
+   `mock_examples/_inbox/` - the same place `file-mocks.js` looks, so running it there prepares
+   whatever you just saved before filing (type and market come from the capture's own saved-from
+   address in that case, via `classify-capture.js`, the same lookup `file-mocks.js` uses to name
+   it - not from the folder, since it isn't filed yet). The fixture keeps Xbox's embedded
    page-state script (as inert `text/plain`) so the product-data reader works
    offline; every other script is stripped.
 
@@ -134,6 +139,16 @@ to test per-currency price ranges against a store seeded from the rand page. Do 
 publisher, prices and ownership are then read from the tiles, as they are for any product missing from the data.
 Without it, wishlist runs also check that every price and ownership value taken from the data equals what the
 tile itself says ("payload vs tiles" line; any difference fails).
+
+**Testing a wishlist add/remove (T-34):** `request-watcher.js` (the manifest's page-world script) never
+runs in the harness - it is loaded declaratively by the manifest, which the harness has none of. To test the
+isolated-world side of the bridge, dispatch the same message by hand from the console:
+```js
+window.postMessage({ __ifcRequestEvent: true, method: 'POST', url: 'https://emerald.xboxservices.com/xboxcomfd/wishlist/items', status: 200, ok: true, body: { productId: 'ABCDEFGHIJKL' } }, location.origin);
+```
+`window.injected.requestLog` should gain an entry, and (after ~1.5 s) `window.injected.productDataLoadedAt`
+should change (the debounced resync). `ok: false` should log but not resync; a message without the tag or from
+another origin should be ignored.
 
 **Testing persistence:** add `?persist` to the URL
 (`.../<name>.harness.html?persist`). Filters set on one load are then

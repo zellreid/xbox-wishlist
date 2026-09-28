@@ -77,6 +77,10 @@ window.XboxWishlistCore = {
             wishlistAddedDates: new Map(),
             // Set while stored data is being cleared (clearStoredData): nothing may be written back until the reload
             resetting: false,
+            // T-34: wishlist add/remove calls the page's own MAIN-world script (request-watcher.js,
+            // extension only) observes and bridges in via postMessage - see watchPageRequests().
+            // Bounded so a long session doesn't grow this forever; newest last.
+            requestLog: [],
             // F-25: flagged (starred) product ids, upper case - saved under CONFIG.storage.flagsKey
             flags: new Set(),
             // F-26/F-27: price seen per product id - { p, at, first, was, wasAt, changed, deal, h } (see recordPrice);
@@ -190,7 +194,38 @@ window.XboxWishlistCore = {
                 const ce = getElement(`#${CONFIG.selectors.content}`, false);
                 const target = ce || document.body;
                 observer.observe(target, { childList: true, subtree: true });
+                // T-34: notice a wishlist add/remove the page itself makes and resync our data
+                watchPageRequests();
             } catch (ex) { console.error('Failed to initialize script:', ex); }
+        }
+
+        // T-34 (option C - see AGENTS.md HITL note, STATUS.md): the isolated-world side of the
+        // bridge from request-watcher.js (MAIN world, extension only; absent in the userscript
+        // and the harness unless a message is dispatched by hand - see prepare-fixture.js). Any
+        // page can postMessage; only messages from this window, this origin, carrying our tag are
+        // trusted - everything else, including Xbox's own postMessage traffic, is ignored.
+        const REQUEST_LOG_MAX = 20;
+        let resyncTimer = null;
+        function watchPageRequests() {
+            window.addEventListener('message', (event) => {
+                if (event.source !== window || event.origin !== location.origin) return;
+                const msg = event.data;
+                if (!msg || msg.__ifcRequestEvent !== true) return;
+                const entry = { at: Date.now(), method: msg.method, url: msg.url, status: msg.status, ok: msg.ok === true, body: msg.body || null };
+                state.requestLog.push(entry);
+                if (state.requestLog.length > REQUEST_LOG_MAX) state.requestLog.shift();
+                // A successful mutation may mean the wishlist changed under us (an item added or
+                // removed) - resync the page's own data (product summaries, entitlements, added
+                // dates) rather than assume. Debounced: several calls in quick succession (e.g. a
+                // batch action) still trigger one resync, after things settle.
+                if (entry.ok) {
+                    clearTimeout(resyncTimer);
+                    resyncTimer = setTimeout(() => {
+                        loadProductData({ fresh: true }).then(() => { selectPriceRangeForCurrency(); updateScreen(); })
+                            .catch(ex => console.error('Failed to resync after a wishlist change:', ex));
+                    }, 1500);
+                }
+            });
         }
 
         async function onDOMReady() {
@@ -1393,7 +1428,7 @@ window.XboxWishlistCore = {
         // lets the harness run "Load details" without the real pause between requests.
         state.debug = { loadProductData, getProductData, fetchPageState, loadDetails, detailsDelayMs: undefined,
             scrape: { prices: scrapePrices, owned: scrapeOwned }, payload: { prices: payloadPrices, owned: payloadOwned },
-            refreshItem, applyStorePage };
+            refreshItem, applyStorePage };   // requestLog itself is read straight off state (window.injected.requestLog)
 
         // ==================== LIGHT / DARK TOGGLE (F-39) ====================
         // Xbox marks its theme on <body> (data-theme="light|dark" + the dark class), on the

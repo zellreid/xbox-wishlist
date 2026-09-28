@@ -11,16 +11,21 @@
 // <script> tags freezes the DOM exactly as captured.
 //
 // Usage:
-//   node tools/mock-harness/prepare-fixture.js "mock_examples/wishlist/en-za/20260922_1138.html"
-//   node tools/mock-harness/prepare-fixture.js            (prepares every *.html in mock_examples/wishlist/<market>/)
+//   node tools/mock-harness/prepare-fixture.js "mock_examples/wishlist/en-za/20260922_1138.html"  (one capture)
+//   node tools/mock-harness/prepare-fixture.js "mock_examples/wishlist"                            (a directory: every
+//                                                                                                    capture under it)
+//   node tools/mock-harness/prepare-fixture.js "mock_examples"                                     (everything filed)
+//   node tools/mock-harness/prepare-fixture.js            (no argument: mock_examples/_inbox/ - see file-mocks.js)
 // Open via the server, e.g. /mock_examples/wishlist/en-za/<name>.harness.html
 
 const fs = require('fs');
 const path = require('path');
+const { classify } = require('./classify-capture');
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
 const MOCK_ROOT = path.join(REPO_ROOT, 'mock_examples');
-// Page types with harness fixtures: mock_examples/#<type>/<market>/<capture>.html
+const INBOX = path.join(MOCK_ROOT, '_inbox');
+// Page types with harness fixtures: mock_examples/<type>/<market>/<capture>.html
 const PAGE_TYPES = ['wishlist', 'deals', 'games', 'products', 'addons'];
 const CORE_JS = path.join(REPO_ROOT, 'browser-extension', 'src', 'shared', 'xbox-wishlist.core.js');
 const CONTENT_JS = path.join(REPO_ROOT, 'browser-extension', 'src', 'content.js');
@@ -299,7 +304,7 @@ function buildHarnessBlock(outDir, meta) {
         }
 
         // Payload first: every value taken from the page data must equal what the tile itself says
-        // (price, original price, ownership). Skipped with ?nostate, where both come from the tiles.
+        // (price, original price). Skipped with ?nostate, where both come from the tiles.
         if (!STATE_EDIT.nostate && state.debug && state.debug.scrape) {
             const cs = Array.from(document.querySelectorAll('[data-ifc-product-id]')), miss = [];
             let fromData = 0;
@@ -309,7 +314,13 @@ function buildHarnessBlock(outDir, meta) {
                 const disc = c.dataset.ifcPriceDiscount === 'null' ? null : parseFloat(c.dataset.ifcPriceDiscount);
                 if (c.dataset.ifcPriceShownFor !== 'null') fromData++;
                 if (s.base !== base || s.discount !== disc) miss.push('price ' + name + ': data ' + base + '/' + disc + ' tile ' + s.base + '/' + s.discount);
-                if (state.debug.scrape.owned(c) !== (c.dataset.ifcOwned === 'true')) miss.push('owned ' + name);
+                // Owned: the tile's own "Owned" text is English-only (the scrape fallback, used only
+                // when the page has no entitlements for this item), so it must equal the DOM only
+                // then - not on a non-English capture where the payload (language-free) is used and
+                // correctly disagrees with the tile's own localised word (e.g. German "Im Besitz").
+                const payloadOwned = state.debug.payload && state.debug.payload.owned(c.dataset.ifcProductId);
+                const expectedOwned = payloadOwned !== null && payloadOwned !== undefined ? payloadOwned : state.debug.scrape.owned(c);
+                if (expectedOwned !== (c.dataset.ifcOwned === 'true')) miss.push('owned ' + name);
             });
             lines.push('payload vs tiles: ' + cs.length + ' items, ' + fromData + ' priced from the data, ' + miss.length + ' differences');
             miss.slice(0, 5).forEach(m => failures.push(m));
@@ -346,12 +357,21 @@ function prepareOne(inputPath) {
     // so the fixture must stay in the same directory as that sibling folder.
     const outDir = path.dirname(inputPath);
     const outPath = path.join(outDir, `${base}.harness.html`);
-    // Page type and market come from the folder (mock_examples/#<type>/<market>/); the real address from the capture
-    const rel = path.relative(MOCK_ROOT, inputPath).split(path.sep);
     const sourceUrl = (html.slice(0, 800).match(/saved from url=\(\d+\)(\S+)/) || [])[1] || '';
     let sourcePath = '/en-ZA/wishlist';
     try { sourcePath = new URL(sourceUrl).pathname; } catch (ex) { console.warn(`  no source address in ${base}, using ${sourcePath}`); }
-    const meta = { type: rel[0], folder: rel[1], sourceUrl, sourcePath };
+    // Page type and market: prefer the folder (mock_examples/<type>/<market>/, the reliable case -
+    // it also confirms the capture is filed where it says it is); fall back to the capture's own
+    // saved-from address (classify(), shared with file-mocks.js) for one sitting anywhere else,
+    // such as _inbox/ before it has been filed.
+    const rel = path.relative(MOCK_ROOT, inputPath).split(path.sep);
+    let type = PAGE_TYPES.includes(rel[0]) ? rel[0] : null, market = type ? rel[1] : null;
+    if (!type) {
+        const c = classify(sourceUrl);
+        if (c) { type = c.type; market = c.market; }
+        else console.warn(`  could not tell what page ${base} is (saved from "${sourceUrl || 'unknown'}"); treating it as wishlist`);
+    }
+    const meta = { type: type || 'wishlist', folder: market || 'xx', sourceUrl, sourcePath };
     const harnessBlock = buildHarnessBlock(outDir, meta);
     const withHarness = /<\/body>/i.test(stripped)
         ? stripped.replace(/<\/body>/i, `${harnessBlock}</body>`)
@@ -360,24 +380,35 @@ function prepareOne(inputPath) {
     console.log(`Prepared: ${path.relative(REPO_ROOT, inputPath)} -> ${path.relative(REPO_ROOT, outPath)}`);
 }
 
+// Every .html capture under a directory (recursive), skipping already-built fixtures and asset folders
+function findCaptures(dir) {
+    const found = [];
+    (function walk(d) {
+        for (const entry of fs.readdirSync(d, { withFileTypes: true })) {
+            const full = path.join(d, entry.name);
+            if (entry.isDirectory()) { if (!entry.name.endsWith('_files')) walk(full); }
+            else if (entry.isFile() && entry.name.endsWith('.html') && !entry.name.endsWith('.harness.html')) found.push(full);
+        }
+    })(dir);
+    return found;
+}
+
 function main() {
+    // No argument: mock_examples/_inbox/, where file-mocks.js drops newly saved captures before
+    // filing them. Pass a single .html file for one capture, or any directory (e.g. mock_examples
+    // for everything already filed, or mock_examples/wishlist for just one page type) for every
+    // capture under it.
     const arg = process.argv[2];
-    if (arg) {
-        prepareOne(path.resolve(REPO_ROOT, arg));
-        return;
+    const target = arg ? path.resolve(REPO_ROOT, arg) : INBOX;
+    let st;
+    try { st = fs.statSync(target); } catch (ex) {
+        console.error(`Not found: ${path.relative(REPO_ROOT, target)}` + (arg ? '' : ' (save captures there, or pass a file/directory)'));
+        process.exit(1);
     }
-    // Captures live in mock_examples/<type>/<market>/ (e.g. wishlist/en-za/)
-    const candidates = [];
-    PAGE_TYPES.forEach(type => {
-        const typeDir = path.join(MOCK_ROOT, type);
-        if (!fs.existsSync(typeDir)) return;
-        fs.readdirSync(typeDir, { withFileTypes: true }).filter(d => d.isDirectory()).forEach(d => {
-            fs.readdirSync(path.join(typeDir, d.name)).filter(f => f.endsWith('.html') && !f.endsWith('.harness.html'))
-                .forEach(f => candidates.push(path.join(typeDir, d.name, f)));
-        });
-    });
+    if (st.isFile()) { prepareOne(target); return; }
+    const candidates = findCaptures(target);
     if (!candidates.length) {
-        console.error(`No .html captures found in a market folder under ${MOCK_ROOT}`);
+        console.error(`No .html captures found under ${path.relative(REPO_ROOT, target)}`);
         process.exit(1);
     }
     candidates.forEach(prepareOne);

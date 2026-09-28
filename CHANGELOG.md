@@ -14,6 +14,27 @@ for how a version is bumped and published.
 
 ---
 
+## v1.5.26271.2 (Sep 2026) - T-34 (option C): notice a wishlist add/remove live
+
+- A second, page-world script (`request-watcher.js`, manifest `world: "MAIN"`) watches for the
+  wishlist's own add/remove calls (`emerald.xboxservices.com`, confirmed from the site's own
+  shipped bundle) and tells the extension when one succeeds, so the wishlist's own data (owned,
+  date added, entitlements) resyncs without pressing Refresh. Still matches only
+  `https://www.xbox.com/*/wishlist*` - no broader site access, no new permission.
+- Only the URL, method, status and a handful of known-safe response fields cross the bridge
+  (never headers, cookies or the full body); kept in a small in-memory `requestLog` for
+  inspection, never sent anywhere.
+- Userscript: the listener code is harmless there (Tampermonkey has no MAIN-world equivalent
+  declared, so nothing ever posts it a message) - not yet a live feature on that channel.
+- Deliberately narrow (HITL option C): product, deals, games and listing capture are not done
+  here - those need the extension to run on those page types first (F-38, F-35), a separate
+  manifest change. Add happening from a product or search page (not the wishlist tab) is not
+  caught either, for the same reason.
+- Harness: tested by dispatching the same tagged `postMessage` `request-watcher.js` sends - a
+  successful one is logged and triggers a debounced resync, a failed one is logged but does not,
+  an untagged message is ignored. `request-watcher.js` itself (the fetch/XHR wrapping) is not
+  exercised by the harness, since it only runs when the manifest declares it - not live-tested.
+
 ## v1.5.26271.1 (Sep 2026) - Date Added: real dates, new default sort, quick filter
 
 - "Default" sort is renamed **Date Added** and now sorts by when each game was actually added to

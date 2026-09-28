@@ -462,6 +462,45 @@ Note (2026-09-23): the light mock was saved with our panel already injected (old
 
 ---
 
+### T-34 - Notice the Wishlist Changing Live (request capture)
+
+**Goal:** react to a wishlist add/remove without a manual refresh, by observing the site's own calls for it - the
+first step toward a broader "capture product/DLC/deals/games/listing requests too" ask, deliberately narrowed
+after a HITL discussion (see AGENTS.md 2.7 triggers #2, #4, #7, #10). Four options were on the table:
+
+- **A** - widen `https://www.xbox.com/*` and capture everything (declined - biggest Web Store / privacy footprint)
+- **B** - widen matches to just the F-38/F-35 page types now (deferred - those still want their own HITL when built)
+- **C** - capture wishlist add/remove only, no match widening (**chosen**)
+- **D** - decline entirely (not chosen)
+
+**Status (v1.5.26271.2) - option C done:**
+- A second manifest `content_scripts` entry, same `https://www.xbox.com/*/wishlist*` match, `"world": "MAIN"` -
+  runs in the page's own JS context (Chrome/Edge 111+, no extra permission needed for this key) rather than the
+  extension's isolated world.
+- `browser-extension/src/request-watcher.js` (extension only) wraps `fetch` and `XMLHttpRequest`, and for any
+  mutating call (`POST`/`PUT`/`DELETE`) to `emerald.xboxservices.com` (confirmed from the site's own shipped
+  bundle - the `ADD_WISHLIST_ITEM_*` / `REMOVE_WISHLIST_ITEM_*` Redux action names sit next to that address) whose
+  path mentions "wishlist", posts a tagged, origin-scoped `window.postMessage` with the URL, method, status and a
+  few known-safe body fields only (`productId`, `skuId`, `wishListId`, `success`, `result`) - never headers,
+  cookies or the raw body (TIER 1).
+- The shared core (`watchPageRequests()`) listens for that tag from `window`/`location.origin` only, keeps the
+  last 20 in `state.requestLog` (`window.injected.requestLog`, DevTools/harness only), and on a successful one,
+  debounced 1.5 s, re-fetches the wishlist's own data (`loadProductData({ fresh: true })`) and refreshes the
+  screen - owned, date added and entitlements catch up without pressing Refresh.
+- **Known limit, documented rather than hidden:** since the match still doesn't widen, this reliably catches
+  **remove** (happens on the wishlist page) but **add** only when it happens to occur from the wishlist page
+  itself - most adds are made from a product or search page, which the extension still doesn't run on (needs
+  F-38/F-35 first).
+- The exact request path and body are still unverified - only the host and the Redux action names are confirmed
+  from the bundle. A HAR capture (DevTools -> Network, filter `emerald`, add/remove one item) would confirm them
+  and could tighten the matcher and let `safeFields()` pick out more useful data.
+- Harness: `request-watcher.js` itself can't run there (declarative, manifest-only); the bridge is tested by
+  dispatching the same tagged message by hand - see `tools/mock-harness/README.md`. A successful message logs and
+  triggers the resync, a failed one logs but doesn't, and an untagged or wrong-origin one is ignored. All 21
+  fixtures (17 wishlist + one each of deals/games/products/addons) still PASS.
+
+---
+
 ## Future Features (v2.0+)
 
 ---

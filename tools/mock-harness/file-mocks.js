@@ -26,6 +26,7 @@
 const fs = require('fs');
 const path = require('path');
 const { spawnSync } = require('child_process');
+const { classify } = require('./classify-capture');
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
 const MOCK_ROOT = path.join(REPO_ROOT, 'mock_examples');
@@ -49,24 +50,6 @@ const cleanSlug = s => {
     if (slug.length > SLUG_MAX) slug = slug.slice(0, SLUG_MAX).replace(/-[^-]*$/, '');
     return slug;
 };
-
-// Returns { type, folder, id?, slug? } from the address the page was saved from, or null
-function classify(url) {
-    let u;
-    try { u = new URL(url); } catch (ex) { return null; }
-    const parts = u.pathname.split('/').filter(Boolean);
-    const loc = parts.shift();
-    if (!/^[a-z]{2,3}(-[a-z]{4})?-[a-z]{2}$/i.test(loc || '')) return null;
-    const market = loc.toLowerCase(), rest = parts.join('/').toLowerCase();
-    let m;
-    if (rest === 'wishlist' || rest.startsWith('wishlist/')) return { type: 'wishlist', dir: 'wishlist', market };
-    if (rest === 'shell/changelocale') return { type: 'locale', dir: 'locale', market };
-    if (rest === 'games/browse/dynamicchannel.gamedeals') return { type: 'deals', dir: 'deals', market };
-    if (rest === 'games/browse') return { type: 'games', dir: 'games', market };
-    if ((m = /^games\/browse\/productaddons_([0-9a-z]{12})$/.exec(rest))) return { type: 'addons', dir: 'addons', market, id: m[1] };
-    if ((m = /^games\/store\/([^/]+)\/([0-9a-z]{12})/.exec(rest))) return { type: 'products', dir: 'products', market, id: m[2], slug: m[1] };
-    return null;
-}
 
 // Slug for an add-ons page comes from the product page it belongs to (same product id)
 function knownSlug(id) {
@@ -131,5 +114,7 @@ for (const file of collect()) {
 }
 console.log(`${DRY ? 'Dry run: ' : ''}${filed} filed, ${skipped} skipped`);
 if (flag('--prepare') && !DRY && filed) {
-    spawnSync(process.execPath, [path.join(__dirname, 'prepare-fixture.js')], { stdio: 'inherit' });
+    // prepare-fixture.js defaults to _inbox with no argument - pass the whole tree explicitly,
+    // since this filing step just emptied _inbox into mock_examples/<type>/<market>/
+    spawnSync(process.execPath, [path.join(__dirname, 'prepare-fixture.js'), MOCK_ROOT], { stdio: 'inherit' });
 }
