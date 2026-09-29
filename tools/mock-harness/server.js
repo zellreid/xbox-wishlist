@@ -32,7 +32,15 @@ const MIME_TYPES = {
 
 const server = http.createServer((req, res) => {
     const urlPath = decodeURIComponent(req.url.split('?')[0]);
-    const filePath = path.normalize(path.join(REPO_ROOT, urlPath));
+    let filePath = path.normalize(path.join(REPO_ROOT, urlPath));
+    // A real wishlist address (/en-ZA/wishlist - what the core fetches for the card hearts on
+    // store/browse/deals pages, F-38b/F-35b) serves that market's newest wishlist capture
+    const wishlist = /^\/([a-z]{2,3}(?:-[a-z]{4})?-[a-z]{2})\/wishlist\/?$/i.exec(urlPath);
+    if (wishlist) {
+        const dir = path.join(REPO_ROOT, 'mock_examples', 'wishlist', wishlist[1].toLowerCase());
+        const newest = fs.existsSync(dir) && fs.readdirSync(dir).filter(n => n.endsWith('.html') && !n.endsWith('.harness.html')).sort().pop();
+        if (newest) filePath = path.join(dir, newest);
+    }
 
     if (!filePath.startsWith(REPO_ROOT)) {
         res.writeHead(403);

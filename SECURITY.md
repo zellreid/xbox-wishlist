@@ -29,8 +29,10 @@ page's DOM and never leaves the browser except via the two calls below.
   `storage`, plus a `host_permissions` entry scoped to `xbox.com/*/wishlist*`.
   Its content scripts also run on xbox.com game store, browse and deals
   pages (`/games/store/*`, `/games/browse*`, `/games/all-games*`,
-  `/promotions/sales/*`), where they only notice the page's own wishlist
-  add/remove calls - no other host is reachable. See [AGENTS.md](AGENTS.md) §2.6 for the internal data
+  `/promotions/sales/*`), where they notice the page's own wishlist
+  add/remove calls and read your xbox.com wishlist page (same site, kept in
+  memory only) to mark wishlisted games with a heart - no other host is
+  reachable. See [AGENTS.md](AGENTS.md) §2.6 for the internal data
   classification tiers this project follows when handling anything touching
   Xbox's APIs.
 

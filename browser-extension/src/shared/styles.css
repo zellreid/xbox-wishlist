@@ -1192,3 +1192,44 @@ p:has(+ .ifc-item-tags) {
     align-items: center;
     gap: 8px;
 }
+
+/* ==================== WISHLIST HEARTS (F-38b/F-35b) ==================== */
+/* Store, browse and deals cards that are on the wishlist: a filled heart,
+   top right over the box art. Fixed colours - it sits on artwork, not on
+   the page background, so it reads the same in either theme. Xbox styles
+   every link in a card (".cardWrapper a" and ".cardWrapper:hover a":
+   card-sized, light background, !important), so these rules are made more
+   specific than both (the leading "body"), and the background carries
+   !important too - whichever sheet loads first. */
+.ifc-HeartHost {
+    position: relative;
+}
+
+body .ifc-HeartHost > a.ifc-WishlistHeart {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 2;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.65) !important;
+    color: #ffffff;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+}
+
+body .ifc-HeartHost > a.ifc-WishlistHeart svg {
+    width: 18px;
+    height: 18px;
+    fill: currentColor;
+}
+
+body .ifc-HeartHost > a.ifc-WishlistHeart:hover,
+body .ifc-HeartHost > a.ifc-WishlistHeart:focus-visible {
+    background: #107c10 !important;
+}

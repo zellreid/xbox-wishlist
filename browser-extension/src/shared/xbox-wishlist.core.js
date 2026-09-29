@@ -82,6 +82,9 @@ window.XboxWishlistCore = {
             // extension only) observes and bridges in via postMessage - see watchPageRequests().
             // Bounded so a long session doesn't grow this forever; newest last.
             requestLog: [],
+            // F-38b/F-35b: the wishlist's product id (upper case) -> ms added, for the card hearts on other
+            // page types; fetched from the wishlist page, in memory only (never stored). null = not read yet
+            hearts: { dates: null, loadedAt: 0 },
             // F-25: flagged (starred) product ids, upper case - saved under CONFIG.storage.flagsKey
             flags: new Set(),
             // F-26/F-27: price seen per product id - { p, at, first, was, wasAt, changed, deal, h } (see recordPrice);
@@ -173,6 +176,7 @@ window.XboxWishlistCore = {
             discountTag: 'Price-module__discountTag___',
             afterPriceTextContainer: 'Price-module__afterPriceTextContainer___',
             appBackground: 'appBackground',   // the store app's wrapper, which carries the dark-theme mark (F-39)
+            productCard: 'ProductCard-module__cardWrapper___',   // a game card on store/browse/deals pages (F-38b/F-35b hearts)
         };
 
         // ==================== INITIALIZATION ====================
@@ -198,6 +202,8 @@ window.XboxWishlistCore = {
                 observer.observe(target, { childList: true, subtree: true });
                 // T-34: notice a wishlist add/remove the page itself makes and resync our data
                 watchPageRequests();
+                // F-38b/F-35b: hearts on the cards of store, browse and deals pages
+                startCardHearts();
             } catch (ex) { console.error('Failed to initialize script:', ex); }
         }
 
@@ -220,6 +226,8 @@ window.XboxWishlistCore = {
                 // T-35: an add is made from a game's store page, not the wishlist - note the change
                 // for any wishlist tab (it checks when it comes back into view, below)
                 if (!state.resetting) adapter.storage.save(CONFIG.storage.changedKey, entry.at);
+                // Xbox's own heart on a store page: the card hearts follow at once
+                if (!isWishlistPage()) noteHeartChange(entry.method, entry.ids, entry.at);
                 // On the wishlist itself the list may have changed under us (an item added or
                 // removed) - resync the page's own data (product summaries, entitlements, added
                 // dates) rather than assume. Debounced: several calls in quick succession (e.g. a
@@ -229,12 +237,16 @@ window.XboxWishlistCore = {
                     resyncTimer = setTimeout(resyncWishlistData, 1500);
                 }
             });
-            // A wishlist tab coming back into view: resync if a change was noted (in any tab) after
-            // this tab last read its data
+            // A tab coming back into view: resync if a change was noted (in any tab) after this tab
+            // last read its data - the wishlist's own data there, the card hearts' elsewhere
             document.addEventListener('visibilitychange', () => {
-                if (document.visibilityState !== 'visible' || !isWishlistPage() || !state.ui.complete || contextLost()) return;
+                if (document.visibilityState !== 'visible' || contextLost()) return;
+                const onWishlist = isWishlistPage();
+                if (onWishlist ? !state.ui.complete : !state.hearts.dates) return;
                 adapter.storage.load(CONFIG.storage.changedKey, (changedAt) => {
-                    if (typeof changedAt === 'number' && changedAt > (state.productDataLoadedAt || 0)) resyncWishlistData();
+                    if (typeof changedAt !== 'number') return;
+                    if (onWishlist) { if (changedAt > (state.productDataLoadedAt || 0)) resyncWishlistData(); }
+                    else if (changedAt > state.hearts.loadedAt) loadHeartDates(true).then(updateCardHearts);
                 });
             });
         }
@@ -3527,6 +3539,105 @@ window.XboxWishlistCore = {
         function removeUnwantedControls() {
             try { document.querySelectorAll('.hr.border-neutral-200').forEach(el => el.remove()); }
             catch (ex) { console.error('Failed to remove unwanted controls:', ex); }
+        }
+
+        // ==================== WISHLIST HEARTS ON OTHER PAGES (F-38b/F-35b) ====================
+        // On store, browse, deals and add-on pages, a filled heart on each game card that is on the
+        // viewer's wishlist - "On your wish list since {date}", linking to the wishlist in the page's
+        // own locale. Cards not on the wishlist get nothing. Those pages' own data carries no wishlist
+        // (core2.wishlist.wishlists is empty there), so the wishlist page's data is fetched once per
+        // page (same origin, like "Load details") and kept in memory only. Adding and removing stays
+        // with Xbox's own buttons - their calls need the sign-in token, which this code never touches.
+        let heartsLoading = null, heartsTimer = null;
+
+        // The wishlist address for the locale and region the viewer is browsing in (/en-ZA/wishlist)
+        function wishlistUrl() {
+            const seg = location.pathname.split('/').filter(Boolean)[0] || '';
+            const locale = /^[a-z]{2,3}(?:-[a-z]{4})?-[a-z]{2}$/i.test(seg) ? seg : state.currency.locale;
+            return locale ? `${location.origin}/${locale}/wishlist` : null;
+        }
+
+        function loadHeartDates(force = false) {
+            if (heartsLoading && !force) return heartsLoading;
+            const url = wishlistUrl();
+            heartsLoading = (url ? fetchPageState(url) : Promise.reject(new Error('no locale in the address or page data')))
+                .then(pageState => { state.hearts.dates = wishlistAddedDatesFrom(pageState); state.hearts.loadedAt = Date.now(); })
+                .catch(ex => {
+                    // No retry loop: an empty list shows no hearts until the next page load or tab switch
+                    if (!state.hearts.dates) state.hearts.dates = new Map();
+                    console.warn('[XBOX Wishlist] Could not read the wishlist for the card hearts:', ex.message);
+                });
+            return heartsLoading;
+        }
+
+        // Cards can render after the first look (lazy loading, in-app navigation), so a miss isn't kept
+        function productCardClass() {
+            if (SELECTOR_CACHE.get(PREFIXES.productCard) === null) SELECTOR_CACHE.delete(PREFIXES.productCard);
+            return resolveClass(PREFIXES.productCard);
+        }
+
+        function cardProductId(card) {
+            const link = card.querySelector('a[href*="/games/store/"]');
+            const m = link && /\/games\/store\/[^/]+\/([0-9a-z]{12})/i.exec(link.getAttribute('href') || '');
+            return m ? m[1].toUpperCase() : null;
+        }
+
+        function createHeart() {
+            const heart = document.createElement('a');
+            heart.className = 'ifc-WishlistHeart';
+            const ns = 'http://www.w3.org/2000/svg';
+            const svg = document.createElementNS(ns, 'svg');
+            svg.setAttribute('viewBox', '0 0 24 24'); svg.setAttribute('aria-hidden', 'true');
+            const path = document.createElementNS(ns, 'path');
+            path.setAttribute('d', 'M12 21 10.6 19.7C5.4 15 2 11.9 2 8.1 2 5 4.4 2.6 7.5 2.6c1.7 0 3.4.8 4.5 2.1 1.1-1.3 2.8-2.1 4.5-2.1 3.1 0 5.5 2.4 5.5 5.5 0 3.8-3.4 6.9-8.6 11.6L12 21Z');
+            svg.appendChild(path); heart.appendChild(svg);
+            // The card's own link sits underneath: a click here goes to the wishlist, not the game
+            heart.addEventListener('click', (ev) => ev.stopPropagation());
+            return heart;
+        }
+
+        function updateCardHearts() {
+            try {
+                if (isWishlistPage() || contextLost()) return;
+                const cls = productCardClass(); if (!cls) return;
+                const cards = document.getElementsByClassName(cls); if (!cards.length) return;
+                if (!state.hearts.dates) {
+                    // Arrived from the wishlist in this tab: its own data is already here
+                    if (state.productDataFromWishlist) { state.hearts.dates = new Map(state.wishlistAddedDates); state.hearts.loadedAt = state.productDataLoadedAt || Date.now(); }
+                    else { loadHeartDates().then(updateCardHearts); return; }
+                }
+                const href = wishlistUrl();
+                Array.from(cards).forEach(card => {
+                    const id = cardProductId(card);
+                    const at = id ? state.hearts.dates.get(id) : undefined;
+                    let heart = card.querySelector(':scope > .ifc-WishlistHeart');
+                    if (at === undefined) {
+                        if (heart) { heart.remove(); card.classList.remove('ifc-HeartHost'); }
+                        return;
+                    }
+                    if (!heart) { heart = createHeart(); card.appendChild(heart); card.classList.add('ifc-HeartHost'); }
+                    const text = `On your wish list since ${new Date(at).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}`;
+                    if (heart.title !== text) { heart.title = text; heart.setAttribute('aria-label', text); }
+                    if (href && heart.getAttribute('href') !== href) heart.setAttribute('href', href);
+                });
+            } catch (ex) { console.error('Failed to update the wishlist hearts:', ex); }
+        }
+
+        // An add/remove made on this page with Xbox's own button (see watchPageRequests)
+        function noteHeartChange(method, ids, at) {
+            if (!state.hearts.dates || !ids || !ids.productId) return;
+            if (/^PUT$/i.test(method)) state.hearts.dates.set(ids.productId, at);
+            else if (/^DELETE$/i.test(method)) state.hearts.dates.delete(ids.productId);
+            updateCardHearts();
+        }
+
+        // Cards arrive as the page scrolls (browse/deals load ~25 at a time) and on in-app
+        // navigation; a short debounce keeps this to one pass per burst of changes
+        function startCardHearts() {
+            const later = () => { clearTimeout(heartsTimer); heartsTimer = setTimeout(updateCardHearts, 250); };
+            try { new MutationObserver(later).observe(getElement(`#${CONFIG.selectors.content}`, false) || document.body, { childList: true, subtree: true }); }
+            catch (ex) { console.error('Failed to watch for game cards:', ex); }
+            later();
         }
 
         // ==================== IN-APP NAVIGATION (store app re-renders) ====================

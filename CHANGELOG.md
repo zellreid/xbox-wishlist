@@ -14,6 +14,16 @@ for how a version is bumped and published.
 
 ---
 
+## v1.5.26272.3 (Sep 2026) - wishlist hearts on store, browse and deals cards
+
+- Game cards on store, browse, deals and add-on pages that are on your wishlist get a filled heart
+  (top right): "On your wish list since {date}", and clicking it opens your wishlist in the page's
+  own locale (e.g. `/en-ZA/wishlist`). Cards not on the wishlist are left as they are.
+- The wishlist is read once per page from the wishlist page itself (same site, kept in memory only,
+  never stored). Adding or removing with Xbox's own button updates the hearts at once; a change made
+  in another tab shows when you switch back.
+- Harness: the server now answers `/<locale>/wishlist` with that market's newest wishlist capture.
+
 ## v1.5.26272.2 (Sep 2026) - saved light/dark choice on the wishlist only
 
 - The theme saved with the toolbar button now applies on wishlist pages only. On store, browse

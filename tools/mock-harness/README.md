@@ -17,6 +17,8 @@ A mock is a saved copy of a real Xbox page, kept offline and frozen, so changes 
    `mock_examples/<type>/<market>/` folder and regenerates the harness pages. It never overwrites, and leaves
    anything it does not recognise in the inbox with the reason.
 4. Start the server (`node tools/mock-harness/server.js`) and open the `.harness.html` page (see "Running it").
+   The server also answers a real wishlist address (`/en-ZA/wishlist`) with that market's newest wishlist
+   capture, which is what the core fetches for the card hearts on store/browse/deals pages.
 
 `mock_examples/` is git-ignored (personal browsing data), so mocks live only on this machine.
 
