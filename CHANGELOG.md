@@ -14,6 +14,10 @@ for how a version is bumped and published.
 
 ---
 
+## v1.5.26272.4 (Sep 2026) - wishlist heart opens in a new tab
+
+- Clicking a card's wishlist heart now opens your wishlist in a new tab, leaving the page you were on.
+
 ## v1.5.26272.3 (Sep 2026) - wishlist hearts on store, browse and deals cards
 
 - Game cards on store, browse, deals and add-on pages that are on your wishlist get a filled heart

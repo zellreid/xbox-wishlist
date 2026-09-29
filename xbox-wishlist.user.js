@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         XBOX Wishlist
 // @namespace    https://github.com/zellreid/xbox-wishlist
-// @version      1.5.26272.3
+// @version      1.5.26272.4
 // @description  Advanced filtering and sorting suite with multi-level sort (up to 3 criteria) - Resilient selectors - Public wishlist support
 // @author       ZellReid
 // @homepage     https://github.com/zellreid/xbox-wishlist
@@ -14,7 +14,7 @@
 // @match        https://www.xbox.com/*/promotions/sales/*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=xbox.com
 // @run-at       document-body
-// @resource     CSSFilter https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/styles.css?ver=1.5.26272.3
+// @resource     CSSFilter https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/styles.css?ver=1.5.26272.4
 // @resource     IMGFilter https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/filter.svg
 // @resource     IMGSort https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/sort.svg
 // @resource     IMGExport https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/export.svg
@@ -3591,7 +3591,7 @@ window.XboxWishlistCore = {
 
         // ==================== WISHLIST HEARTS ON OTHER PAGES (F-38b/F-35b) ====================
         // On store, browse, deals and add-on pages, a filled heart on each game card that is on the
-        // viewer's wishlist - "On your wish list since {date}", linking to the wishlist in the page's
+        // viewer's wishlist - "On your wish list since {date}", linking to the wishlist (in a new tab) in the page's
         // own locale. Cards not on the wishlist get nothing. Those pages' own data carries no wishlist
         // (core2.wishlist.wishlists is empty there), so the wishlist page's data is fetched once per
         // page (same origin, like "Load details") and kept in memory only. Adding and removing stays
@@ -3633,6 +3633,7 @@ window.XboxWishlistCore = {
         function createHeart() {
             const heart = document.createElement('a');
             heart.className = 'ifc-WishlistHeart';
+            heart.target = '_blank'; heart.rel = 'noopener';   // the wishlist opens in a new tab, this page stays
             const ns = 'http://www.w3.org/2000/svg';
             const svg = document.createElementNS(ns, 'svg');
             svg.setAttribute('viewBox', '0 0 24 24'); svg.setAttribute('aria-hidden', 'true');
