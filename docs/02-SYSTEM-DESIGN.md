@@ -78,6 +78,9 @@ GitHub raw URL via `@resource CSSFilter` and injected with a small
 **URL match pattern:** `https://www.xbox.com/*/wishlist*`
 - `/*/` captures locale (en-ZA, en-US, etc.)
 - trailing `*` captures own wishlist AND public shared wishlist URLs
+- Since F-38/F-35 the core also runs on `/*/games/store/*`, `/*/games/browse*`,
+  `/*/games/all-games*` and `/*/promotions/sales/*`; it builds its UI on
+  wishlist pages only and just watches for wishlist add/remove elsewhere
 
 ---
 

@@ -329,6 +329,8 @@ Note (2026-09-23): the light mock was saved with our panel already injected (old
 | 1 | HITL: approve the manifest change (AGENTS 2.7 trigger #10) |
 | 2 | Remove the entry from `host_permissions`; reload unpacked; check Load details and the per-item refresh still work (both use same-origin store pages) |
 
+**Status (v1.5.26272.1):** HITL-approved 2026-09-29; entry removed (nothing in the code referenced it). Live check of Load details / per-item refresh pending.
+
 ---
 
 ### T-21 - Remove Hard-Coded Xbox Class Names and Dead CSS
@@ -421,6 +423,13 @@ Note (2026-09-23): the light mock was saved with our panel already injected (old
 | 2 | Core: detect page type (wishlist vs product) and only start the wishlist UI on wishlist pages; on product pages start just the tooling needed (e.g. the T-17 test) |
 | 3 | Harness fixture from `mock_examples/products/en-za/btb7hc3zdl2v_20260923_1559_dead-or-alive-6-core-fighters.html` (prepare-fixture now prepares product pages too, with smoke checks) |
 
+**Status (v1.5.26272.1) - steps 1-3 done (HITL-approved 2026-09-29):**
+- Manifest `content_scripts` (both entries) and userscript `@match` add `/*/games/store/*`. No new `host_permissions`.
+- Core: `onDOMReady()` builds the wishlist UI on wishlist pages only; elsewhere the core runs quietly (theme hold, request bridge). A tab that started on another page type fetches the wishlist's own page data once when it reaches the wishlist (`state.productDataFromWishlist`).
+- Wishlist add/remove made on a store page (where adds actually happen - T-35) is recorded under `ifc_xbox_wishlist_changed`; an open wishlist tab resyncs when it comes back into view if that is newer than its data.
+- Harness: all 26 product smoke fixtures PASS; with `?realpath` a tagged add records the change and injects nothing.
+- Still to decide: which product-page tooling to show there (e.g. the T-17 diagnostic, a "on your wishlist since" chip).
+
 ---
 
 ### F-40 - DLC for Wishlist Games (indicator, count, link)
@@ -460,6 +469,11 @@ Note (2026-09-23): the light mock was saved with our panel already injected (old
 | 3 | Match patterns / host permissions for the new URLs (manifest change - HITL approval required) |
 | 4 | Harness fixtures for those page types |
 
+**Status (v1.5.26272.1) - step 3 done (HITL-approved 2026-09-29), step 2 open:**
+- Matches added: `/*/games/browse*` (browse, GameDeals channel, ProductAddOns_<ID>), `/*/games/all-games*`, `/*/promotions/sales/*` (the "Sales and specials" page). The core runs there without UI (see F-38 status).
+- From the 2026-09-29 HAR: both pages list items through `POST emerald.xboxservices.com/xboxcomfd/browse` (ChannelId `DynamicChannel.GameDeals`, `ProductAddOns_<ID>`), paged by an `EncodedCT` continuation (~25 per page) - so tooling there must cope with items arriving as the user scrolls.
+- Harness smoke fixtures (deals, games, addons) PASS. Step 2 (what to add on those pages) is the next decision.
+
 ---
 
 ### T-34 - Notice the Wishlist Changing Live (request capture)
@@ -491,9 +505,10 @@ after a HITL discussion (see AGENTS.md 2.7 triggers #2, #4, #7, #10). Four optio
   **remove** (happens on the wishlist page) but **add** only when it happens to occur from the wishlist page
   itself - most adds are made from a product or search page, which the extension still doesn't run on (needs
   F-38/F-35 first).
-- The exact request path and body are still unverified - only the host and the Redux action names are confirmed
-  from the bundle. A HAR capture (DevTools -> Network, filter `emerald`, add/remove one item) would confirm them
-  and could tighten the matcher and let `safeFields()` pick out more useful data.
+- T-35 (2026-09-29 HAR, v1.5.26272.1): confirmed `PUT` (add) / `DELETE` (remove) to
+  `/xboxcomfd/wishlist/default/product/{PRODUCTID}/{SKU}?locale=..&deviceType=..`, no request body, HTTP 200. The
+  matcher now requires that path and PUT/DELETE only; product and SKU ids are read from the path (`ids`). Adds are
+  made from the game's store page, not the wishlist - covered by the F-38 cross-tab change signal.
 - Harness: `request-watcher.js` itself can't run there (declarative, manifest-only); the bridge is tested by
   dispatching the same tagged message by hand - see `tools/mock-harness/README.md`. A successful message logs and
   triggers the resync, a failed one logs but doesn't, and an untagged or wrong-origin one is ignored. All 21

@@ -67,7 +67,8 @@ window.XboxWishlistCore = {
             // Named filter combinations (F-23): [{ name, filters }] - see snapshotFilters()
             savedPresets: [],
             // Product summaries by upper-case product id (F-33) - see loadProductData(); not persisted
-            productData: new Map(), productDataLoadedAt: null,
+            // productDataFromWishlist: false when it was read on another page type (F-38/F-35) - the wishlist then fetches its own
+            productData: new Map(), productDataLoadedAt: null, productDataFromWishlist: false,
             // Product-page capabilities by upper-case product id: { caps: { key: label }, at: ms } (F-36)
             capCache: {},
             // Per product id: { isOwned, isSatisfyingEntitlement, satisfyingProductId, endDate, ... } from the page data;
@@ -141,7 +142,8 @@ window.XboxWishlistCore = {
             },
             classes: { button: [], svgIcon: [], activeButton: null },
             // capsKey: per-product capability cache (F-36), kept apart from the filter state
-            storage: { key: 'ifc_xbox_wishlist', capsKey: 'ifc_xbox_wishlist_caps', flagsKey: 'ifc_xbox_wishlist_flags', pricesKey: 'ifc_xbox_wishlist_prices' }
+            // changedKey: when a wishlist add/remove was last seen in any tab (T-34/T-35) - see watchPageRequests()
+            storage: { key: 'ifc_xbox_wishlist', capsKey: 'ifc_xbox_wishlist_caps', flagsKey: 'ifc_xbox_wishlist_flags', pricesKey: 'ifc_xbox_wishlist_prices', changedKey: 'ifc_xbox_wishlist_changed' }
         };
 
         // ==================== SELECTOR PREFIXES ====================
@@ -211,25 +213,51 @@ window.XboxWishlistCore = {
                 if (event.source !== window || event.origin !== location.origin) return;
                 const msg = event.data;
                 if (!msg || msg.__ifcRequestEvent !== true) return;
-                const entry = { at: Date.now(), method: msg.method, url: msg.url, status: msg.status, ok: msg.ok === true, body: msg.body || null };
+                const entry = { at: Date.now(), method: msg.method, url: msg.url, status: msg.status, ok: msg.ok === true, body: msg.body || null, ids: msg.ids || null };
                 state.requestLog.push(entry);
                 if (state.requestLog.length > REQUEST_LOG_MAX) state.requestLog.shift();
-                // A successful mutation may mean the wishlist changed under us (an item added or
+                if (!entry.ok) return;
+                // T-35: an add is made from a game's store page, not the wishlist - note the change
+                // for any wishlist tab (it checks when it comes back into view, below)
+                if (!state.resetting) adapter.storage.save(CONFIG.storage.changedKey, entry.at);
+                // On the wishlist itself the list may have changed under us (an item added or
                 // removed) - resync the page's own data (product summaries, entitlements, added
                 // dates) rather than assume. Debounced: several calls in quick succession (e.g. a
                 // batch action) still trigger one resync, after things settle.
-                if (entry.ok) {
+                if (isWishlistPage()) {
                     clearTimeout(resyncTimer);
-                    resyncTimer = setTimeout(() => {
-                        loadProductData({ fresh: true }).then(() => { selectPriceRangeForCurrency(); updateScreen(); })
-                            .catch(ex => console.error('Failed to resync after a wishlist change:', ex));
-                    }, 1500);
+                    resyncTimer = setTimeout(resyncWishlistData, 1500);
                 }
+            });
+            // A wishlist tab coming back into view: resync if a change was noted (in any tab) after
+            // this tab last read its data
+            document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState !== 'visible' || !isWishlistPage() || !state.ui.complete || contextLost()) return;
+                adapter.storage.load(CONFIG.storage.changedKey, (changedAt) => {
+                    if (typeof changedAt === 'number' && changedAt > (state.productDataLoadedAt || 0)) resyncWishlistData();
+                });
             });
         }
 
+        function resyncWishlistData() {
+            loadProductData({ fresh: true }).then(() => { selectPriceRangeForCurrency(); updateScreen(); })
+                .catch(ex => console.error('Failed to resync after a wishlist change:', ex));
+        }
+
+        // F-38/F-35: a tab that started on a store, browse or deals page holds that page's data, not
+        // the wishlist's - fetched once when the tab reaches the wishlist (a failed fetch leaves the
+        // other page's data, and the tiles fill the gaps as they would without page data)
+        let wishlistDataLoad = null;
         async function onDOMReady() {
             if (state.ui.complete) return;
+            // The wishlist UI is only built on wishlist pages (F-38/F-35: the core also runs on
+            // product, browse and deals pages, but only watches there for now)
+            if (!isWishlistPage()) return;
+            if (!state.productDataFromWishlist) {
+                wishlistDataLoad = wishlistDataLoad || loadProductData({ fresh: true }).then(selectPriceRangeForCurrency);
+                await wishlistDataLoad;
+                if (state.ui.complete) return;
+            }
             if (!resolveSelectors()) return;
             if (!document.getElementsByClassName(CONFIG.selectors.items).length) return;
             try {
@@ -947,7 +975,7 @@ window.XboxWishlistCore = {
             try {
                 const pageState = fresh ? await fetchPageState(location.href) : parseEmbeddedState(document);
                 const map = productSummariesFrom(pageState);
-                state.productData = map; state.productDataLoadedAt = Date.now();
+                state.productData = map; state.productDataLoadedAt = Date.now(); state.productDataFromWishlist = isWishlistPage();
                 noteMarketFromState(pageState);
                 state.entitlements = entitlementsFrom(pageState);
                 state.wishlistAddedDates = wishlistAddedDatesFrom(pageState);

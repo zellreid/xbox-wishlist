@@ -191,9 +191,9 @@ function buildHarnessBlock(outDir, meta) {
         return ', public (?public): removed ' + menus.length + ' menu elements';
     }
 
-    // Non-wishlist pages: the extension does not act there yet (F-35 deals/games, F-38 product
-    // pages), so this only checks that it loads quietly, leaves the page alone and that the
-    // capture is what its folder says (market, page state).
+    // Non-wishlist pages: the extension runs there since F-38/F-35 but builds no UI (it only
+    // watches for wishlist add/remove), so this checks that it loads quietly, leaves the page
+    // alone and that the capture is what its folder says (market, page state).
     async function runSmoke() {
         const failures = [], errors = [];
         window.addEventListener('error', e => errors.push(e.message));

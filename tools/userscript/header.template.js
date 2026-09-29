@@ -8,6 +8,10 @@
 // @supportURL   https://github.com/zellreid/xbox-wishlist/issues
 // @license      MIT
 // @match        https://www.xbox.com/*/wishlist*
+// @match        https://www.xbox.com/*/games/store/*
+// @match        https://www.xbox.com/*/games/browse*
+// @match        https://www.xbox.com/*/games/all-games*
+// @match        https://www.xbox.com/*/promotions/sales/*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=xbox.com
 // @run-at       document-body
 // @resource     CSSFilter https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/styles.css?ver={{VERSION}}

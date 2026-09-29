@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Xbox Wishlist Manager",
-  "version": "1.5.26271.2",
+  "version": "1.5.26272.1",
   "description": "Advanced filtering, sorting, and price tracking for Xbox wishlists",
   "author": "ZellReid",
   "homepage_url": "https://github.com/zellreid/xbox-wishlist",
@@ -18,19 +18,30 @@
   ],
 
   "host_permissions": [
-    "https://www.xbox.com/*/wishlist*",
-    "https://displaycatalog.mp.microsoft.com/*"
+    "https://www.xbox.com/*/wishlist*"
   ],
 
   "content_scripts": [
     {
-      "matches": [ "https://www.xbox.com/*/wishlist*" ],
+      "matches": [
+        "https://www.xbox.com/*/wishlist*",
+        "https://www.xbox.com/*/games/store/*",
+        "https://www.xbox.com/*/games/browse*",
+        "https://www.xbox.com/*/games/all-games*",
+        "https://www.xbox.com/*/promotions/sales/*"
+      ],
       "js": [ "shared/xbox-wishlist.core.js", "content.js" ],
       "css": [ "shared/styles.css" ],
       "run_at": "document_idle"
     },
     {
-      "matches": [ "https://www.xbox.com/*/wishlist*" ],
+      "matches": [
+        "https://www.xbox.com/*/wishlist*",
+        "https://www.xbox.com/*/games/store/*",
+        "https://www.xbox.com/*/games/browse*",
+        "https://www.xbox.com/*/games/all-games*",
+        "https://www.xbox.com/*/promotions/sales/*"
+      ],
       "js": [ "request-watcher.js" ],
       "world": "MAIN",
       "run_at": "document_start"

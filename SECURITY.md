@@ -25,10 +25,12 @@ page's DOM and never leaves the browser except via the two calls below.
   this repo's GitHub raw URLs via `@resource` (standard userscript
   mechanism, declared in the script header). Neither channel makes any
   other outbound request.
-- **Permissions:** the extension requests the minimum permissions needed —
-  `storage`, plus `host_permissions` scoped to `xbox.com/*/wishlist*` and
-  `displaycatalog.mp.microsoft.com` (used for game metadata already exposed
-  to the page). See [AGENTS.md](AGENTS.md) §2.6 for the internal data
+- **Permissions:** the extension requests the minimum permissions needed -
+  `storage`, plus a `host_permissions` entry scoped to `xbox.com/*/wishlist*`.
+  Its content scripts also run on xbox.com game store, browse and deals
+  pages (`/games/store/*`, `/games/browse*`, `/games/all-games*`,
+  `/promotions/sales/*`), where they only notice the page's own wishlist
+  add/remove calls - no other host is reachable. See [AGENTS.md](AGENTS.md) §2.6 for the internal data
   classification tiers this project follows when handling anything touching
   Xbox's APIs.
 

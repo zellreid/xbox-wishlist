@@ -466,7 +466,9 @@ const price = parseFloat(container.dataset.ifcPrice);
 - Never store user data (wishlist contents, prices, game names) in
   `chrome.storage.sync` — it syncs across devices and has a 100KB quota.
   Filter UI preferences only; game data is always read live from the DOM.
-- The extension requests only `storage` permission and two host_permissions.
+- The extension requests only `storage` permission and one host_permission
+  (`xbox.com/*/wishlist*`); its content scripts also match the store, browse
+  and deals page types (F-38/F-35, HITL-approved 2026-09-29).
   Do not broaden permissions without HITL approval (Trigger #2).
 - Never inject a `<script src="...">` tag pointing to an external URL —
   CSP violation and a Web Store policy violation.

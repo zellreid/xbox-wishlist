@@ -14,6 +14,19 @@ for how a version is bumped and published.
 
 ---
 
+## v1.5.26272.1 (Sep 2026) - runs on store, browse and deals pages; wishlist adds from a store page
+
+- The extension and userscript now also run on game store pages (`/games/store/*`), browse and
+  add-on lists (`/games/browse*`, `/games/all-games*`) and the sales page (`/promotions/sales/*`)
+  (F-38/F-35). No UI there yet - the filter/sort UI is still built on wishlist pages only - but a
+  saved light/dark choice holds there too, and a tab that starts on one of those pages and moves to
+  the wishlist now gets the full UI with the wishlist's own data.
+- Wishlist add/remove matching tightened to the confirmed call (T-35: `PUT`/`DELETE` to
+  `/xboxcomfd/wishlist/default/product/{id}/{sku}`). An add made on a game's store page is noted,
+  and an open wishlist tab resyncs when you switch back to it.
+- Removed the unused `displaycatalog.mp.microsoft.com` host permission (T-20).
+- Store users: the wider page matches may show a new permission prompt on update.
+
 ## v1.5.26271.2 (Sep 2026) - T-34 (option C): notice a wishlist add/remove live
 
 - A second, page-world script (`request-watcher.js`, manifest `world: "MAIN"`) watches for the

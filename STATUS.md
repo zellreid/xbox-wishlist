@@ -3,12 +3,12 @@ project: Xbox Wishlist
 label: Personal
 phase: Live
 priority: Medium
-next_milestone: Live check of v1.5.26271.2 in Edge (a wishlist add/remove resyncs without Refresh); then T-31 (pass entitlements); T-32 mocks still wanted (owned-heavy, empty, tiny, partial, shared, signed-out)
+next_milestone: Live check of v1.5.26272.1 in Edge (add on a store page -> open wishlist tab resyncs; runs quietly on store/browse/deals pages); then decide F-38/F-35 page tooling
 target_date: none
 hard_deadline: false
 blockers: []
 backlog: docs/04-FEATURE-BREAKDOWN.md
-updated: 2026-09-28
+updated: 2026-09-29
 ---
 
 # STATUS - Xbox Wishlist
@@ -17,31 +17,38 @@ updated: 2026-09-28
 > Never put credentials, keys, connection strings or secrets in this file.
 
 ## Now
-- Live at v1.5.26271.2. T-34 (option C, HITL-approved) done: a page-world script notices a wishlist add/remove (emerald.xboxservices.com) and resyncs owned/date-added/entitlements without Refresh - still matches only wishlist* pages, no broader site access, no new permission. Not yet checked live.
-- Mock tooling: prepare-fixture.js now takes a file or a directory, and defaults to mock_examples/_inbox/ when given neither (file-mocks.js --prepare updated to match); classify-capture.js shares the page-type detection with file-mocks.js.
-- Your 10 new wishlist mocks (de-DE, pt-BR, ja-JP, ar-SA, fr-FR, en-IN, en-CA, fr-CA, plus two narrow-window en-ZA captures) are prepared and all PASS. Found and fixed a harness false-positive along the way: the "payload vs tiles" Owned check was comparing against the tile's English-only text on non-English captures (German shows "Im Besitz") instead of against what production actually uses (the data, correctly, on every market).
-- Live at v1.5.26271.1, confirmed in Edge (T-27 done): Date Added default sort, Added Recently filter, per-currency prices, currency format, and the Stored data buttons all check out on the real site.
-- T-30 done - "Default" sort renamed **Date Added**, now the real wishlist-add date (not page order), newest first; new Added Recently quick filter (30 days); addedDate export column. Confirmed distinct from release date.
+- v1.5.26272.1 built, not yet live-checked. HITL-approved manifest changes done: F-38 (store pages) and F-35 (browse, all-games, add-ons, sales pages) added to content_scripts matches and userscript @match - the core runs there with no UI yet; T-20 removed the unused displaycatalog host permission.
+- T-35 done from the 2026-09-29 HAR: add = PUT, remove = DELETE to /xboxcomfd/wishlist/default/product/{id}/{sku}, no body. Watcher matcher tightened to that. Key finding: adds happen on the store page, so an add there is now recorded and an open wishlist tab resyncs when it comes back into view.
+- Harness: all 46 fixtures PASS (20 wishlist, 26 smoke); targeted checks PASS (store-page add records the change, wishlist resyncs on view only when newer, tab arriving from elsewhere fetches wishlist data once).
+
+## Blocked
+| ID | Item | Priority | Status | Next action |
+|---|---|---|---|---|
+| F-38b | Decide what to show on store pages | Medium | Blocked | Your call; suggestion: an "On your wishlist since" chip plus the T-17 diagnostic |
+| F-35b | Decide what to add on browse/deals pages (they have native filters) | Medium | Blocked | Your call; suggestion: "In a pass", Deal ends, flag, export only |
+| T-32 | Save the remaining wishlist mocks: owned-heavy, empty, tiny, partial, shared, signed-out | Medium | Blocked | Capture into mock_examples/_inbox/, run file-mocks.js --prepare |
+| T-28b | Delete the 2 orphan Batman "Return to Arkham" _files folders | Low | Blocked | Agent delete was refused by the permission guard; delete them by hand (mock_examples/products/en-za/) |
+| T-28 | Confirm the Serbian Cyrillic locale code (sr-Cyrl-RS assumed) | Low | Blocked | Likely IP-gated; recapture over a Serbian VPN endpoint |
+
+## Testing
+| ID | Item | Priority | Status | Next action |
+|---|---|---|---|---|
+| T-27 | Live check v1.5.26272.1 in Edge: wishlist add/remove resync | High | Not started | Wishlist open in tab 1; add a game on its store page in tab 2; switch back - item appears without Refresh; remove one on the wishlist - updates on its own |
+| T-36 | Live check store/browse/deals pages: runs quietly, no console errors | Medium | Not started | Open a store page, /games/browse, /promotions/sales; no ifc UI, no errors; then click through to Wishlist - full UI appears |
+| T-20 | Live check Load details and per-item refresh after the host permission removal | Medium | Not started | Filters > Capabilities > Load details, and one item refresh button - both still work |
+| T-06 | Live check in Chrome and the Tampermonkey userscript (Edge done) | Low | Not started | Repeat the Edge checks in Chrome and Tampermonkey |
 
 ## TODO
 | ID | Item | Priority | Status | Next action |
 |---|---|---|---|---|
-| T-27 | Live check of v1.5.26271.2 in Edge: does a wishlist add/remove resync without Refresh | High | Todo | Add or remove an item on the real wishlist page, watch for owned/added-date updating on its own |
-| T-31 | "In my pass" from entitlements (satisfyingProductId, endDate): filter and end-date chip | Medium | Todo | Decide: replace or sit beside the existing "In a pass"; show the pass end date |
-| T-32 | Save the remaining wishlist mocks: owned-heavy, empty, tiny, partial, shared, signed-out | Medium | Todo | Save into mock_examples/_inbox/, run file-mocks.js --prepare |
-| T-26 | Localise our own UI labels (Owned, Not Owned, quick filters); detection is now language-free (page data) | Low | Todo | Decide whether our labels stay English or follow the page language; keep stored filter values as stable keys |
-| F-38 | Run on product pages (diagnostics first) | Medium | Todo | HITL: approve manifest/@match change for /games/store/*; 26 product mocks are ready as harness fixtures, replace their smoke check with real ones |
-| T-06 | Live check in Chrome and the Tampermonkey userscript (Edge done) | Low | Todo | Push the new icons, then repeat the Edge checks in Chrome and Tampermonkey |
-| F-35 | Deals / games browse page support | Low | Todo | Same state kind as wishlist (no capabilities); decide scope, needs manifest change (HITL); deals and games mocks are harness fixtures (smoke only) |
-| T-20 | Remove the unused public-catalogue host permission from manifest.json | Low | Todo | HITL: approve the manifest change, then check Load details and refresh still work |
-| T-28 | Mock tidy-up: confirm the Serbian Cyrillic locale code (sr-Cyrl-RS assumed); 2 orphan Batman "Return to Arkham" _files folders with no page | Low | Todo | Recapture the Serbian locale in Cyrillic to confirm; delete or recapture the two orphan folders |
-| T-35 | Confirm the wishlist add/remove request shape (path, body) with a real HAR capture; tighten request-watcher.js's matcher | Low | Todo | DevTools -> Network, filter emerald, add/remove one item, share the HAR |
+| T-31 | "In my pass" from entitlements (satisfyingProductId, endDate): filter and end-date chip | Medium | Todo | Assume it sits beside "In a pass"; build in the core with the pass end date chip |
+| T-26 | Localise our own UI labels (Owned, Not Owned, quick filters) | Low | Todo | Assume labels follow the page language; keep stored filter values as stable keys |
 
 + 4 more: F-28 to F-30 in docs/01-PRD.md, and Firefox/Safari support (planned in AGENTS.md)
 
 ## Recent sessions
+- 2026-09-29: v1.5.26272.1 - F-38/F-35 matches (store, browse, deals pages; no UI there yet), T-20 displaycatalog permission removed, T-35 watcher tightened from HAR, cross-tab wishlist-change resync; 46/46 harness PASS
+- 2026-09-28: Status review and cross-repo prompt for the Blocked/Testing/TODO format; no code change
+- 2026-09-28: Adopted the new Blocked/Testing/TODO STATUS.md format (root AGENTS.md 1.9 update); reclassified this file's rows accordingly, no code change
 - 2026-09-28: T-34 option C done (v1.5.26271.2): page-world request-watcher.js notices a wishlist add/remove, resyncs data via a tagged postMessage bridge; prepare-fixture.js takes a file/directory (default _inbox), classify-capture.js shared with file-mocks.js; 10 new market mocks prepared, harness false-positive on Owned fixed; all 21 fixtures PASS
 - 2026-09-28: T-27 confirmed - v1.5.26271.1 checked live in Edge (Date Added sort/filter, per-currency prices, Stored data buttons)
-- 2026-09-28: T-30 done (v1.5.26271.1): Date Added is the real wishlist-add date, renamed from Default, newest first; Added Recently quick filter (30 days); addedDate export column; harness PASS on 7 wishlist captures
-- 2026-09-26: Payload-first item data (v1.5.26269.5): title, publisher, price, discount, owned from the page data, tile fallback; store page reads update the item; userscript grants GM_listValues / GM_deleteValue (T-29, T-33 done); harness parity check, ?nostate, faked store-page test
-- 2026-09-26: Followed the mock folder renames (no # prefix, locale); analysed the new en-gb/en-us wishlist captures (harness PASS, GBP/USD detected); recommended further wishlist mocks (T-32)

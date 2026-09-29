@@ -6,29 +6,35 @@
 // world and can still receive a page-dispatched postMessage - that's the bridge).
 //
 // Scope (deliberately narrow - see AGENTS.md HITL note and STATUS.md T-34): only wishlist
-// add/remove calls, matched by URL only. Still matches https://www.xbox.com/*/wishlist* (the
-// same pages the rest of the extension already runs on) - no broader host access than before.
-// Product, deals, games and listing capture are NOT done here; that needs the extension to run
-// on those page types first (F-38, F-35), which is its own HITL-gated manifest change.
+// add/remove calls, matched by URL only. Runs on the same pages as the core (wishlist, and since
+// F-38/F-35 product, browse and deals pages) - an add is made from a game's store page, not the
+// wishlist, so the core there passes it on to an open wishlist tab (see watchPageRequests()).
 //
 // TIER 1 (AGENTS.md 3.2): never reads or forwards auth headers, cookies, or the full response
 // body - only a few known-safe fields, kept for our own use, never sent anywhere else.
 (function () {
     'use strict';
     const TAG = '__ifcRequestEvent';
-    // The host Xbox's own wishlist add/remove calls go through (production + staging), read from
-    // the site's own shipped bundle (client.*.js: the ADD_WISHLIST_ITEM_* / REMOVE_WISHLIST_ITEM_*
-    // action names sit next to this address) - not guessed. The exact path and request body are
-    // still unknown until real traffic is seen (see STATUS.md T-34), so matching stays loose:
-    // any mutating call to this host whose path mentions "wishlist".
+    // The host and path Xbox's own wishlist add/remove calls go through (production + staging),
+    // confirmed from a real capture (T-35, 2026-09-29): PUT to add, DELETE to remove, no request
+    // body - the product and SKU are in the path, e.g.
+    //   /xboxcomfd/wishlist/default/product/BTB7HC3ZDL2V/0001?locale=en-ZA&deviceType=desktop
     const WISHLIST_HOST = /emerald(-staging)?\.xboxservices\.com/i;
-    const WISHLIST_PATH = /wishlist/i;
+    const WISHLIST_PATH = /\/wishlist\/[^/]+\/product\/([0-9a-z]{12})(?:\/([0-9a-z]+))?/i;
 
     function isWishlistMutation(url, method) {
         try {
             const u = new URL(url, location.href);
-            return WISHLIST_HOST.test(u.host) && WISHLIST_PATH.test(u.pathname) && /^(POST|PUT|DELETE)$/i.test(method || 'GET');
+            return WISHLIST_HOST.test(u.host) && WISHLIST_PATH.test(u.pathname) && /^(PUT|DELETE)$/i.test(method || 'GET');
         } catch (ex) { return false; }
+    }
+
+    // Product and SKU id from the call's own address (public catalogue ids, not account data)
+    function idsFrom(url) {
+        try {
+            const m = WISHLIST_PATH.exec(new URL(url, location.href).pathname);
+            return m ? { productId: m[1].toUpperCase(), skuId: m[2] || null } : null;
+        } catch (ex) { return null; }
     }
 
     // Only a few known-safe fields ever leave this function - never the raw body (it could carry
@@ -41,7 +47,7 @@
     }
 
     function report(method, url, status, ok, body) {
-        try { window.postMessage({ [TAG]: true, method: method, url: url, status: status, ok: ok, body: safeFields(body) }, location.origin); }
+        try { window.postMessage({ [TAG]: true, method: method, url: url, status: status, ok: ok, body: safeFields(body), ids: idsFrom(url) }, location.origin); }
         catch (ex) { /* nothing to log to from here - this runs in the page, not the extension */ }
     }
 
