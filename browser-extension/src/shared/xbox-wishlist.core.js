@@ -1608,9 +1608,25 @@ window.XboxWishlistCore = {
             return !!(map && map.size) && Array.from(document.querySelectorAll(`${THEME_MARKS.headerElement} img[src]`))
                 .some(img => { const to = map.get(logoFile(img.getAttribute('src'))); return to && logoFile(to) !== logoFile(img.getAttribute('src')); });
         }
+        // The saved choice applies on wishlist pages only (for now - the core also runs on store,
+        // browse and deals pages since F-38/F-35). Xbox's own theme is noted before we first
+        // switch it in this tab, and put back when the tab moves away from the wishlist.
+        let nativeTheme = null;   // null = we haven't switched this tab's theme
         function enforceTheme() {
-            try { if (state.theme && (currentTheme() !== state.theme || needsThemeMarks())) applyTheme(state.theme); }
+            try {
+                if (!isWishlistPage()) { restoreNativeTheme(); return; }
+                if (state.theme && (currentTheme() !== state.theme || needsThemeMarks())) { noteNativeTheme(); applyTheme(state.theme); }
+            }
             catch (ex) { console.error('Failed to apply theme:', ex); }
+        }
+        function noteNativeTheme() {
+            // The header component's own theme attribute is never changed by us, so it is the best record of Xbox's choice
+            if (nativeTheme === null) nativeTheme = document.querySelector(`${THEME_MARKS.headerElement}[theme]`) ? headerNativeTheme() : currentTheme();
+        }
+        function restoreNativeTheme() {
+            if (nativeTheme === null) return;
+            const theme = nativeTheme; nativeTheme = null;
+            applyTheme(theme);
         }
         // The wrapper or header can be re-rendered with Xbox's own marks while <body> stays right
         function needsThemeMarks() {
@@ -1703,6 +1719,7 @@ window.XboxWishlistCore = {
                 btn.addEventListener('click', () => {
                     if (contextLost()) { handleContextLost(); return; }
                     state.theme = currentTheme() === 'light' ? 'dark' : 'light';
+                    noteNativeTheme();
                     applyTheme(state.theme);
                     updateThemeButton();
                     saveFilterState();
@@ -3539,7 +3556,7 @@ window.XboxWishlistCore = {
             const timer = setInterval(() => {
                 try {
                     if (contextLost()) { clearInterval(timer); handleContextLost(); return; }
-                    enforceTheme();   // a saved light/dark choice holds on every page of the tab
+                    enforceTheme();   // a saved light/dark choice holds on the wishlist, and is undone away from it
                     if (!isWishlistPage()) { hidePanelsAwayFromWishlist(); return; }
                     if (!state.ui.complete || !CONFIG.selectors.items) return;
                     const items = document.getElementsByClassName(CONFIG.selectors.items);

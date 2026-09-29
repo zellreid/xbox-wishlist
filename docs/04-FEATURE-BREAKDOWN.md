@@ -428,7 +428,8 @@ Note (2026-09-23): the light mock was saved with our panel already injected (old
 - Core: `onDOMReady()` builds the wishlist UI on wishlist pages only; elsewhere the core runs quietly (theme hold, request bridge). A tab that started on another page type fetches the wishlist's own page data once when it reaches the wishlist (`state.productDataFromWishlist`).
 - Wishlist add/remove made on a store page (where adds actually happen - T-35) is recorded under `ifc_xbox_wishlist_changed`; an open wishlist tab resyncs when it comes back into view if that is newer than its data.
 - Harness: all 26 product smoke fixtures PASS; with `?realpath` a tagged add records the change and injects nothing.
-- Still to decide: which product-page tooling to show there (e.g. the T-17 diagnostic, a "on your wishlist since" chip).
+- v1.5.26272.2: the saved theme (F-39) applies on wishlist pages only; Xbox's own theme is restored when the tab leaves the wishlist.
+- Proposed next (2026-09-29): a heart on each card - filled with "On your wish list since {date}" when listed, outline when not, click to add/remove. Findings: store/browse/deals page data carries an empty `core2.wishlist.wishlists`, so membership must come from the wishlist page's data; Xbox's add/remove calls need the signed-in token, which the extension must never read (TIER 1) - so a click must go through Xbox's own button, not a call of ours. The store page already has Xbox's own heart (`WishlistButton`). Open decisions: data source, click behaviour on browse cards.
 
 ---
 

@@ -14,6 +14,12 @@ for how a version is bumped and published.
 
 ---
 
+## v1.5.26272.2 (Sep 2026) - saved light/dark choice on the wishlist only
+
+- The theme saved with the toolbar button now applies on wishlist pages only. On store, browse
+  and deals pages Xbox's own theme is left alone, and a tab that moves from the wishlist to one
+  of those pages gets Xbox's own theme back (and the saved one again on return).
+
 ## v1.5.26272.1 (Sep 2026) - runs on store, browse and deals pages; wishlist adds from a store page
 
 - The extension and userscript now also run on game store pages (`/games/store/*`), browse and
