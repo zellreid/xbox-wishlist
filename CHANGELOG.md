@@ -14,6 +14,17 @@ for how a version is bumped and published.
 
 ---
 
+## v1.5.26272.5 (Sep 2026) - T-31: "In my pass"
+
+- New **In my pass** quick filter: games your own pass covers right now (from your entitlements on the
+  wishlist page), as opposed to **In a pass** (included in any pass). Only offered when at least one
+  item qualifies; works with tags, Clear All and saved filters.
+- Those items get a green **In your pass** chip; hovering shows "Included with your pass - it renews
+  {date}" (or "until {date}" when it doesn't auto-renew).
+- Export: new `inMyPass` and `myPassEnds` columns.
+- Docs: `docs/08-XBOX-REQUESTS.md` - every request xbox.com makes on these pages, the page data fields,
+  and what else could be used.
+
 ## v1.5.26272.4 (Sep 2026) - wishlist heart opens in a new tab
 
 - Clicking a card's wishlist heart now opens your wishlist in a new tab, leaving the page you were on.

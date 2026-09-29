@@ -522,6 +522,22 @@ after a HITL discussion (see AGENTS.md 2.7 triggers #2, #4, #7, #10). Four optio
 
 ---
 
+### T-31 - "In my pass" (the viewer's own pass, from entitlements)
+
+**Status (v1.5.26272.5) - done:** an item is "in my pass" when its entitlement (`core2.products.entitlements`)
+is not a purchase (`isOwned: false`), is satisfied by a pass (`isSatisfyingEntitlement`, `satisfyingProductId`),
+is `Active` and not past `endDate` - see `myPassEntitlement()`. Beside the existing "In a pass" (any pass,
+from `includedWithPassesProductIds`), not replacing it. Quick filter "In my pass" (offered only when an item
+qualifies), tag, Clear All, saved filters; green "In your pass" chip with "renews / until {date}" on hover
+(`endDate` is the pass's current term); export columns `inMyPass`, `myPassEnds`. Pass names aren't in the
+page data (ids only), so the chip says "your pass". Harness: 23 products (24 tiles, one listed twice) on the
+en-ZA capture, matching the raw data; 46/46 fixtures PASS.
+
+See `docs/08-XBOX-REQUESTS.md` for the request catalogue and further data ideas (e.g. "Leaving Game Pass soon"
+from `passMetadataByPassProductId`).
+
+---
+
 ## Future Features (v2.0+)
 
 ---

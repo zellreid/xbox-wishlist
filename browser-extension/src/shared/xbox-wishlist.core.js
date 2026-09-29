@@ -35,6 +35,7 @@ window.XboxWishlistCore = {
                 // From the page's embedded product data (F-33)
                 genres: { selected: [], list: new Map() },
                 inPass: false,
+                inMyPass: false,   // T-31: covered by the viewer's own pass right now (from the page's entitlements)
                 // F-34
                 platforms: { selected: [], list: new Map() },
                 justForYou: false,
@@ -493,6 +494,7 @@ window.XboxWishlistCore = {
                                 state.filters.genres.selected = parsed.genres.selected.filter(g => typeof g === 'string');
                             }
                             if (typeof parsed.inPass === 'boolean') state.filters.inPass = parsed.inPass;
+                            if (typeof parsed.inMyPass === 'boolean') state.filters.inMyPass = parsed.inMyPass;
                             if (parsed.platforms && Array.isArray(parsed.platforms.selected)) {
                                 state.filters.platforms.selected = parsed.platforms.selected.filter(p => typeof p === 'string');
                             }
@@ -573,6 +575,7 @@ window.XboxWishlistCore = {
                 tags.push({ type: 'genre', value: g, label: `${g} (${count})` });
             });
             if (state.filters.inPass) tags.push({ type: 'inPass', value: 'inPass', label: 'In a pass' });
+            if (state.filters.inMyPass) tags.push({ type: 'inMyPass', value: 'inMyPass', label: 'In my pass' });
             state.filters.platforms.selected.forEach(pl => {
                 const count = state.filters.platforms.list.get(pl) || 0;
                 tags.push({ type: 'platform', value: pl, label: `${pl} (${count})` });
@@ -636,6 +639,7 @@ window.XboxWishlistCore = {
                     state.filters.genres.selected = state.filters.genres.selected.filter(v => v !== tag.value);
                     updateCheckboxes(CONFIG.ids.genresSelect, state.filters.genres.selected); break;
                 case 'inPass': state.filters.inPass = false; break;
+                case 'inMyPass': state.filters.inMyPass = false; break;
                 case 'platform':
                     state.filters.platforms.selected = state.filters.platforms.selected.filter(v => v !== tag.value);
                     updateCheckboxes(CONFIG.ids.platformsSelect, state.filters.platforms.selected); break;
@@ -1105,6 +1109,10 @@ window.XboxWishlistCore = {
             const added = state.wishlistAddedDates.get((container.dataset.ifcProductId || '').toUpperCase());
             setDataAttribute(container, 'ifcAddedDate', typeof added === 'number' ? added : null);
             setDataAttribute(container, 'ifcInPass', !!(p && Array.isArray(p.includedWithPassesProductIds) && p.includedWithPassesProductIds.length > 0));
+            // T-31: the viewer's own pass covers it (their entitlement, not just "in some pass")
+            const myPass = myPassEntitlement(container.dataset.ifcProductId);
+            setDataAttribute(container, 'ifcInMyPass', !!myPass);
+            setDataAttribute(container, 'ifcMyPassEnds', myPass ? myPass.ends : null);
             // Only for deals the page actually shows this viewer (some discounted offers in
             // the data never render a discount), so sort, badge and export agree
             const shownDiscount = parseFloat(container.dataset.ifcPriceDiscountPercent) > 0;
@@ -1150,11 +1158,23 @@ window.XboxWishlistCore = {
                 productId: (container.dataset.ifcProductId || '').toUpperCase(), url: container.dataset.ifcUri,
                 title: container.dataset.ifcName,
                 kindLabel: type === 'DLC' || type === 'Consumable' ? type : null,
-                personal: dealType === 'personal', reason: offer.dealReason, preorder: !!(p && p.ifcIsPreorder),
+                personal: dealType === 'personal', reason: offer.dealReason, preorder: !!(p && p.ifcIsPreorder), myPass,
                 playAnywhere: capKeys.includes('XPA'), optimizedXS: capKeys.includes('ConsoleGen9Optimized'),
                 smartDelivery: capKeys.includes('ConsoleCrossGen'),
                 addOns: hasAddOns ? { count: addOnsCount, url: addOnsUrl(container.dataset.ifcProductId, container.dataset.ifcUri) } : null
             });
+        }
+
+        // T-31: the viewer's entitlement to this product comes from a pass they hold (not a purchase),
+        // and is active and not past its end date. The end date is the pass's current term (it moves on
+        // when an auto-renewing pass renews), so it is shown as "renews" or "until" accordingly.
+        // Null when the page has no entitlements section or the item isn't covered.
+        function myPassEntitlement(productId) {
+            const e = state.entitlements && state.entitlements.get(String(productId || '').toUpperCase());
+            if (!e || e.isOwned || !e.isSatisfyingEntitlement || !e.satisfyingProductId || e.status !== 'Active') return null;
+            const ends = Date.parse(e.endDate);
+            if (!isNaN(ends) && ends <= Date.now()) return null;
+            return { ends: isNaN(ends) ? null : ends, renews: e.autoRenew === true };
         }
 
         // The store's "add-ons for this game" page, in the item's own locale (F-40)
@@ -1176,7 +1196,7 @@ window.XboxWishlistCore = {
         // Fixed position of each entry in an item's tag row, whatever order the code builds them in.
         // Spaced by 10 so a new entry can go between two existing ones without renumbering.
         const ITEM_TAG_ORDER = Object.freeze({
-            REFRESH: 10, FLAG: 20, ADD_ONS: 30, JUST_FOR_YOU: 40, PREORDER: 50,
+            REFRESH: 10, FLAG: 20, ADD_ONS: 30, JUST_FOR_YOU: 40, MY_PASS: 45, PREORDER: 50,
             OPTIMIZED_XS: 60, PLAY_ANYWHERE: 70, SMART_DELIVERY: 80, DLC: 90, CONSUMABLE: 100
         });
 
@@ -1187,7 +1207,7 @@ window.XboxWishlistCore = {
                 // store page gets one; without a product id / URL there's nothing to refresh
                 const canRefresh = !!(info.productId && info.url && info.url !== 'null');
                 const canFlag = !!(info.productId && info.productId !== 'NULL');
-                if (!canRefresh && !canFlag && !info.personal && !info.preorder && !info.playAnywhere && !info.optimizedXS && !info.smartDelivery && !info.kindLabel && !info.addOns) { if (row) row.remove(); return; }
+                if (!canRefresh && !canFlag && !info.personal && !info.myPass && !info.preorder && !info.playAnywhere && !info.optimizedXS && !info.smartDelivery && !info.kindLabel && !info.addOns) { if (row) row.remove(); return; }
                 if (!row) {
                     const pd = CONFIG.selectors.productDetails ? safeQuerySelector(container, CONFIG.selectors.productDetails) : null;
                     if (!pd) return;
@@ -1208,6 +1228,15 @@ window.XboxWishlistCore = {
                     jfy.textContent = 'Just for you';
                     if (info.reason) { jfy.title = info.reason; jfy.setAttribute('aria-label', `Just for you: ${info.reason}`); }
                     add(ITEM_TAG_ORDER.JUST_FOR_YOU, jfy);
+                }
+                if (info.myPass) {
+                    const mine = document.createElement('span'); mine.className = 'ifc-item-tag ifc-item-tag-mypass';
+                    mine.textContent = 'In your pass';
+                    const on = info.myPass.ends ? new Date(info.myPass.ends).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) : null;
+                    const text = !on ? 'Included with your pass'
+                        : info.myPass.renews ? `Included with your pass - it renews ${on}` : `Included with your pass until ${on}`;
+                    mine.title = text; mine.setAttribute('aria-label', text);
+                    add(ITEM_TAG_ORDER.MY_PASS, mine);
                 }
                 if (info.preorder) {
                     const pre = document.createElement('span'); pre.className = 'ifc-item-tag ifc-item-tag-preorder';
@@ -1784,6 +1813,9 @@ window.XboxWishlistCore = {
                 addedDate: num(c.dataset.ifcAddedDate) === null ? null : new Date(num(c.dataset.ifcAddedDate)).toISOString().slice(0, 10),
                 dealEnds: num(c.dataset.ifcDealEnds) === null ? null : new Date(num(c.dataset.ifcDealEnds)).toISOString(),
                 inPass: c.dataset.ifcInPass === 'true',
+                // T-31: covered by the viewer's own pass, and when that pass's current term ends
+                inMyPass: c.dataset.ifcInMyPass === 'true',
+                myPassEnds: num(c.dataset.ifcMyPassEnds) === null ? null : new Date(num(c.dataset.ifcMyPassEnds)).toISOString().slice(0, 10),
                 // F-34: deal type personal | sale | member (null = no discount shown)
                 dealType: text(c.dataset.ifcDealType) || null, dealReason: text(c.dataset.ifcDealReason) || null,
                 preorder: c.dataset.ifcPreorder === 'true', platforms: getItemJsonList(c, 'ifcPlatforms'),
@@ -1807,7 +1839,7 @@ window.XboxWishlistCore = {
 
         function toCsv(rows) {
             const cols = ['title', 'publisher', 'price', 'originalPrice', 'discountPercent', 'owned', 'unpurchasable',
-                'rating', 'ratingCount', 'genres', 'releaseDate', 'addedDate', 'dealEnds', 'inPass', 'dealType', 'dealReason', 'preorder', 'platforms', 'capabilities', 'type', 'hasAddOns', 'addOnsCount', 'flagged', 'previousPrice', 'priceChanged', 'onSaleSince', 'onSaleSinceKnown', 'lowestPrice', 'priceHistory', 'url'];
+                'rating', 'ratingCount', 'genres', 'releaseDate', 'addedDate', 'dealEnds', 'inPass', 'inMyPass', 'myPassEnds', 'dealType', 'dealReason', 'preorder', 'platforms', 'capabilities', 'type', 'hasAddOns', 'addOnsCount', 'flagged', 'previousPrice', 'priceChanged', 'onSaleSince', 'onSaleSinceKnown', 'lowestPrice', 'priceHistory', 'url'];
             const cell = v => {
                 if (v === null || v === undefined) return '';
                 if (Array.isArray(v)) v = v.join('; ');
@@ -2040,6 +2072,11 @@ window.XboxWishlistCore = {
                 // unlike the Subscriptions filter, which reads "with <pass>" member-price badges
                 { key: 'inPass', label: 'In a pass', isActive: () => state.filters.inPass === true,
                     apply: () => { state.filters.inPass = true; }, clear: () => { state.filters.inPass = false; } },
+                // T-31: covered by the viewer's own pass (their entitlements) - only offered once an item qualifies
+                { key: 'inMyPass', label: 'In my pass',
+                    isAvailable: () => Array.from(document.getElementsByClassName(CONFIG.selectors.items)).some(c => c.dataset.ifcInMyPass === 'true'),
+                    isActive: () => state.filters.inMyPass === true,
+                    apply: () => { state.filters.inMyPass = true; }, clear: () => { state.filters.inMyPass = false; } },
                 // Personal "Just for you" offers and pre-orders (F-34, from the page's product data)
                 { key: 'justForYou', label: 'Just for you', isActive: () => state.filters.justForYou === true,
                     apply: () => { state.filters.justForYou = true; }, clear: () => { state.filters.justForYou = false; } },
@@ -2088,6 +2125,7 @@ window.XboxWishlistCore = {
                 state.filters.subscriptions.selected = [];
                 state.filters.genres.selected = [];
                 state.filters.inPass = false;
+                state.filters.inMyPass = false;
                 state.filters.platforms.selected = [];
                 state.filters.justForYou = false;
                 state.filters.preorder = false;
@@ -2124,7 +2162,7 @@ window.XboxWishlistCore = {
             const f = state.filters;
             return {
                 owned: [...f.owned.selected], publishers: [...f.publishers.selected], subscriptions: [...f.subscriptions.selected],
-                genres: [...f.genres.selected], inPass: f.inPass === true,
+                genres: [...f.genres.selected], inPass: f.inPass === true, inMyPass: f.inMyPass === true,
                 platforms: [...f.platforms.selected], justForYou: f.justForYou === true, preorder: f.preorder === true, recentlyAdded: f.recentlyAdded === true,
                 hasAddOns: f.hasAddOns === true, flagged: f.flagged === true,
                 capabilities: [...f.capabilities.selected], types: [...f.types.selected],
@@ -2146,6 +2184,7 @@ window.XboxWishlistCore = {
                 filters: {
                     owned: list(f.owned), publishers: list(f.publishers), subscriptions: list(f.subscriptions),
                     genres: list(f.genres), inPass: f.inPass === true,   // absent in presets saved before F-33
+                    inMyPass: f.inMyPass === true,        // before T-31
                     platforms: list(f.platforms), justForYou: f.justForYou === true, preorder: f.preorder === true,   // before F-34
                     recentlyAdded: f.recentlyAdded === true,   // before T-30
                     hasAddOns: f.hasAddOns === true,      // before F-40
@@ -2162,7 +2201,7 @@ window.XboxWishlistCore = {
         function hasPresetableFilters() {
             const f = state.filters;
             return f.owned.selected.length > 0 || f.publishers.selected.length > 0 || f.subscriptions.selected.length > 0
-                || f.genres.selected.length > 0 || f.inPass || f.platforms.selected.length > 0 || f.justForYou || f.preorder || f.recentlyAdded || f.hasAddOns || f.flagged
+                || f.genres.selected.length > 0 || f.inPass || f.inMyPass || f.platforms.selected.length > 0 || f.justForYou || f.preorder || f.recentlyAdded || f.hasAddOns || f.flagged
                 || f.capabilities.selected.length > 0 || f.types.selected.length > 0
                 || f.priceRange.enabled || f.discountRange.enabled;
         }
@@ -2181,7 +2220,7 @@ window.XboxWishlistCore = {
             };
             return sameSet(f.owned.selected, pf.owned) && sameSet(f.publishers.selected, pf.publishers)
                 && sameSet(f.subscriptions.selected, pf.subscriptions)
-                && sameSet(f.genres.selected, pf.genres) && f.inPass === pf.inPass
+                && sameSet(f.genres.selected, pf.genres) && f.inPass === pf.inPass && f.inMyPass === pf.inMyPass
                 && sameSet(f.platforms.selected, pf.platforms) && f.justForYou === pf.justForYou && f.preorder === pf.preorder && f.recentlyAdded === pf.recentlyAdded && f.hasAddOns === pf.hasAddOns && f.flagged === pf.flagged
                 && sameSet(f.capabilities.selected, pf.capabilities) && sameSet(f.types.selected, pf.types)
                 && (presetPriceApplies(pf) ? rangeIs(f.priceRange, pf.priceRange) : !f.priceRange.enabled) && rangeIs(f.discountRange, pf.discountRange);
@@ -2191,7 +2230,7 @@ window.XboxWishlistCore = {
             try {
                 const f = state.filters, pf = p.filters;
                 f.owned.selected = [...pf.owned]; f.publishers.selected = [...pf.publishers]; f.subscriptions.selected = [...pf.subscriptions];
-                f.genres.selected = [...pf.genres]; f.inPass = pf.inPass;
+                f.genres.selected = [...pf.genres]; f.inPass = pf.inPass; f.inMyPass = pf.inMyPass === true;
                 f.platforms.selected = [...pf.platforms]; f.justForYou = pf.justForYou; f.preorder = pf.preorder; f.recentlyAdded = pf.recentlyAdded === true; f.hasAddOns = pf.hasAddOns; f.flagged = pf.flagged;
                 f.capabilities.selected = [...pf.capabilities]; f.types.selected = [...pf.types];
                 updateCheckboxes(CONFIG.ids.ownedSelect, f.owned.selected);
@@ -3440,6 +3479,7 @@ window.XboxWishlistCore = {
                 if (!getItemGenres(container).some(g => state.filters.genres.selected.includes(g))) return false;
             }
             if (state.filters.inPass && container.dataset.ifcInPass !== 'true') return false;
+            if (state.filters.inMyPass && container.dataset.ifcInMyPass !== 'true') return false;
             if (state.filters.platforms.selected.length > 0) {
                 // Multi-platform items - match if it's on ANY of the selected platforms
                 if (!getItemJsonList(container, 'ifcPlatforms').some(p => state.filters.platforms.selected.includes(p))) return false;

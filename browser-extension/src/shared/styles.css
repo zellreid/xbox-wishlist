@@ -337,6 +337,13 @@ p:has(+ .ifc-item-tags) {
     color: var(--ifc-tag-text);
 }
 
+/* T-31: covered by the viewer's own pass - Xbox green, end date on hover */
+.ifc-item-tag-mypass {
+    background-color: #107c10;
+    color: #ffffff;
+    cursor: help;
+}
+
 .ifc-item-tag-icon {
     display: inline-flex;
 }
