@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         XBOX Wishlist
 // @namespace    https://github.com/zellreid/xbox-wishlist
-// @version      1.5.26272.6
+// @version      1.5.26272.8
 // @description  Advanced filtering and sorting suite with multi-level sort (up to 3 criteria) - Resilient selectors - Public wishlist support
 // @author       ZellReid
 // @homepage     https://github.com/zellreid/xbox-wishlist
@@ -14,7 +14,7 @@
 // @match        https://www.xbox.com/*/promotions/sales/*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=xbox.com
 // @run-at       document-body
-// @resource     CSSFilter https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/styles.css?ver=1.5.26272.6
+// @resource     CSSFilter https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/styles.css?ver=1.5.26272.8
 // @resource     IMGFilter https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/filter.svg
 // @resource     IMGSort https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/sort.svg
 // @resource     IMGExport https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/export.svg
@@ -85,6 +85,11 @@ window.XboxWishlistCore = {
                 inPass: false,
                 inMyPass: false,   // T-31: covered by the viewer's own pass right now (from the page's entitlements)
                 leavingPass: false, newToPass: false,   // T-43: leaves every pass within PASS_SOON_DAYS / joined one within it
+                handheldOptimized: false,   // T-44: the store's "Handheld Optimised" badge
+                // "Is not" for the On Sale / >=50% Off quick filters: only priced items whose discount is below this
+                // (1 = not on sale, 50 = under 50% off, non-sale items included); 0 = off. The discount slider can't
+                // say this - its range starts at the smallest discount on sale.
+                discountBelow: 0,
                 // The flag filters above and below are three-state: true | FLAG_NOT ('not') | false - see FLAG_FILTERS
                 // F-34
                 platforms: { selected: [], list: new Map() },
@@ -97,6 +102,8 @@ window.XboxWishlistCore = {
                 capabilities: { selected: [], list: new Map() },
                 // Item type: Game / DLC / Consumable (any selected matches)
                 types: { selected: [], list: new Map() },
+                // T-44: minimum age from the age rating (any board: PEGI, FPB, USK...), as strings ("16"); any selected matches
+                ages: { selected: [], list: new Map() },
                 priceRange: { min: 0, max: 3000, currentMin: 0, currentMax: 3000, enabled: false },
                 discountRange: { min: 0, max: 100, currentMin: 0, currentMax: 100, enabled: false }
             },
@@ -112,6 +119,7 @@ window.XboxWishlistCore = {
                     { value: 'ifcRating', label: 'Rating' },
                     { value: 'ifcReleaseDate', label: 'Release Date' },
                     { value: 'ifcDealEnds', label: 'Deal Ends' },
+                    { value: 'ifcInstallSize', label: 'Install Size' },   // T-44
                     { value: 'ifcFlagged', label: 'Flagged' }
                 ]
             },
@@ -189,6 +197,7 @@ window.XboxWishlistCore = {
                 platformsSelect: 'ifc_select_platforms',
                 capabilitiesSelect: 'ifc_select_capabilities',
                 typesSelect: 'ifc_select_types',
+                agesSelect: 'ifc_select_ages',
                 detailsButton: 'ifc_btn_LoadDetails',
                 detailsStatus: 'ifc_details_status',
                 priceSlider: 'ifc_slider_price',
@@ -507,6 +516,7 @@ window.XboxWishlistCore = {
                     platforms: { selected: state.filters.platforms.selected },
                     capabilities: { selected: state.filters.capabilities.selected },
                     types: { selected: state.filters.types.selected },
+                    ages: { selected: state.filters.ages.selected },
                     sort: { criteria: state.sort.criteria },
                     presets: state.savedPresets,
                     theme: state.theme
@@ -545,12 +555,16 @@ window.XboxWishlistCore = {
                             }
                             // On/off flags: true, 'not' or false (older saves only have booleans)
                             FLAG_FILTERS.forEach(f => { if (isFlagValue(parsed[f.key])) state.filters[f.key] = parsed[f.key]; });
+                            state.filters.discountBelow = discountBelowValue(parsed.discountBelow);
                             if (parsed.platforms && Array.isArray(parsed.platforms.selected)) {
                                 state.filters.platforms.selected = parsed.platforms.selected.filter(p => typeof p === 'string');
                             }
                             if (parsed.theme === 'light' || parsed.theme === 'dark') state.theme = parsed.theme;
                             if (parsed.capabilities && Array.isArray(parsed.capabilities.selected)) {
                                 state.filters.capabilities.selected = parsed.capabilities.selected.filter(c => typeof c === 'string');
+                            }
+                            if (parsed.ages && Array.isArray(parsed.ages.selected)) {
+                                state.filters.ages.selected = parsed.ages.selected.filter(a => typeof a === 'string');
                             }
                             if (parsed.types && Array.isArray(parsed.types.selected)) {
                                 state.filters.types.selected = parsed.types.selected.filter(t => typeof t === 'string');
@@ -624,6 +638,7 @@ window.XboxWishlistCore = {
                 const v = state.filters[f.key];
                 if (v) tags.push({ type: 'flag', value: f.key, label: flagTagLabel(f, v) });
             });
+            if (state.filters.discountBelow) tags.push({ type: 'discountBelow', value: 'discountBelow', label: discountBelowLabel(state.filters.discountBelow) });
             state.filters.platforms.selected.forEach(pl => {
                 const count = state.filters.platforms.list.get(pl) || 0;
                 tags.push({ type: 'platform', value: pl, label: `${pl} (${count})` });
@@ -635,6 +650,10 @@ window.XboxWishlistCore = {
             state.filters.types.selected.forEach(t => {
                 const count = state.filters.types.list.get(t) || 0;
                 tags.push({ type: 'itemType', value: t, label: `${t} (${count})` });
+            });
+            state.filters.ages.selected.forEach(a => {
+                const count = state.filters.ages.list.get(a) || 0;
+                tags.push({ type: 'age', value: a, label: `${ageLabel(a)} (${count})` });
             });
             if (state.filters.priceRange.enabled) {
                 const { currentMin, currentMax } = state.filters.priceRange;
@@ -682,6 +701,7 @@ window.XboxWishlistCore = {
                     state.filters.genres.selected = state.filters.genres.selected.filter(v => v !== tag.value);
                     updateCheckboxes(CONFIG.ids.genresSelect, state.filters.genres.selected); break;
                 case 'flag': state.filters[tag.value] = false; break;
+                case 'discountBelow': state.filters.discountBelow = 0; break;
                 case 'platform':
                     state.filters.platforms.selected = state.filters.platforms.selected.filter(v => v !== tag.value);
                     updateCheckboxes(CONFIG.ids.platformsSelect, state.filters.platforms.selected); break;
@@ -691,6 +711,9 @@ window.XboxWishlistCore = {
                 case 'itemType':
                     state.filters.types.selected = state.filters.types.selected.filter(v => v !== tag.value);
                     updateCheckboxes(CONFIG.ids.typesSelect, state.filters.types.selected); break;
+                case 'age':
+                    state.filters.ages.selected = state.filters.ages.selected.filter(v => v !== tag.value);
+                    updateCheckboxes(CONFIG.ids.agesSelect, state.filters.ages.selected); break;
                 case 'price': state.filters.priceRange.enabled = false; resetPriceSlider(); break;
                 case 'discount': state.filters.discountRange.enabled = false; resetDiscountSlider(); break;
                 case 'search': {
@@ -1154,6 +1177,16 @@ window.XboxWishlistCore = {
             const passTimes = passTimeline(p);
             setDataAttribute(container, 'ifcPassJoined', passTimes ? passTimes.joined : null);
             setDataAttribute(container, 'ifcPassLeaves', passTimes ? passTimes.leaves : null);
+            // T-44: age rating (board's own text, e.g. "PEGI 16", and its minimum age), install size (bytes; 0 = unknown),
+            // developer, "Handheld Optimised" (hhVerified.deviceEvaluation 1 - the store page shows that badge), and
+            // available in the Xbox PC app (isAvailableOnGarrison - Xbox's own Launch button opens that app for it)
+            const cr = p && p.contentRating;
+            setDataAttribute(container, 'ifcAgeRating', cr && cr.rating ? `${cr.boardName && !String(cr.rating).startsWith(cr.boardName) ? cr.boardName + ' ' : ''}${cr.rating}` : null);
+            setDataAttribute(container, 'ifcMinAge', cr && Number.isFinite(cr.ratingAge) ? cr.ratingAge : null);
+            setDataAttribute(container, 'ifcInstallSize', p && p.maxInstallSize > 0 ? p.maxInstallSize : getCachedInstallSize(container.dataset.ifcProductId));
+            setDataAttribute(container, 'ifcDeveloper', p && p.developerName ? p.developerName : null);
+            setDataAttribute(container, 'ifcHandheldOptimized', !!(p && p.hhVerified && p.hhVerified.deviceEvaluation === 1));
+            setDataAttribute(container, 'ifcXboxPcApp', !!(p && p.isAvailableOnGarrison === true));
             // Only for deals the page actually shows this viewer (some discounted offers in
             // the data never render a discount), so sort, badge and export agree
             const shownDiscount = parseFloat(container.dataset.ifcPriceDiscountPercent) > 0;
@@ -1878,6 +1911,11 @@ window.XboxWishlistCore = {
                 // T-43: when it joined its current passes, and when it leaves them all (if announced)
                 passJoined: num(c.dataset.ifcPassJoined) === null ? null : new Date(num(c.dataset.ifcPassJoined)).toISOString().slice(0, 10),
                 passLeaves: num(c.dataset.ifcPassLeaves) === null ? null : new Date(num(c.dataset.ifcPassLeaves)).toISOString().slice(0, 10),
+                // T-44: developer, age rating (board's text) and its minimum age, install size in GB, handheld / Xbox PC app
+                developer: text(c.dataset.ifcDeveloper) || null,
+                ageRating: text(c.dataset.ifcAgeRating) || null, minAge: num(c.dataset.ifcMinAge),
+                installSizeGB: num(c.dataset.ifcInstallSize) === null ? null : Math.round(num(c.dataset.ifcInstallSize) / 1e7) / 100,
+                handheldOptimized: c.dataset.ifcHandheldOptimized === 'true', xboxPcApp: c.dataset.ifcXboxPcApp === 'true',
                 // F-34: deal type personal | sale | member (null = no discount shown)
                 dealType: text(c.dataset.ifcDealType) || null, dealReason: text(c.dataset.ifcDealReason) || null,
                 preorder: c.dataset.ifcPreorder === 'true', platforms: getItemJsonList(c, 'ifcPlatforms'),
@@ -1901,7 +1939,7 @@ window.XboxWishlistCore = {
 
         function toCsv(rows) {
             const cols = ['title', 'publisher', 'price', 'originalPrice', 'discountPercent', 'owned', 'unpurchasable',
-                'rating', 'ratingCount', 'genres', 'releaseDate', 'addedDate', 'dealEnds', 'inPass', 'inMyPass', 'myPassEnds', 'passJoined', 'passLeaves', 'dealType', 'dealReason', 'preorder', 'platforms', 'capabilities', 'type', 'hasAddOns', 'addOnsCount', 'flagged', 'previousPrice', 'priceChanged', 'onSaleSince', 'onSaleSinceKnown', 'lowestPrice', 'priceHistory', 'url'];
+                'rating', 'ratingCount', 'genres', 'releaseDate', 'addedDate', 'dealEnds', 'inPass', 'inMyPass', 'myPassEnds', 'passJoined', 'passLeaves', 'developer', 'ageRating', 'minAge', 'installSizeGB', 'handheldOptimized', 'xboxPcApp', 'dealType', 'dealReason', 'preorder', 'platforms', 'capabilities', 'type', 'hasAddOns', 'addOnsCount', 'flagged', 'previousPrice', 'priceChanged', 'onSaleSince', 'onSaleSinceKnown', 'lowestPrice', 'priceHistory', 'url'];
             const cell = v => {
                 if (v === null || v === undefined) return '';
                 if (Array.isArray(v)) v = v.join('; ');
@@ -2127,12 +2165,15 @@ window.XboxWishlistCore = {
             // Relative to this wishlist's own price spread, not a fixed
             // currency amount - prices are in the viewer's local currency.
             const cheapMax = () => pr().min + (pr().max - pr().min) / 3;
-            // "Is not" for the discount presets: the discount slider from its bottom up to just under the threshold
-            const discountBelow = (below) => dr().enabled && dr().currentMin === dr().min && dr().currentMax === below;
-            const setDiscountBelow = (below) => {
-                dr().enabled = true; dr().currentMin = dr().min; dr().currentMax = below;
-                syncDiscountSliderUI();
-            };
+            // "Is not" for the discount presets: state.filters.discountBelow (the slider can't express it).
+            // Turning a discount preset on or off resets both, so the two never combine by accident.
+            const clearDiscount = () => { state.filters.discountBelow = 0; resetDiscountSlider(); };
+            const discountPreset = (key, label, notLabel, from, extra = {}) => ({ key, label, notLabel,
+                isActive: () => !state.filters.discountBelow && discountIs(discountFrom(from)),
+                apply: () => { state.filters.discountBelow = 0; setDiscount(discountFrom(from)); },
+                isNegated: () => state.filters.discountBelow === from,
+                applyNot: () => { resetDiscountSlider(); state.filters.discountBelow = from; },
+                clear: clearDiscount, ...extra });
             // A three-state flag preset (see FLAG_FILTERS): labels from the table, plus any extras
             const items = () => Array.from(document.getElementsByClassName(CONFIG.selectors.items));
             const flag = (key, extra = {}) => {
@@ -2148,11 +2189,8 @@ window.XboxWishlistCore = {
                 // Owned / Not Owned are each other's opposite already, so they stay two-state
                 { key: 'owned', label: 'Owned', isActive: () => ownedOnly('Owned'), apply: () => setOwned(['Owned']), clear: () => setOwned([]) },
                 { key: 'notOwned', label: 'Not Owned', isActive: () => ownedOnly('Not Owned'), apply: () => setOwned(['Not Owned']), clear: () => setOwned([]) },
-                { key: 'onSale', label: 'On Sale', notLabel: 'Not on sale', isActive: () => discountIs(discountFrom(1)), apply: () => setDiscount(discountFrom(1)),
-                    isNegated: () => dr().min === 0 && discountBelow(0), applyNot: () => { if (dr().min === 0) setDiscountBelow(0); }, clear: resetDiscountSlider },
-                { key: 'halfOff', label: '≥50% Off', notLabel: 'Under 50% off', isAvailable: () => dr().max >= 50,
-                    isActive: () => discountIs(discountFrom(50)), apply: () => setDiscount(discountFrom(50)),
-                    isNegated: () => dr().min < 50 && discountBelow(49), applyNot: () => { if (dr().min < 50) setDiscountBelow(49); }, clear: resetDiscountSlider },
+                discountPreset('onSale', 'On Sale', 'Not on sale', 1),
+                discountPreset('halfOff', '≥50% Off', 'Under 50% off', 50, { isAvailable: () => dr().max >= 50 }),
                 // Included with a subscription pass right now (from the page's product data) -
                 // unlike the Subscriptions filter, which reads "with <pass>" member-price badges
                 flag('inPass'),
@@ -2168,6 +2206,8 @@ window.XboxWishlistCore = {
                 flag('recentlyAdded', whenAny(isRecentlyAdded)),
                 // Games with add-ons (DLC) on the store (F-40, from the page's product data)
                 flag('hasAddOns'),
+                // T-44: the store's "Handheld Optimised" badge
+                flag('handheldOptimized', whenAny(c => c.dataset.ifcHandheldOptimized === 'true')),
                 flag('flagged'),
                 { key: 'cheap', label: 'Cheap', notLabel: 'Not cheap',
                     isActive: () => pr().enabled && pr().currentMin === pr().min && pr().currentMax === cheapMax(),
@@ -2213,9 +2253,11 @@ window.XboxWishlistCore = {
                 state.filters.subscriptions.selected = [];
                 state.filters.genres.selected = [];
                 FLAG_FILTERS.forEach(x => { state.filters[x.key] = false; });
+                state.filters.discountBelow = 0;
                 state.filters.platforms.selected = [];
                 state.filters.capabilities.selected = [];
                 state.filters.types.selected = [];
+                state.filters.ages.selected = [];
                 state.filters.search.term = '';
                 updateCheckboxes(CONFIG.ids.ownedSelect, []);
                 updateCheckboxes(CONFIG.ids.publishersSelect, []);
@@ -2224,6 +2266,7 @@ window.XboxWishlistCore = {
                 updateCheckboxes(CONFIG.ids.platformsSelect, []);
                 updateCheckboxes(CONFIG.ids.capabilitiesSelect, []);
                 updateCheckboxes(CONFIG.ids.typesSelect, []);
+                updateCheckboxes(CONFIG.ids.agesSelect, []);
                 const searchInput = getElement(`#${CONFIG.ids.searchInput}`);
                 if (searchInput) searchInput.value = '';
                 resetPriceSlider();
@@ -2246,7 +2289,8 @@ window.XboxWishlistCore = {
                 owned: [...f.owned.selected], publishers: [...f.publishers.selected], subscriptions: [...f.subscriptions.selected],
                 genres: [...f.genres.selected], platforms: [...f.platforms.selected],
                 ...Object.fromEntries(FLAG_FILTERS.map(x => [x.key, flagValue(f[x.key])])),   // true | 'not' | false
-                capabilities: [...f.capabilities.selected], types: [...f.types.selected],
+                discountBelow: discountBelowValue(f.discountBelow),
+                capabilities: [...f.capabilities.selected], types: [...f.types.selected], ages: [...f.ages.selected],
                 priceRange: snapshotRange(f.priceRange), discountRange: snapshotRange(f.discountRange),
                 priceCurrency: state.currency.code || LEGACY_CURRENCY   // the price range is in this currency
             };
@@ -2267,8 +2311,10 @@ window.XboxWishlistCore = {
                     genres: list(f.genres), platforms: list(f.platforms),
                     // On/off flags (true | 'not' | false); any a preset predates (F-25..T-43) read as off
                     ...Object.fromEntries(FLAG_FILTERS.map(x => [x.key, flagValue(f[x.key])])),
+                    discountBelow: discountBelowValue(f.discountBelow),   // before T-43
                     capabilities: list(f.capabilities),   // before F-36
                     types: list(f.types),                 // before the Type filter
+                    ages: list(f.ages),                   // before T-44
                     priceRange: range(f.priceRange), discountRange: range(f.discountRange),
                     priceCurrency: typeof f.priceCurrency === 'string' && f.priceCurrency ? f.priceCurrency : LEGACY_CURRENCY   // before per-currency prices: rand
                 }
@@ -2279,8 +2325,8 @@ window.XboxWishlistCore = {
         function hasPresetableFilters() {
             const f = state.filters;
             return f.owned.selected.length > 0 || f.publishers.selected.length > 0 || f.subscriptions.selected.length > 0
-                || f.genres.selected.length > 0 || f.platforms.selected.length > 0 || FLAG_FILTERS.some(x => f[x.key])
-                || f.capabilities.selected.length > 0 || f.types.selected.length > 0
+                || f.genres.selected.length > 0 || f.platforms.selected.length > 0 || FLAG_FILTERS.some(x => f[x.key]) || f.discountBelow > 0
+                || f.capabilities.selected.length > 0 || f.types.selected.length > 0 || f.ages.selected.length > 0
                 || f.priceRange.enabled || f.discountRange.enabled;
         }
         // A saved range re-applied to this page's slider bounds (same rules as a restore)
@@ -2299,8 +2345,8 @@ window.XboxWishlistCore = {
             return sameSet(f.owned.selected, pf.owned) && sameSet(f.publishers.selected, pf.publishers)
                 && sameSet(f.subscriptions.selected, pf.subscriptions)
                 && sameSet(f.genres.selected, pf.genres) && sameSet(f.platforms.selected, pf.platforms)
-                && FLAG_FILTERS.every(x => flagValue(f[x.key]) === flagValue(pf[x.key]))
-                && sameSet(f.capabilities.selected, pf.capabilities) && sameSet(f.types.selected, pf.types)
+                && FLAG_FILTERS.every(x => flagValue(f[x.key]) === flagValue(pf[x.key])) && discountBelowValue(f.discountBelow) === discountBelowValue(pf.discountBelow)
+                && sameSet(f.capabilities.selected, pf.capabilities) && sameSet(f.types.selected, pf.types) && sameSet(f.ages.selected, pf.ages)
                 && (presetPriceApplies(pf) ? rangeIs(f.priceRange, pf.priceRange) : !f.priceRange.enabled) && rangeIs(f.discountRange, pf.discountRange);
         }
         // Replaces the current filter selections with the preset's (search text is left alone)
@@ -2310,7 +2356,8 @@ window.XboxWishlistCore = {
                 f.owned.selected = [...pf.owned]; f.publishers.selected = [...pf.publishers]; f.subscriptions.selected = [...pf.subscriptions];
                 f.genres.selected = [...pf.genres]; f.platforms.selected = [...pf.platforms];
                 FLAG_FILTERS.forEach(x => { f[x.key] = flagValue(pf[x.key]); });
-                f.capabilities.selected = [...pf.capabilities]; f.types.selected = [...pf.types];
+                f.discountBelow = discountBelowValue(pf.discountBelow);
+                f.capabilities.selected = [...pf.capabilities]; f.types.selected = [...pf.types]; f.ages.selected = [...pf.ages];
                 updateCheckboxes(CONFIG.ids.ownedSelect, f.owned.selected);
                 updateCheckboxes(CONFIG.ids.publishersSelect, f.publishers.selected);
                 updateCheckboxes(CONFIG.ids.subscriptionsSelect, f.subscriptions.selected);
@@ -2318,6 +2365,7 @@ window.XboxWishlistCore = {
                 updateCheckboxes(CONFIG.ids.platformsSelect, f.platforms.selected);
                 updateCheckboxes(CONFIG.ids.capabilitiesSelect, f.capabilities.selected);
                 updateCheckboxes(CONFIG.ids.typesSelect, f.types.selected);
+                updateCheckboxes(CONFIG.ids.agesSelect, f.ages.selected);
                 // Saved in another currency: everything else applies, the price range is left off
                 f.priceRange = presetPriceApplies(pf) ? presetRangeOnPage(pf.priceRange, f.priceRange)
                     : rerangeSelection({ ...f.priceRange, enabled: false }, f.priceRange.min, f.priceRange.max);
@@ -2765,6 +2813,56 @@ window.XboxWishlistCore = {
             });
         }
 
+        // ==================== AGE RATING (T-44) ====================
+        // By minimum age rather than by board: one market mixes boards (en-ZA shows PEGI and FPB), and
+        // the age reads the same in every language. Values are the age as a string ("16"), youngest first.
+        const ageLabel = age => (age === '0' ? 'All ages' : `Ages ${age}+`);
+        function collectAges() {
+            const ages = new Map();
+            Array.from(document.getElementsByClassName(CONFIG.selectors.items)).forEach(c => {
+                const a = c.dataset.ifcMinAge;
+                if (a && a !== 'null') ages.set(a, (ages.get(a) || 0) + 1);
+            });
+            state.filters.ages.list = new Map(Array.from(ages.entries()).sort((a, b) => Number(a[0]) - Number(b[0])));
+            return state.filters.ages.list;
+        }
+
+        async function addFilterContainerAges() {
+            if (!state.ui.divFilter) return;
+            const gn = 'AgeRating';
+            try {
+                if (getElement(`#ifc_group_${gn}`, false)) { updateAgesCheckboxes(); return; }
+                const fg = getElement(`#${CONFIG.ids.filterContainer} ${CONFIG.selectors.filterGroups}`);
+                if (!fg) return;
+                const fb = createFilterBlock(gn, 'Age rating', true);
+                const cc = fb.querySelector('.ifc-accordion-content');
+                if (cc) {
+                    const ac = document.createElement('div');
+                    ac.id = CONFIG.ids.agesSelect;
+                    ac.className = 'ifc-checkbox-list';
+                    cc.appendChild(ac);
+                }
+                fg.appendChild(fb);
+                updateAgesCheckboxes();
+            } catch (ex) { console.error('Failed to add age rating filter:', ex); }
+        }
+
+        function updateAgesCheckboxes() {
+            const ages = collectAges();
+            const container = document.getElementById(CONFIG.ids.agesSelect);
+            if (!container) return;
+            container.innerHTML = '';
+            ages.forEach((count, age) => {
+                const label = document.createElement('label'); label.className = 'ifc-checkbox-item';
+                const cb = document.createElement('input');
+                cb.type = 'checkbox'; cb.value = age; cb.checked = state.filters.ages.selected.includes(age);
+                cb.className = 'ifc-checkbox';
+                cb.addEventListener('change', () => { state.filters.ages.selected = getCheckboxValues(CONFIG.ids.agesSelect); updateScreen(); });
+                const span = document.createElement('span'); span.className = 'ifc-checkbox-label'; span.textContent = `${ageLabel(age)} (${count})`;
+                label.appendChild(cb); label.appendChild(span); container.appendChild(label);
+            });
+        }
+
         // ==================== CAPABILITIES / LOAD DETAILS (F-36) ====================
         // Capabilities (Optimized for X|S, Smart Delivery, Play Anywhere, 4K, co-op, ...) exist
         // only in each game's own store page - not in the wishlist page's data. They're fetched
@@ -2807,6 +2905,15 @@ window.XboxWishlistCore = {
         function getCachedAddOnsCount(productId) {
             const entry = productId ? state.capCache[String(productId).toUpperCase()] : null;
             return entry && typeof entry.addOns === 'number' ? entry.addOns : null;
+        }
+        // T-44: install size (bytes) in the same entry ({ caps, at, addOns, size }) - the wishlist's own data
+        // almost never has it (0), a game's store page does. Entries saved before T-44 get it at their next read.
+        function installSizeEntry(summary) {
+            return summary && summary.maxInstallSize > 0 ? { size: summary.maxInstallSize } : {};
+        }
+        function getCachedInstallSize(productId) {
+            const entry = productId ? state.capCache[String(productId).toUpperCase()] : null;
+            return entry && typeof entry.size === 'number' && entry.size > 0 ? entry.size : null;
         }
         function needsAddOnsCount(productId) {
             const p = getProductData(productId);
@@ -2876,7 +2983,7 @@ window.XboxWishlistCore = {
                             Object.entries(summary.capabilities).forEach(([k, v]) => { if (typeof v === 'string' && v.trim()) caps[k] = v.trim(); });
                         }
                         // Stored even when empty, so a game with no capabilities isn't re-fetched every time
-                        state.capCache[id] = { caps, at: Date.now() };
+                        state.capCache[id] = { caps, at: Date.now(), ...installSizeEntry(summary) };
                     }
                     if (needsAddOnsCount(id) && (needCaps || getCachedAddOnsCount(id) === null)) {
                         if (needCaps) await new Promise(r => setTimeout(r, gap));   // same pause between the two pages
@@ -2917,7 +3024,7 @@ window.XboxWishlistCore = {
                 if (summary.capabilities && typeof summary.capabilities === 'object') {
                     Object.entries(summary.capabilities).forEach(([k, v]) => { if (typeof v === 'string' && v.trim()) caps[k] = v.trim(); });
                 }
-                state.capCache[id] = { caps, at: Date.now() };
+                state.capCache[id] = { caps, at: Date.now(), ...installSizeEntry(summary) };
                 // F-40: and the add-ons count for a game that has add-ons
                 if (summary.hasAddOns === true) state.capCache[id].addOns = await fetchAddOnsCount(id, url);
                 saveCapabilityCache();
@@ -3172,7 +3279,7 @@ window.XboxWishlistCore = {
                 addFilterContainer(); addSortContainer();
                 addSearchFilter(); addQuickFilters();
                 await addFilterContainerOwned(); await addFilterContainerPublishers(); await addFilterContainerSubscriptions();
-                await addFilterContainerGenres(); await addFilterContainerPlatforms(); await addFilterContainerTypes(); await addFilterContainerCapabilities();
+                await addFilterContainerGenres(); await addFilterContainerPlatforms(); await addFilterContainerTypes(); await addFilterContainerAges(); await addFilterContainerCapabilities();
                 addPriceRangeFilter(); addDiscountRangeFilter();
                 addSavedPresets();
             } catch (ex) { console.error('Failed to add filter controls:', ex); }
@@ -3349,14 +3456,14 @@ window.XboxWishlistCore = {
                             if (aMissing) continue;
                         }
                         // Same for product-data fields: unrated, unreleased or no current deal sorts last
-                        if (['ifcRating', 'ifcReleaseDate', 'ifcDealEnds', 'ifcAddedDate'].includes(c.field)) {
+                        if (['ifcRating', 'ifcReleaseDate', 'ifcDealEnds', 'ifcAddedDate', 'ifcInstallSize'].includes(c.field)) {
                             const aMissing = isNaN(parseFloat(a.dataset[c.field])), bMissing = isNaN(parseFloat(b.dataset[c.field]));
                             if (aMissing !== bMissing) return aMissing ? 1 : -1;
                             if (aMissing) continue;
                         }
                         const aVal = a.dataset[c.field], bVal = b.dataset[c.field];
                         let cmp = 0;
-                        if (['ifcId', 'ifcAddedDate', 'ifcPrice', 'ifcPriceDiscountPercent', 'ifcPriceDiscountAmount', 'ifcRating', 'ifcReleaseDate', 'ifcDealEnds', 'ifcFlagged'].includes(c.field)) {
+                        if (['ifcId', 'ifcAddedDate', 'ifcPrice', 'ifcPriceDiscountPercent', 'ifcPriceDiscountAmount', 'ifcRating', 'ifcReleaseDate', 'ifcDealEnds', 'ifcFlagged', 'ifcInstallSize'].includes(c.field)) {
                             cmp = (parseFloat(aVal) || 0) - (parseFloat(bVal) || 0);
                         } else { cmp = (aVal || '').toString().toLowerCase().localeCompare((bVal || '').toString().toLowerCase()); }
                         if (cmp !== 0) return c.order === 'asc' ? cmp : -cmp;
@@ -3523,18 +3630,25 @@ window.XboxWishlistCore = {
         }
 
         // T-43: a game's time in the passes, from passMetadataByPassProductId ({ passId: { entryDateUTC,
-        // exitDateUTC } }, past stints included). Current stints have started and not ended. joined = the
-        // earliest current start (so joining one more pass doesn't count as "new"); leaves = when it is gone
-        // from every pass, known only once every current stint has an announced end. Null when in no pass.
+        // exitDateUTC } }, past stints included) and includedWithPassesProductIds (the passes it is in now -
+        // some have no dates at all, e.g. {}). Current stints have started (or are listed now without a start)
+        // and not ended. joined = the earliest current start, only when every current start is known (so
+        // joining one more pass doesn't count as "new"); leaves = when it is gone from every pass, only when
+        // every current stint has an announced end. Null when it is in no pass.
         const PASS_SOON_DAYS = 30, PASS_SOON_MS = PASS_SOON_DAYS * 24 * 60 * 60 * 1000;
         function passTimeline(p) {
-            const meta = p && p.passMetadataByPassProductId;
-            if (!meta || typeof meta !== 'object') return null;
+            const meta = p && p.passMetadataByPassProductId && typeof p.passMetadataByPassProductId === 'object' ? p.passMetadataByPassProductId : {};
+            const listed = p && Array.isArray(p.includedWithPassesProductIds) ? p.includedWithPassesProductIds : [];
             const now = Date.now();
-            const stints = Object.values(meta).map(m => ({ from: Date.parse(m && m.entryDateUTC), to: Date.parse(m && m.exitDateUTC) }))
-                .filter(s => !isNaN(s.from) && s.from <= now && (isNaN(s.to) || s.to > now));
+            const stints = [...new Set([...Object.keys(meta), ...listed])].map(id => {
+                const m = meta[id] || {};
+                return { from: Date.parse(m.entryDateUTC), to: Date.parse(m.exitDateUTC), listed: listed.includes(id) };
+            }).filter(s => (isNaN(s.from) ? s.listed : s.from <= now) && (isNaN(s.to) || s.to > now));
             if (!stints.length) return null;
-            return { joined: Math.min(...stints.map(s => s.from)), leaves: stints.every(s => !isNaN(s.to)) ? Math.max(...stints.map(s => s.to)) : null };
+            return {
+                joined: stints.every(s => !isNaN(s.from)) ? Math.min(...stints.map(s => s.from)) : null,
+                leaves: stints.every(s => !isNaN(s.to)) ? Math.max(...stints.map(s => s.to)) : null
+            };
         }
         // "Soon" / "new" are relative to now, so computed at read time (like isRecentlyAdded)
         function isLeavingPassSoon(container) {
@@ -3559,12 +3673,16 @@ window.XboxWishlistCore = {
             { key: 'preorder', label: 'Pre-order', notLabel: 'Not pre-order', test: c => c.dataset.ifcPreorder === 'true' },
             { key: 'recentlyAdded', label: 'Added Recently', notLabel: 'Not added recently', tagLabel: `Added in the last ${RECENTLY_ADDED_DAYS} days`, notTagLabel: `Not added in the last ${RECENTLY_ADDED_DAYS} days`, test: isRecentlyAdded },
             { key: 'hasAddOns', label: 'Has add-ons', notLabel: 'No add-ons', test: c => c.dataset.ifcHasAddOns === 'true' },
+            { key: 'handheldOptimized', label: 'Handheld optimised', notLabel: 'Not handheld optimised', test: c => c.dataset.ifcHandheldOptimized === 'true' },
             { key: 'flagged', label: 'Flagged', notLabel: 'Not flagged', test: c => c.dataset.ifcFlagged === '1' }
         ];
         const isFlagValue = v => v === true || v === false || v === FLAG_NOT;
         const flagValue = v => (v === true || v === FLAG_NOT ? v : false);
         function flagAllows(value, has) { return value === true ? has : value === FLAG_NOT ? !has : true; }
         function flagTagLabel(f, value) { return value === FLAG_NOT ? (f.notTagLabel || f.notLabel) : (f.tagLabel || f.label); }
+        // state.filters.discountBelow: 0 (off) or a whole percentage 1..100
+        const discountBelowValue = v => (Number.isInteger(v) && v > 0 && v <= 100 ? v : 0);
+        const discountBelowLabel = n => (n === 1 ? 'Not on sale' : `Under ${n}% off`);
 
         function shouldShowContainer(container) {
             const isOwned = container.dataset.ifcOwned === 'true';
@@ -3577,7 +3695,9 @@ window.XboxWishlistCore = {
                 const name = container.dataset.ifcName;
                 const nameMatches = name && name !== 'null' && name.toLowerCase().includes(searchTerm);
                 const publisherMatches = publisher && publisher !== 'null' && publisher.toLowerCase().includes(searchTerm);
-                if (!nameMatches && !publisherMatches) return false;
+                const developer = container.dataset.ifcDeveloper;   // T-44: from the page's product data
+                const developerMatches = developer && developer !== 'null' && developer.toLowerCase().includes(searchTerm);
+                if (!nameMatches && !publisherMatches && !developerMatches) return false;
             }
             if (state.filters.owned.selected.length > 0) {
                 let m = false;
@@ -3612,6 +3732,7 @@ window.XboxWishlistCore = {
                 if (!state.filters.capabilities.selected.every(c => caps.includes(c))) return false;
             }
             if (state.filters.types.selected.length > 0 && !state.filters.types.selected.includes(container.dataset.ifcType)) return false;
+            if (state.filters.ages.selected.length > 0 && !state.filters.ages.selected.includes(container.dataset.ifcMinAge)) return false;
             if (state.filters.priceRange.enabled) {
                 // No price data at all (e.g. un-purchasable items) can't be "in range" - exclude.
                 if (isNaN(price)) return false;
@@ -3621,6 +3742,11 @@ window.XboxWishlistCore = {
                 // No price means no meaningful discount either - exclude, same as above.
                 if (isNaN(price)) return false;
                 if (discount < state.filters.discountRange.currentMin || discount > state.filters.discountRange.currentMax) return false;
+            }
+            if (state.filters.discountBelow > 0) {
+                // "Not on sale" / "Under 50% off": priced items only; no discount counts as 0%
+                if (isNaN(price)) return false;
+                if ((isNaN(discount) ? 0 : discount) >= state.filters.discountBelow) return false;
             }
             return true;
         }
@@ -3638,7 +3764,7 @@ window.XboxWishlistCore = {
             state.ui.lowestItemId = nextId + 1;
             Array.from(containers).forEach(c => setContainerData(c, c.dataset.ifcId));
             if (state.priceDirty) savePriceHistory();
-            updateOwnedCounts(); collectPublishers(); updatePublishersCheckboxes(); updateSubscriptionsCheckboxes(); updateGenresCheckboxes(); updatePlatformsCheckboxes(); updateTypesCheckboxes(); updateCapabilitiesCheckboxes(); updatePriceSlider(); updateDiscountSlider();
+            updateOwnedCounts(); collectPublishers(); updatePublishersCheckboxes(); updateSubscriptionsCheckboxes(); updateGenresCheckboxes(); updatePlatformsCheckboxes(); updateTypesCheckboxes(); updateAgesCheckboxes(); updateCapabilitiesCheckboxes(); updatePriceSlider(); updateDiscountSlider();
             Array.from(containers).forEach(c => {
                 try {
                     if (shouldShowContainer(c)) {

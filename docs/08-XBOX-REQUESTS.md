@@ -44,7 +44,7 @@ already rendered it for the signed-in viewer).
 ### Product summary fields (307 on the capture's wishlist)
 | Field | Meaning | Used by us |
 |---|---|---|
-| `productId`, `title`, `publisherName`, `developerName` | Identity | title/publisher yes; developer **no** |
+| `productId`, `title`, `publisherName`, `developerName` | Identity | yes (developer since T-44: search + export) |
 | `productKind` | Game / Durable (DLC) / Consumable | yes (Type filter) |
 | `categories` | Genres | yes (Genres filter) |
 | `availableOn` | XboxOne / XboxSeriesX / PC / Handheld | yes (Platforms) |
@@ -52,15 +52,15 @@ already rendered it for the signed-in viewer).
 | `releaseDate` | Release date | yes |
 | `specificPrices` | purchaseable / giftable offers: price, msrp, discount, `eligibilityInfo` (sale / member / personal), end dates | yes (prices, deal type, deal ends) |
 | `includedWithPassesProductIds` | Passes that include it now | yes ("In a pass") |
-| `passMetadataByPassProductId` | Per pass: `entryDateUTC`, `exitDateUTC` - when it joined / leaves each pass (past stints are listed too) | **no** |
+| `passMetadataByPassProductId` | Per pass: `entryDateUTC`, `exitDateUTC` - when it joined / leaves each pass (past stints are listed too; some passes list games with `{}`) | yes (T-43: Leaving pass soon / New in pass) |
 | `optimalSatisfyingPassId` | Best pass for this game | **no** |
 | `hasAddOns` | Has DLC | yes |
-| `contentRating` | Age rating board, rating, descriptors, image | **no** |
-| `maxInstallSize` | Install size in bytes | **no** |
-| `badges`, `hhVerified` | Store badges; likely "handheld verified" (31 of 307 set) | badges partly; hhVerified **no** |
+| `contentRating` | Age rating: `boardName` (PEGI, FPB, USK...), `rating` text, numeric `ratingAge`, descriptors, image | yes (T-44: Age rating filter by `ratingAge`, export) |
+| `maxInstallSize` | Install size in bytes - **0 on the wishlist page for almost every game** (1 of 307); the store page has it | yes (T-44: Install Size sort + export, size cached from store page reads) |
+| `badges`, `hhVerified` | Store badges; `hhVerified.deviceEvaluation` 1 = the store page's "Handheld Optimised" badge (confirmed on 5 store pages; 3 = no badge, just "Handheld" in platforms) | badges partly; hhVerified yes (T-44 quick filter) |
 | `shortDescription`, `description`, `images`, `videos`, `cmsVideos` | Marketing text and media | **no** |
 | `productFamily`, `preferredSkuId`, `optimalSkuId` | Family / default edition | **no** |
-| `isAvailableOnGarrison` | Likely cloud gaming (xCloud) availability - unconfirmed | **no** |
+| `isAvailableOnGarrison` | **Available in the Xbox PC app** - not cloud gaming: Xbox's own Launch button opens `msxbox://game/?productId=` when true, the Microsoft Store app otherwise | yes (T-44: export `xboxPcApp`) |
 | `hasUbisoftCrossEntitlementProduct` | Ubisoft+ cross-entitlement | **no** |
 
 SKU summaries: `skuId`, `skuTitle`, `skuDescription`, `isPreorder` (used), `isGamesWithGoldSku`, images.
@@ -169,13 +169,13 @@ From data already on the wishlist page (no new requests, no new permissions):
 
 | Idea | Source field | Effort |
 |---|---|---|
-| **Leaving Game Pass soon** filter + "Leaves 1 Oct" chip | `passMetadataByPassProductId[pass].exitDateUTC` | Small |
-| **New to Game Pass** (joined in the last 30 days) | `...entryDateUTC` | Small |
-| Cloud playable (xCloud) filter / chip - confirm the field first | `isAvailableOnGarrison` | Small |
-| Handheld-verified filter | `hhVerified` | Small |
-| Install size column + sort ("smallest first") | `maxInstallSize` | Small |
-| Age rating filter / column (PEGI, FPB, ESRB...) | `contentRating.boardName` + rating | Small |
-| Developer filter / column | `developerName` | Small |
+| Leaving pass soon filter + "Leaves pass 1 Oct" chip | `passMetadataByPassProductId[pass].exitDateUTC` | Done (T-43) |
+| New in pass (joined in the last 30 days) | `...entryDateUTC` | Done (T-43) |
+| ~~Cloud playable~~ - the field turned out to mean "in the Xbox PC app"; exported only | `isAvailableOnGarrison` | Done (T-44) |
+| Handheld optimised quick filter | `hhVerified.deviceEvaluation === 1` | Done (T-44) |
+| Install size sort + column (store-page size, cached) | `maxInstallSize` | Done (T-44) |
+| Age rating filter (by minimum age) + column | `contentRating.ratingAge` + `rating` | Done (T-44) |
+| Developer in search + column | `developerName` | Done (T-44) |
 | Ubisoft+ included | `hasUbisoftCrossEntitlementProduct` | Small |
 | Giftable price / "can gift" | `specificPrices.giftable` | Medium |
 | Edition name in the list / export | `skuSummaries[].skuTitle` | Small |

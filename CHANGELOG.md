@@ -14,6 +14,18 @@ for how a version is bumped and published.
 
 ---
 
+## v1.5.26272.8 (Sep 2026) - T-44: age rating, install size, developer, handheld optimised
+
+- New **Age rating** filter (by minimum age: "All ages", "Ages 3+" ... "Ages 18+"), so PEGI, FPB, USK and
+  other boards in one market filter together; tags and saved filters included.
+- New **Install Size** sort (largest / smallest first; unknown sizes last). The wishlist page itself has
+  almost no sizes, so they come from each game's store page when "Load details" or the item refresh reads
+  it, and are kept in the details cache.
+- New **Handheld optimised** quick filter (three-state) - the store page's "Handheld Optimised" badge.
+- The search box now also matches the **developer**.
+- Export: new `developer`, `ageRating`, `minAge`, `installSizeGB`, `handheldOptimized` and `xboxPcApp`
+  columns (`xboxPcApp` = available in the Xbox app on PC).
+
 ## v1.5.26272.6 (Sep 2026) - T-43: leaving / new in a pass; three-state quick filters
 
 - **Leaving pass soon**: games whose every current pass has an announced end within 30 days get an

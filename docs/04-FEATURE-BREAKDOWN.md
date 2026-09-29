@@ -552,6 +552,20 @@ from `passMetadataByPassProductId`).
   starts at the smallest discount on sale, so it can't express "not on sale". Cheap's "is not" is the price
   slider from the cheap limit up. Owned / Not Owned stay two-state.
 
+### T-44 - Extra data from the page: age rating, install size, developer, handheld, Xbox PC app
+
+**Status (v1.5.26272.8) - done:**
+- Field meanings checked first: `hhVerified.deviceEvaluation` 1 = the store page's "Handheld Optimised" badge
+  (5 of 5 store pages); `isAvailableOnGarrison` is **not** cloud gaming - Xbox's Launch button opens the Xbox PC
+  app (`msxbox://game`) when it's true - so it's exported as `xboxPcApp` only.
+- Age rating filter by `contentRating.ratingAge` (boards mix within a market: en-ZA shows PEGI and FPB);
+  checkbox list, tags, Clear All, saved filters; counts match the raw data (16+: 92 games / 94 tiles).
+- Install Size sort. `maxInstallSize` is 0 on the wishlist page for 306 of 307 games, so the size is taken from
+  the store page (Load details / item refresh) and kept in the details cache (`size`); entries cached before
+  T-44 pick it up at their next read.
+- Handheld optimised three-state quick filter (19 / 291 of 310 on the en-ZA capture); developer in search;
+  export columns `developer`, `ageRating`, `minAge`, `installSizeGB`, `handheldOptimized`, `xboxPcApp`.
+
 ---
 
 ## Future Features (v2.0+)
