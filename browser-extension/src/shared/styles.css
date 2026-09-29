@@ -222,6 +222,14 @@ ul.filter-groups {
     color: #ffffff;
 }
 
+/* Second click on a three-state quick filter: "is not" (e.g. "Not in a pass") */
+.ifc-quick-filter-btn.ifc-Negated,
+.ifc-quick-filter-btn.ifc-Negated:hover {
+    background-color: transparent;
+    border-color: #b3261e;
+    color: var(--ifc-text);
+}
+
 .ifc-quick-filter-btn:disabled {
     opacity: 0.4;
     cursor: default;
@@ -341,6 +349,19 @@ p:has(+ .ifc-item-tags) {
 .ifc-item-tag-mypass {
     background-color: #107c10;
     color: #ffffff;
+    cursor: help;
+}
+
+/* T-43: leaving every pass soon (warning colour, like a deal ending) / new in a pass (green outline) */
+.ifc-item-tag-passleaves {
+    border: 1px solid var(--ifc-warn);
+    color: var(--ifc-warn);
+    cursor: help;
+}
+
+.ifc-item-tag-passnew {
+    border: 1px solid var(--ifc-accent-border);
+    color: var(--ifc-accent-text);
     cursor: help;
 }
 

@@ -536,6 +536,22 @@ en-ZA capture, matching the raw data; 46/46 fixtures PASS.
 See `docs/08-XBOX-REQUESTS.md` for the request catalogue and further data ideas (e.g. "Leaving Game Pass soon"
 from `passMetadataByPassProductId`).
 
+### T-43 - Leaving / new in a pass, and three-state quick filters
+
+**Status (v1.5.26272.6) - done:**
+- `passTimeline()` reads `passMetadataByPassProductId` + `includedWithPassesProductIds`. Current stints have
+  started (or are listed now with no dates - pass `CFQ7TTC0QH5H` lists games with `{}`) and not ended.
+  joined = earliest current start, only when every start is known; leaves = latest current end, only when every
+  current stint has one. "Soon" / "new" = within `PASS_SOON_DAYS` (30), computed at read time.
+- Chips "Leaves pass {d MMM}" (amber) and "New in pass" (green outline); quick filters; export `passJoined`,
+  `passLeaves`. The en-ZA capture has no announced exits and nothing new (buttons correctly greyed out);
+  verified in the harness with injected dates, incl. a game leaving one of three passes (not "leaving").
+- Quick filters are three-state (off / "is" / "is not"). Flag filters live in one `FLAG_FILTERS` table
+  (value `true | 'not' | false`) used by the filter test, tags, tag removal, saved state and saved filters.
+  On Sale / >=50% Off use `state.filters.discountBelow` (1 / 50) for "is not" - the discount slider's range
+  starts at the smallest discount on sale, so it can't express "not on sale". Cheap's "is not" is the price
+  slider from the cheap limit up. Owned / Not Owned stay two-state.
+
 ---
 
 ## Future Features (v2.0+)

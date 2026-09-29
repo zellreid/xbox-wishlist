@@ -14,6 +14,20 @@ for how a version is bumped and published.
 
 ---
 
+## v1.5.26272.6 (Sep 2026) - T-43: leaving / new in a pass; three-state quick filters
+
+- **Leaving pass soon**: games whose every current pass has an announced end within 30 days get an
+  amber "Leaves pass 9 Oct" chip (full date on hover) and a quick filter. A game leaving one pass but
+  staying in another is not "leaving".
+- **New in pass**: games whose earliest current pass stint began within the last 30 days get a green
+  "New in pass" chip and a quick filter. Joining one more pass doesn't count as new.
+- Export: new `passJoined` and `passLeaves` columns.
+- **Quick filters cycle through three states**: first click "is" (green), second click "is not" (red
+  outline, the button reads e.g. "Not in a pass"), third click off. Applies to In a pass, In my pass,
+  Leaving pass soon, New in pass, Just for you, Pre-order, Added Recently, Has add-ons, Flagged, On Sale
+  ("Not on sale"), >=50% Off ("Under 50% off") and Cheap ("Not cheap"). Owned / Not Owned stay two-state
+  (they are each other's opposite). "Is not" states show as tags, are saved, and work in saved filters.
+
 ## v1.5.26272.5 (Sep 2026) - T-31: "In my pass"
 
 - New **In my pass** quick filter: games your own pass covers right now (from your entitlements on the

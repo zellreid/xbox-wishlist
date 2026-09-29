@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         XBOX Wishlist
 // @namespace    https://github.com/zellreid/xbox-wishlist
-// @version      1.5.26272.5
+// @version      1.5.26272.6
 // @description  Advanced filtering and sorting suite with multi-level sort (up to 3 criteria) - Resilient selectors - Public wishlist support
 // @author       ZellReid
 // @homepage     https://github.com/zellreid/xbox-wishlist
@@ -14,7 +14,7 @@
 // @match        https://www.xbox.com/*/promotions/sales/*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=xbox.com
 // @run-at       document-body
-// @resource     CSSFilter https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/styles.css?ver=1.5.26272.5
+// @resource     CSSFilter https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/styles.css?ver=1.5.26272.6
 // @resource     IMGFilter https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/filter.svg
 // @resource     IMGSort https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/sort.svg
 // @resource     IMGExport https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/export.svg
@@ -84,6 +84,8 @@ window.XboxWishlistCore = {
                 genres: { selected: [], list: new Map() },
                 inPass: false,
                 inMyPass: false,   // T-31: covered by the viewer's own pass right now (from the page's entitlements)
+                leavingPass: false, newToPass: false,   // T-43: leaves every pass within PASS_SOON_DAYS / joined one within it
+                // The flag filters above and below are three-state: true | FLAG_NOT ('not') | false - see FLAG_FILTERS
                 // F-34
                 platforms: { selected: [], list: new Map() },
                 justForYou: false,
@@ -541,17 +543,12 @@ window.XboxWishlistCore = {
                             if (parsed.genres && Array.isArray(parsed.genres.selected)) {
                                 state.filters.genres.selected = parsed.genres.selected.filter(g => typeof g === 'string');
                             }
-                            if (typeof parsed.inPass === 'boolean') state.filters.inPass = parsed.inPass;
-                            if (typeof parsed.inMyPass === 'boolean') state.filters.inMyPass = parsed.inMyPass;
+                            // On/off flags: true, 'not' or false (older saves only have booleans)
+                            FLAG_FILTERS.forEach(f => { if (isFlagValue(parsed[f.key])) state.filters[f.key] = parsed[f.key]; });
                             if (parsed.platforms && Array.isArray(parsed.platforms.selected)) {
                                 state.filters.platforms.selected = parsed.platforms.selected.filter(p => typeof p === 'string');
                             }
-                            if (typeof parsed.justForYou === 'boolean') state.filters.justForYou = parsed.justForYou;
                             if (parsed.theme === 'light' || parsed.theme === 'dark') state.theme = parsed.theme;
-                            if (typeof parsed.preorder === 'boolean') state.filters.preorder = parsed.preorder;
-                            if (typeof parsed.recentlyAdded === 'boolean') state.filters.recentlyAdded = parsed.recentlyAdded;
-                            if (typeof parsed.hasAddOns === 'boolean') state.filters.hasAddOns = parsed.hasAddOns;
-                            if (typeof parsed.flagged === 'boolean') state.filters.flagged = parsed.flagged;
                             if (parsed.capabilities && Array.isArray(parsed.capabilities.selected)) {
                                 state.filters.capabilities.selected = parsed.capabilities.selected.filter(c => typeof c === 'string');
                             }
@@ -622,17 +619,15 @@ window.XboxWishlistCore = {
                 const count = state.filters.genres.list.get(g) || 0;
                 tags.push({ type: 'genre', value: g, label: `${g} (${count})` });
             });
-            if (state.filters.inPass) tags.push({ type: 'inPass', value: 'inPass', label: 'In a pass' });
-            if (state.filters.inMyPass) tags.push({ type: 'inMyPass', value: 'inMyPass', label: 'In my pass' });
+            // On/off flags, "is" or "is not" (three-state, see FLAG_FILTERS)
+            FLAG_FILTERS.forEach(f => {
+                const v = state.filters[f.key];
+                if (v) tags.push({ type: 'flag', value: f.key, label: flagTagLabel(f, v) });
+            });
             state.filters.platforms.selected.forEach(pl => {
                 const count = state.filters.platforms.list.get(pl) || 0;
                 tags.push({ type: 'platform', value: pl, label: `${pl} (${count})` });
             });
-            if (state.filters.justForYou) tags.push({ type: 'justForYou', value: 'justForYou', label: 'Just for you' });
-            if (state.filters.preorder) tags.push({ type: 'preorder', value: 'preorder', label: 'Pre-order' });
-            if (state.filters.recentlyAdded) tags.push({ type: 'recentlyAdded', value: 'recentlyAdded', label: `Added in the last ${RECENTLY_ADDED_DAYS} days` });
-            if (state.filters.hasAddOns) tags.push({ type: 'hasAddOns', value: 'hasAddOns', label: 'Has add-ons' });
-            if (state.filters.flagged) tags.push({ type: 'flagged', value: 'flagged', label: 'Flagged' });
             state.filters.capabilities.selected.forEach(cap => {
                 const count = state.filters.capabilities.list.get(cap) || 0;
                 tags.push({ type: 'capability', value: cap, label: `${cap} (${count})` });
@@ -686,16 +681,10 @@ window.XboxWishlistCore = {
                 case 'genre':
                     state.filters.genres.selected = state.filters.genres.selected.filter(v => v !== tag.value);
                     updateCheckboxes(CONFIG.ids.genresSelect, state.filters.genres.selected); break;
-                case 'inPass': state.filters.inPass = false; break;
-                case 'inMyPass': state.filters.inMyPass = false; break;
+                case 'flag': state.filters[tag.value] = false; break;
                 case 'platform':
                     state.filters.platforms.selected = state.filters.platforms.selected.filter(v => v !== tag.value);
                     updateCheckboxes(CONFIG.ids.platformsSelect, state.filters.platforms.selected); break;
-                case 'justForYou': state.filters.justForYou = false; break;
-                case 'preorder': state.filters.preorder = false; break;
-                case 'recentlyAdded': state.filters.recentlyAdded = false; break;
-                case 'hasAddOns': state.filters.hasAddOns = false; break;
-                case 'flagged': state.filters.flagged = false; break;
                 case 'capability':
                     state.filters.capabilities.selected = state.filters.capabilities.selected.filter(v => v !== tag.value);
                     updateCheckboxes(CONFIG.ids.capabilitiesSelect, state.filters.capabilities.selected); break;
@@ -1161,6 +1150,10 @@ window.XboxWishlistCore = {
             const myPass = myPassEntitlement(container.dataset.ifcProductId);
             setDataAttribute(container, 'ifcInMyPass', !!myPass);
             setDataAttribute(container, 'ifcMyPassEnds', myPass ? myPass.ends : null);
+            // T-43: when it joined its current passes, and when it leaves them all (null = not in a pass / no end announced)
+            const passTimes = passTimeline(p);
+            setDataAttribute(container, 'ifcPassJoined', passTimes ? passTimes.joined : null);
+            setDataAttribute(container, 'ifcPassLeaves', passTimes ? passTimes.leaves : null);
             // Only for deals the page actually shows this viewer (some discounted offers in
             // the data never render a discount), so sort, badge and export agree
             const shownDiscount = parseFloat(container.dataset.ifcPriceDiscountPercent) > 0;
@@ -1207,6 +1200,8 @@ window.XboxWishlistCore = {
                 title: container.dataset.ifcName,
                 kindLabel: type === 'DLC' || type === 'Consumable' ? type : null,
                 personal: dealType === 'personal', reason: offer.dealReason, preorder: !!(p && p.ifcIsPreorder), myPass,
+                passLeaves: isLeavingPassSoon(container) ? passTimes.leaves : null,
+                passJoined: isNewToPass(container) ? passTimes.joined : null,
                 playAnywhere: capKeys.includes('XPA'), optimizedXS: capKeys.includes('ConsoleGen9Optimized'),
                 smartDelivery: capKeys.includes('ConsoleCrossGen'),
                 addOns: hasAddOns ? { count: addOnsCount, url: addOnsUrl(container.dataset.ifcProductId, container.dataset.ifcUri) } : null
@@ -1244,7 +1239,7 @@ window.XboxWishlistCore = {
         // Fixed position of each entry in an item's tag row, whatever order the code builds them in.
         // Spaced by 10 so a new entry can go between two existing ones without renumbering.
         const ITEM_TAG_ORDER = Object.freeze({
-            REFRESH: 10, FLAG: 20, ADD_ONS: 30, JUST_FOR_YOU: 40, MY_PASS: 45, PREORDER: 50,
+            REFRESH: 10, FLAG: 20, ADD_ONS: 30, JUST_FOR_YOU: 40, MY_PASS: 45, PASS_LEAVES: 46, PASS_NEW: 47, PREORDER: 50,
             OPTIMIZED_XS: 60, PLAY_ANYWHERE: 70, SMART_DELIVERY: 80, DLC: 90, CONSUMABLE: 100
         });
 
@@ -1255,7 +1250,7 @@ window.XboxWishlistCore = {
                 // store page gets one; without a product id / URL there's nothing to refresh
                 const canRefresh = !!(info.productId && info.url && info.url !== 'null');
                 const canFlag = !!(info.productId && info.productId !== 'NULL');
-                if (!canRefresh && !canFlag && !info.personal && !info.myPass && !info.preorder && !info.playAnywhere && !info.optimizedXS && !info.smartDelivery && !info.kindLabel && !info.addOns) { if (row) row.remove(); return; }
+                if (!canRefresh && !canFlag && !info.personal && !info.myPass && !info.passLeaves && !info.passJoined && !info.preorder && !info.playAnywhere && !info.optimizedXS && !info.smartDelivery && !info.kindLabel && !info.addOns) { if (row) row.remove(); return; }
                 if (!row) {
                     const pd = CONFIG.selectors.productDetails ? safeQuerySelector(container, CONFIG.selectors.productDetails) : null;
                     if (!pd) return;
@@ -1285,6 +1280,22 @@ window.XboxWishlistCore = {
                         : info.myPass.renews ? `Included with your pass - it renews ${on}` : `Included with your pass until ${on}`;
                     mine.title = text; mine.setAttribute('aria-label', text);
                     add(ITEM_TAG_ORDER.MY_PASS, mine);
+                }
+                // T-43: leaving every pass within PASS_SOON_DAYS / joined its first current pass within it
+                const passDay = ms => new Date(ms).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+                if (info.passLeaves) {
+                    const leaves = document.createElement('span'); leaves.className = 'ifc-item-tag ifc-item-tag-passleaves';
+                    leaves.textContent = `Leaves pass ${passDay(info.passLeaves)}`;
+                    const text = `Leaves every pass it is in on ${new Date(info.passLeaves).toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' })}`;
+                    leaves.title = text; leaves.setAttribute('aria-label', text);
+                    add(ITEM_TAG_ORDER.PASS_LEAVES, leaves);
+                }
+                if (info.passJoined) {
+                    const fresh = document.createElement('span'); fresh.className = 'ifc-item-tag ifc-item-tag-passnew';
+                    fresh.textContent = 'New in pass';
+                    const text = `Joined a pass on ${new Date(info.passJoined).toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' })}`;
+                    fresh.title = text; fresh.setAttribute('aria-label', text);
+                    add(ITEM_TAG_ORDER.PASS_NEW, fresh);
                 }
                 if (info.preorder) {
                     const pre = document.createElement('span'); pre.className = 'ifc-item-tag ifc-item-tag-preorder';
@@ -1864,6 +1875,9 @@ window.XboxWishlistCore = {
                 // T-31: covered by the viewer's own pass, and when that pass's current term ends
                 inMyPass: c.dataset.ifcInMyPass === 'true',
                 myPassEnds: num(c.dataset.ifcMyPassEnds) === null ? null : new Date(num(c.dataset.ifcMyPassEnds)).toISOString().slice(0, 10),
+                // T-43: when it joined its current passes, and when it leaves them all (if announced)
+                passJoined: num(c.dataset.ifcPassJoined) === null ? null : new Date(num(c.dataset.ifcPassJoined)).toISOString().slice(0, 10),
+                passLeaves: num(c.dataset.ifcPassLeaves) === null ? null : new Date(num(c.dataset.ifcPassLeaves)).toISOString().slice(0, 10),
                 // F-34: deal type personal | sale | member (null = no discount shown)
                 dealType: text(c.dataset.ifcDealType) || null, dealReason: text(c.dataset.ifcDealReason) || null,
                 preorder: c.dataset.ifcPreorder === 'true', platforms: getItemJsonList(c, 'ifcPlatforms'),
@@ -1887,7 +1901,7 @@ window.XboxWishlistCore = {
 
         function toCsv(rows) {
             const cols = ['title', 'publisher', 'price', 'originalPrice', 'discountPercent', 'owned', 'unpurchasable',
-                'rating', 'ratingCount', 'genres', 'releaseDate', 'addedDate', 'dealEnds', 'inPass', 'inMyPass', 'myPassEnds', 'dealType', 'dealReason', 'preorder', 'platforms', 'capabilities', 'type', 'hasAddOns', 'addOnsCount', 'flagged', 'previousPrice', 'priceChanged', 'onSaleSince', 'onSaleSinceKnown', 'lowestPrice', 'priceHistory', 'url'];
+                'rating', 'ratingCount', 'genres', 'releaseDate', 'addedDate', 'dealEnds', 'inPass', 'inMyPass', 'myPassEnds', 'passJoined', 'passLeaves', 'dealType', 'dealReason', 'preorder', 'platforms', 'capabilities', 'type', 'hasAddOns', 'addOnsCount', 'flagged', 'previousPrice', 'priceChanged', 'onSaleSince', 'onSaleSinceKnown', 'lowestPrice', 'priceHistory', 'url'];
             const cell = v => {
                 if (v === null || v === undefined) return '';
                 if (Array.isArray(v)) v = v.join('; ');
@@ -2079,7 +2093,10 @@ window.XboxWishlistCore = {
                         // Re-resolve on click - the range objects in state are replaced as items render
                         const p = getQuickFilterPresets().find(q => q.key === preset.key);
                         if (!p) return;
-                        if (p.isActive()) p.clear(); else p.apply();
+                        // Three steps where a preset has an opposite: off -> "is" -> "is not" -> off
+                        if (p.isActive()) { p.clear(); if (p.applyNot) p.applyNot(); }
+                        else if (p.isNegated && p.isNegated()) p.clear();
+                        else p.apply();
                         updateScreen();
                     });
                     row.appendChild(btn);
@@ -2110,40 +2127,57 @@ window.XboxWishlistCore = {
             // Relative to this wishlist's own price spread, not a fixed
             // currency amount - prices are in the viewer's local currency.
             const cheapMax = () => pr().min + (pr().max - pr().min) / 3;
+            // "Is not" for the discount presets: the discount slider from its bottom up to just under the threshold
+            const discountBelow = (below) => dr().enabled && dr().currentMin === dr().min && dr().currentMax === below;
+            const setDiscountBelow = (below) => {
+                dr().enabled = true; dr().currentMin = dr().min; dr().currentMax = below;
+                syncDiscountSliderUI();
+            };
+            // A three-state flag preset (see FLAG_FILTERS): labels from the table, plus any extras
+            const items = () => Array.from(document.getElementsByClassName(CONFIG.selectors.items));
+            const flag = (key, extra = {}) => {
+                const f = FLAG_FILTERS.find(x => x.key === key);
+                return { key, label: f.label, notLabel: f.notLabel,
+                    isActive: () => state.filters[key] === true, isNegated: () => state.filters[key] === FLAG_NOT,
+                    apply: () => { state.filters[key] = true; }, applyNot: () => { state.filters[key] = FLAG_NOT; },
+                    clear: () => { state.filters[key] = false; }, ...extra };
+            };
+            // Only offered once at least one item has it (the "is not" of nothing would be everything)
+            const whenAny = test => ({ isAvailable: () => items().some(test) });
             return [
+                // Owned / Not Owned are each other's opposite already, so they stay two-state
                 { key: 'owned', label: 'Owned', isActive: () => ownedOnly('Owned'), apply: () => setOwned(['Owned']), clear: () => setOwned([]) },
                 { key: 'notOwned', label: 'Not Owned', isActive: () => ownedOnly('Not Owned'), apply: () => setOwned(['Not Owned']), clear: () => setOwned([]) },
-                { key: 'onSale', label: 'On Sale', isActive: () => discountIs(discountFrom(1)), apply: () => setDiscount(discountFrom(1)), clear: resetDiscountSlider },
-                { key: 'halfOff', label: '≥50% Off', isAvailable: () => dr().max >= 50,
-                    isActive: () => discountIs(discountFrom(50)), apply: () => setDiscount(discountFrom(50)), clear: resetDiscountSlider },
+                { key: 'onSale', label: 'On Sale', notLabel: 'Not on sale', isActive: () => discountIs(discountFrom(1)), apply: () => setDiscount(discountFrom(1)),
+                    isNegated: () => dr().min === 0 && discountBelow(0), applyNot: () => { if (dr().min === 0) setDiscountBelow(0); }, clear: resetDiscountSlider },
+                { key: 'halfOff', label: '≥50% Off', notLabel: 'Under 50% off', isAvailable: () => dr().max >= 50,
+                    isActive: () => discountIs(discountFrom(50)), apply: () => setDiscount(discountFrom(50)),
+                    isNegated: () => dr().min < 50 && discountBelow(49), applyNot: () => { if (dr().min < 50) setDiscountBelow(49); }, clear: resetDiscountSlider },
                 // Included with a subscription pass right now (from the page's product data) -
                 // unlike the Subscriptions filter, which reads "with <pass>" member-price badges
-                { key: 'inPass', label: 'In a pass', isActive: () => state.filters.inPass === true,
-                    apply: () => { state.filters.inPass = true; }, clear: () => { state.filters.inPass = false; } },
-                // T-31: covered by the viewer's own pass (their entitlements) - only offered once an item qualifies
-                { key: 'inMyPass', label: 'In my pass',
-                    isAvailable: () => Array.from(document.getElementsByClassName(CONFIG.selectors.items)).some(c => c.dataset.ifcInMyPass === 'true'),
-                    isActive: () => state.filters.inMyPass === true,
-                    apply: () => { state.filters.inMyPass = true; }, clear: () => { state.filters.inMyPass = false; } },
+                flag('inPass'),
+                // T-31: covered by the viewer's own pass (their entitlements)
+                flag('inMyPass', whenAny(c => c.dataset.ifcInMyPass === 'true')),
+                // T-43: leaves every pass within PASS_SOON_DAYS / joined its first current pass within it
+                flag('leavingPass', whenAny(isLeavingPassSoon)),
+                flag('newToPass', whenAny(isNewToPass)),
                 // Personal "Just for you" offers and pre-orders (F-34, from the page's product data)
-                { key: 'justForYou', label: 'Just for you', isActive: () => state.filters.justForYou === true,
-                    apply: () => { state.filters.justForYou = true; }, clear: () => { state.filters.justForYou = false; } },
-                { key: 'preorder', label: 'Pre-order', isActive: () => state.filters.preorder === true,
-                    apply: () => { state.filters.preorder = true; }, clear: () => { state.filters.preorder = false; } },
-                // T-30: added to the wishlist within RECENTLY_ADDED_DAYS - only offered once at least one item qualifies
-                { key: 'recentlyAdded', label: 'Added Recently',
-                    isAvailable: () => Array.from(document.getElementsByClassName(CONFIG.selectors.items)).some(isRecentlyAdded),
-                    isActive: () => state.filters.recentlyAdded === true,
-                    apply: () => { state.filters.recentlyAdded = true; }, clear: () => { state.filters.recentlyAdded = false; } },
+                flag('justForYou'),
+                flag('preorder'),
+                // T-30: added to the wishlist within RECENTLY_ADDED_DAYS
+                flag('recentlyAdded', whenAny(isRecentlyAdded)),
                 // Games with add-ons (DLC) on the store (F-40, from the page's product data)
-                { key: 'hasAddOns', label: 'Has add-ons', isActive: () => state.filters.hasAddOns === true,
-                    apply: () => { state.filters.hasAddOns = true; }, clear: () => { state.filters.hasAddOns = false; } },
-                { key: 'flagged', label: 'Flagged', isActive: () => state.filters.flagged === true,
-                    apply: () => { state.filters.flagged = true; }, clear: () => { state.filters.flagged = false; } },
-                { key: 'cheap', label: 'Cheap',
+                flag('hasAddOns'),
+                flag('flagged'),
+                { key: 'cheap', label: 'Cheap', notLabel: 'Not cheap',
                     isActive: () => pr().enabled && pr().currentMin === pr().min && pr().currentMax === cheapMax(),
                     apply: () => {
                         pr().enabled = true; pr().currentMin = pr().min; pr().currentMax = cheapMax();
+                        syncPriceSliderUI();
+                    },
+                    isNegated: () => pr().enabled && pr().currentMin === cheapMax() && pr().currentMax === pr().max,
+                    applyNot: () => {
+                        pr().enabled = true; pr().currentMin = cheapMax(); pr().currentMax = pr().max;
                         syncPriceSliderUI();
                     },
                     clear: resetPriceSlider }
@@ -2159,9 +2193,15 @@ window.XboxWishlistCore = {
                     if (!btn) return;
                     const available = !p.isAvailable || p.isAvailable();
                     const active = available && p.isActive();
+                    const negated = available && !active && !!p.isNegated && p.isNegated();
                     btn.disabled = !available;
                     btn.classList.toggle('ifc-Active', active);
-                    btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+                    btn.classList.toggle('ifc-Negated', negated);
+                    // The button names what it filters for right now: "In a pass" or "Not in a pass"
+                    const text = negated ? p.notLabel : p.label;
+                    if (btn.textContent !== text) btn.textContent = text;
+                    btn.setAttribute('aria-pressed', active || negated ? 'true' : 'false');
+                    if (p.applyNot) btn.title = `Click: ${p.label}. Again: ${p.notLabel}. Again: off.`;
                 });
             } catch (ex) { console.error('Failed to update quick filter states:', ex); }
         }
@@ -2172,14 +2212,8 @@ window.XboxWishlistCore = {
                 state.filters.publishers.selected = [];
                 state.filters.subscriptions.selected = [];
                 state.filters.genres.selected = [];
-                state.filters.inPass = false;
-                state.filters.inMyPass = false;
+                FLAG_FILTERS.forEach(x => { state.filters[x.key] = false; });
                 state.filters.platforms.selected = [];
-                state.filters.justForYou = false;
-                state.filters.preorder = false;
-                state.filters.recentlyAdded = false;
-                state.filters.hasAddOns = false;
-                state.filters.flagged = false;
                 state.filters.capabilities.selected = [];
                 state.filters.types.selected = [];
                 state.filters.search.term = '';
@@ -2210,9 +2244,8 @@ window.XboxWishlistCore = {
             const f = state.filters;
             return {
                 owned: [...f.owned.selected], publishers: [...f.publishers.selected], subscriptions: [...f.subscriptions.selected],
-                genres: [...f.genres.selected], inPass: f.inPass === true, inMyPass: f.inMyPass === true,
-                platforms: [...f.platforms.selected], justForYou: f.justForYou === true, preorder: f.preorder === true, recentlyAdded: f.recentlyAdded === true,
-                hasAddOns: f.hasAddOns === true, flagged: f.flagged === true,
+                genres: [...f.genres.selected], platforms: [...f.platforms.selected],
+                ...Object.fromEntries(FLAG_FILTERS.map(x => [x.key, flagValue(f[x.key])])),   // true | 'not' | false
                 capabilities: [...f.capabilities.selected], types: [...f.types.selected],
                 priceRange: snapshotRange(f.priceRange), discountRange: snapshotRange(f.discountRange),
                 priceCurrency: state.currency.code || LEGACY_CURRENCY   // the price range is in this currency
@@ -2231,12 +2264,9 @@ window.XboxWishlistCore = {
                 name: p.name.trim().slice(0, MAX_PRESET_NAME),
                 filters: {
                     owned: list(f.owned), publishers: list(f.publishers), subscriptions: list(f.subscriptions),
-                    genres: list(f.genres), inPass: f.inPass === true,   // absent in presets saved before F-33
-                    inMyPass: f.inMyPass === true,        // before T-31
-                    platforms: list(f.platforms), justForYou: f.justForYou === true, preorder: f.preorder === true,   // before F-34
-                    recentlyAdded: f.recentlyAdded === true,   // before T-30
-                    hasAddOns: f.hasAddOns === true,      // before F-40
-                    flagged: f.flagged === true,          // before F-25
+                    genres: list(f.genres), platforms: list(f.platforms),
+                    // On/off flags (true | 'not' | false); any a preset predates (F-25..T-43) read as off
+                    ...Object.fromEntries(FLAG_FILTERS.map(x => [x.key, flagValue(f[x.key])])),
                     capabilities: list(f.capabilities),   // before F-36
                     types: list(f.types),                 // before the Type filter
                     priceRange: range(f.priceRange), discountRange: range(f.discountRange),
@@ -2249,7 +2279,7 @@ window.XboxWishlistCore = {
         function hasPresetableFilters() {
             const f = state.filters;
             return f.owned.selected.length > 0 || f.publishers.selected.length > 0 || f.subscriptions.selected.length > 0
-                || f.genres.selected.length > 0 || f.inPass || f.inMyPass || f.platforms.selected.length > 0 || f.justForYou || f.preorder || f.recentlyAdded || f.hasAddOns || f.flagged
+                || f.genres.selected.length > 0 || f.platforms.selected.length > 0 || FLAG_FILTERS.some(x => f[x.key])
                 || f.capabilities.selected.length > 0 || f.types.selected.length > 0
                 || f.priceRange.enabled || f.discountRange.enabled;
         }
@@ -2268,8 +2298,8 @@ window.XboxWishlistCore = {
             };
             return sameSet(f.owned.selected, pf.owned) && sameSet(f.publishers.selected, pf.publishers)
                 && sameSet(f.subscriptions.selected, pf.subscriptions)
-                && sameSet(f.genres.selected, pf.genres) && f.inPass === pf.inPass && f.inMyPass === pf.inMyPass
-                && sameSet(f.platforms.selected, pf.platforms) && f.justForYou === pf.justForYou && f.preorder === pf.preorder && f.recentlyAdded === pf.recentlyAdded && f.hasAddOns === pf.hasAddOns && f.flagged === pf.flagged
+                && sameSet(f.genres.selected, pf.genres) && sameSet(f.platforms.selected, pf.platforms)
+                && FLAG_FILTERS.every(x => flagValue(f[x.key]) === flagValue(pf[x.key]))
                 && sameSet(f.capabilities.selected, pf.capabilities) && sameSet(f.types.selected, pf.types)
                 && (presetPriceApplies(pf) ? rangeIs(f.priceRange, pf.priceRange) : !f.priceRange.enabled) && rangeIs(f.discountRange, pf.discountRange);
         }
@@ -2278,8 +2308,8 @@ window.XboxWishlistCore = {
             try {
                 const f = state.filters, pf = p.filters;
                 f.owned.selected = [...pf.owned]; f.publishers.selected = [...pf.publishers]; f.subscriptions.selected = [...pf.subscriptions];
-                f.genres.selected = [...pf.genres]; f.inPass = pf.inPass; f.inMyPass = pf.inMyPass === true;
-                f.platforms.selected = [...pf.platforms]; f.justForYou = pf.justForYou; f.preorder = pf.preorder; f.recentlyAdded = pf.recentlyAdded === true; f.hasAddOns = pf.hasAddOns; f.flagged = pf.flagged;
+                f.genres.selected = [...pf.genres]; f.platforms.selected = [...pf.platforms];
+                FLAG_FILTERS.forEach(x => { f[x.key] = flagValue(pf[x.key]); });
                 f.capabilities.selected = [...pf.capabilities]; f.types.selected = [...pf.types];
                 updateCheckboxes(CONFIG.ids.ownedSelect, f.owned.selected);
                 updateCheckboxes(CONFIG.ids.publishersSelect, f.publishers.selected);
@@ -3492,6 +3522,50 @@ window.XboxWishlistCore = {
             return !isNaN(at) && Date.now() - at < RECENTLY_ADDED_MS;
         }
 
+        // T-43: a game's time in the passes, from passMetadataByPassProductId ({ passId: { entryDateUTC,
+        // exitDateUTC } }, past stints included). Current stints have started and not ended. joined = the
+        // earliest current start (so joining one more pass doesn't count as "new"); leaves = when it is gone
+        // from every pass, known only once every current stint has an announced end. Null when in no pass.
+        const PASS_SOON_DAYS = 30, PASS_SOON_MS = PASS_SOON_DAYS * 24 * 60 * 60 * 1000;
+        function passTimeline(p) {
+            const meta = p && p.passMetadataByPassProductId;
+            if (!meta || typeof meta !== 'object') return null;
+            const now = Date.now();
+            const stints = Object.values(meta).map(m => ({ from: Date.parse(m && m.entryDateUTC), to: Date.parse(m && m.exitDateUTC) }))
+                .filter(s => !isNaN(s.from) && s.from <= now && (isNaN(s.to) || s.to > now));
+            if (!stints.length) return null;
+            return { joined: Math.min(...stints.map(s => s.from)), leaves: stints.every(s => !isNaN(s.to)) ? Math.max(...stints.map(s => s.to)) : null };
+        }
+        // "Soon" / "new" are relative to now, so computed at read time (like isRecentlyAdded)
+        function isLeavingPassSoon(container) {
+            const at = parseFloat(container.dataset.ifcPassLeaves);
+            return !isNaN(at) && at > Date.now() && at - Date.now() < PASS_SOON_MS;
+        }
+        function isNewToPass(container) {
+            const at = parseFloat(container.dataset.ifcPassJoined);
+            return !isNaN(at) && Date.now() - at < PASS_SOON_MS;
+        }
+
+        // The on/off quick filters, each three-state: true = only items that have it, FLAG_NOT = only
+        // items that don't, false = off (the quick filter buttons cycle through them). One table for
+        // the filter test, tags, tag removal and saved state, so a new flag is added in one place.
+        const FLAG_NOT = 'not';
+        const FLAG_FILTERS = [
+            { key: 'inPass', label: 'In a pass', notLabel: 'Not in a pass', test: c => c.dataset.ifcInPass === 'true' },
+            { key: 'inMyPass', label: 'In my pass', notLabel: 'Not in my pass', test: c => c.dataset.ifcInMyPass === 'true' },
+            { key: 'leavingPass', label: 'Leaving pass soon', notLabel: 'Not leaving pass soon', test: isLeavingPassSoon },
+            { key: 'newToPass', label: 'New in pass', notLabel: 'Not new in pass', test: isNewToPass },
+            { key: 'justForYou', label: 'Just for you', notLabel: 'Not just for you', test: c => c.dataset.ifcDealType === 'personal' },
+            { key: 'preorder', label: 'Pre-order', notLabel: 'Not pre-order', test: c => c.dataset.ifcPreorder === 'true' },
+            { key: 'recentlyAdded', label: 'Added Recently', notLabel: 'Not added recently', tagLabel: `Added in the last ${RECENTLY_ADDED_DAYS} days`, notTagLabel: `Not added in the last ${RECENTLY_ADDED_DAYS} days`, test: isRecentlyAdded },
+            { key: 'hasAddOns', label: 'Has add-ons', notLabel: 'No add-ons', test: c => c.dataset.ifcHasAddOns === 'true' },
+            { key: 'flagged', label: 'Flagged', notLabel: 'Not flagged', test: c => c.dataset.ifcFlagged === '1' }
+        ];
+        const isFlagValue = v => v === true || v === false || v === FLAG_NOT;
+        const flagValue = v => (v === true || v === FLAG_NOT ? v : false);
+        function flagAllows(value, has) { return value === true ? has : value === FLAG_NOT ? !has : true; }
+        function flagTagLabel(f, value) { return value === FLAG_NOT ? (f.notTagLabel || f.notLabel) : (f.tagLabel || f.label); }
+
         function shouldShowContainer(container) {
             const isOwned = container.dataset.ifcOwned === 'true';
             const isUnPurchasable = container.dataset.ifcUnpurchasable === 'true';
@@ -3526,17 +3600,11 @@ window.XboxWishlistCore = {
                 // Items can have several genres - match if it has ANY of the selected ones
                 if (!getItemGenres(container).some(g => state.filters.genres.selected.includes(g))) return false;
             }
-            if (state.filters.inPass && container.dataset.ifcInPass !== 'true') return false;
-            if (state.filters.inMyPass && container.dataset.ifcInMyPass !== 'true') return false;
+            if (!FLAG_FILTERS.every(f => flagAllows(state.filters[f.key], f.test(container)))) return false;
             if (state.filters.platforms.selected.length > 0) {
                 // Multi-platform items - match if it's on ANY of the selected platforms
                 if (!getItemJsonList(container, 'ifcPlatforms').some(p => state.filters.platforms.selected.includes(p))) return false;
             }
-            if (state.filters.justForYou && container.dataset.ifcDealType !== 'personal') return false;
-            if (state.filters.preorder && container.dataset.ifcPreorder !== 'true') return false;
-            if (state.filters.recentlyAdded && !isRecentlyAdded(container)) return false;
-            if (state.filters.hasAddOns && container.dataset.ifcHasAddOns !== 'true') return false;
-            if (state.filters.flagged && container.dataset.ifcFlagged !== '1') return false;
             if (state.filters.capabilities.selected.length > 0) {
                 // Capabilities are features you want together - the item needs ALL selected ones.
                 // Items whose details aren't loaded yet have none, so they don't match.
