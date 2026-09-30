@@ -73,13 +73,30 @@ body[data-theme="light"] {
    filter/sort buttons, whether this is Xbox's own native menu container
    or our injected one for public wishlists (both get this id). Position
    here is the single source of truth - core.js just applies this id. */
+/* Sizes on a 4px grid: label row 24px + 8px gap + button row 32px (Xbox's
+   own icon buttons) = 64px tall, starting 72px down. Xbox's menu class adds
+   a 22px top margin and full width - both undone here, so the bar is only as
+   wide as its content and the filter/sort panels can sit a fixed 8px below it
+   (see .filter-section). Keep them in sync if any of this changes. */
 #ifc_ButtonContainer {
     position: fixed;
-    top: 50px;
+    top: 72px;
     right: 100px;
+    left: auto;
+    width: auto;
+    margin: 0;
+    row-gap: 8px;
     z-index: 998;
     flex-wrap: wrap;
     justify-content: flex-end;
+    /* Only the buttons and the export menu take clicks - the bar's empty space
+       sits over the list when it scrolls and must not swallow item clicks */
+    pointer-events: none;
+}
+
+#ifc_ButtonContainer > button,
+#ifc_ButtonContainer > .ifc-export-menu {
+    pointer-events: auto;
 }
 
 /* Dot on a toolbar button while a non-default state is active (the sort
@@ -108,8 +125,8 @@ body[data-theme="light"] {
 #ifc_lbl_Filter {
     flex-basis: 100%;
     text-align: right;
-    margin-left: 5px;
-    margin-right: 5px;
+    margin: 0 4px;
+    line-height: 24px;
 }
 
 /* Generic "hide this element" toggle used in place of inline style.display
@@ -121,17 +138,16 @@ body[data-theme="light"] {
 
 .filter-section {
     position: fixed;
-    /* Below #ifc_ButtonContainer, which is now two rows tall (label above
-       the filter/sort buttons) instead of one - see #ifc_ButtonContainer
-       above. Keep this in sync with #ifc_ButtonContainer's top offset
-       if that ever changes. */
-    top: 140px;
+    /* 8px below #ifc_ButtonContainer (72px top + 64px tall - see its rule
+       above); keep in sync if the bar moves or changes height. The panel
+       stops 72px above the bottom of the window. 4px grid throughout. */
+    top: 144px;
     right: 100px;
     width: 280px;
-    border-radius: 10px;
-    padding: 15px;
+    border-radius: 8px;
+    padding: 16px;
     z-index: 998;
-    max-height: calc(100vh - 210px);
+    max-height: calc(100vh - 216px);
     overflow-y: auto;
     background-color: var(--ifc-panel-bg) !important;
     box-shadow: var(--ifc-panel-shadow);
@@ -893,7 +909,8 @@ p:has(+ .ifc-item-tags) {
     .filter-section {
         width: calc(100vw - 40px);
         right: 20px;
-        max-height: calc(100vh - 120px);
+        /* 144px top + 24px clear at the bottom (100vh - 120px ran 20px off-screen) */
+        max-height: calc(100vh - 168px);
     }
 }
 

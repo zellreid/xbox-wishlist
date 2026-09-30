@@ -14,6 +14,17 @@ for how a version is bumped and published.
 
 ---
 
+## v1.5.26273.1 (Sep 2026) - toolbar and panels on a 4px grid; toolbar no longer blocks clicks
+
+- The toolbar is 64px tall (24px label row, 8px gap, 32px buttons) at a fixed 72px from the top, instead
+  of 62px with Xbox's 22px top margin; the Filter / Sort panels sit 8px below it (top 144px) with 16px
+  padding and 8px corners (were 140px / 15px / 10px).
+- Fix: Xbox's menu class made the toolbar full width (about 1,250px, partly off-screen). Being fixed on
+  top, its empty space caught clicks meant for wishlist items scrolled under it. It is now only as wide
+  as its content, and only its buttons and the export menu take clicks.
+- Fix: on narrow windows (768px or less) the Filter / Sort panel ran 20px past the bottom of the
+  screen; it now stops 24px short.
+
 ## v1.5.26272.8 (Sep 2026) - T-44: age rating, install size, developer, handheld optimised
 
 - New **Age rating** filter (by minimum age: "All ages", "Ages 3+" ... "Ages 18+"), so PEGI, FPB, USK and
