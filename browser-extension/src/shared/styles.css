@@ -106,10 +106,10 @@ body[data-theme="light"] {
    keeps it visible on both the dark button and the green "panel open" one. */
 .ifc-badge-dot {
     position: absolute;
-    top: 3px;
-    right: 3px;
-    width: 6px;
-    height: 6px;
+    top: 4px;
+    right: 4px;
+    width: 8px;
+    height: 8px;
     border-radius: 50%;
     background-color: #107C10;
     box-shadow: 0 0 0 1.5px #f5f5f5;
@@ -175,7 +175,7 @@ ul.filter-groups {
     font-size: 0.8rem;
     font-weight: 600;
     cursor: pointer;
-    padding: 2px 4px;
+    padding: 4px 4px;
 }
 
 .ifc-clear-all-btn:hover {
@@ -190,8 +190,8 @@ ul.filter-groups {
 .ifc-search-input {
     width: 100%;
     box-sizing: border-box;
-    padding: 6px 10px;
-    border-radius: 6px;
+    padding: 8px 12px;
+    border-radius: 8px;
     border: 1px solid var(--ifc-control-border);
     background-color: var(--ifc-control-bg);
     color: var(--ifc-text);
@@ -206,7 +206,7 @@ ul.filter-groups {
 .ifc-quick-filters {
     display: flex;
     flex-wrap: wrap;
-    gap: 6px;
+    gap: 8px;
     margin-bottom: 8px;
 }
 
@@ -216,7 +216,7 @@ ul.filter-groups {
     border-radius: 999px;
     color: var(--ifc-text);
     font-size: 0.75rem;
-    padding: 4px 10px;
+    padding: 4px 12px;
     cursor: pointer;
 }
 
@@ -258,9 +258,10 @@ ul.filter-groups {
 /* ==================== DEAL END BADGE ==================== */
 /* Sits right after the -N% discount badge in the item's price row */
 .ifc-deal-ends {
-    margin-left: 6px;
-    padding: 1px 6px;
-    border-radius: 3px;
+    margin-left: 8px;
+    padding: 0 8px;
+    line-height: 16px;
+    border-radius: 4px;
     border: 1px solid var(--ifc-chip-border);
     color: var(--ifc-text-soft);
     font-size: 0.6875rem;
@@ -275,9 +276,10 @@ ul.filter-groups {
 
 /* F-26: "Since 22 Sep" (sale first seen) - same quiet chip as "Ends" */
 .ifc-deal-since {
-    margin-left: 6px;
-    padding: 1px 6px;
-    border-radius: 3px;
+    margin-left: 8px;
+    padding: 0 8px;
+    line-height: 16px;
+    border-radius: 4px;
     border: 1px solid var(--ifc-chip-border);
     color: var(--ifc-text-soft);
     font-size: 0.6875rem;
@@ -287,9 +289,10 @@ ul.filter-groups {
 
 /* F-26: price change since the last visit - green when it dropped, amber when it went up */
 .ifc-price-change {
-    margin-left: 6px;
-    padding: 1px 6px;
-    border-radius: 3px;
+    margin-left: 8px;
+    padding: 0 8px;
+    line-height: 16px;
+    border-radius: 4px;
     border: 1px solid currentColor;
     font-size: 0.6875rem;
     font-weight: 600;
@@ -303,9 +306,10 @@ ul.filter-groups {
 
 /* F-27: lowest price seen in the last 90 days - quiet, green when the current price is it */
 .ifc-price-low {
-    margin-left: 6px;
-    padding: 1px 6px;
-    border-radius: 3px;
+    margin-left: 8px;
+    padding: 0 8px;
+    line-height: 16px;
+    border-radius: 4px;
     border: 1px solid var(--ifc-chip-border);
     color: var(--ifc-text-soft);
     font-size: 0.6875rem;
@@ -328,7 +332,7 @@ ul.filter-groups {
 .ifc-item-tags {
     display: flex;
     flex-wrap: wrap;
-    gap: 6px;
+    gap: 8px;
     margin-top: 4px;
 }
 
@@ -342,8 +346,10 @@ p:has(+ .ifc-item-tags) {
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    padding: 1px 6px;
-    border-radius: 3px;
+    padding: 0 8px;
+    box-sizing: border-box;
+    min-height: 20px;
+    border-radius: 4px;
     font-size: 0.6875rem;
     font-weight: 600;
     white-space: nowrap;
@@ -419,10 +425,11 @@ p:has(+ .ifc-item-tags) {
     align-items: center;
     justify-content: center;
     width: 20px;
-    height: 18px;
+    height: 20px;
     padding: 0;
+    box-sizing: border-box;
     border: 1px solid var(--ifc-chip-border);
-    border-radius: 3px;
+    border-radius: 4px;
     background: transparent;
     color: var(--ifc-text-soft);
     cursor: pointer;
@@ -442,8 +449,8 @@ p:has(+ .ifc-item-tags) {
 
 .ifc-item-refresh .ifc-glyph,
 .ifc-item-flag .ifc-glyph {
-    width: 10px;
-    height: 10px;
+    width: 12px;
+    height: 12px;
 }
 
 .ifc-item-refresh.ifc-busy {
@@ -492,7 +499,7 @@ p:has(+ .ifc-item-tags) {
     align-items: center;
     justify-content: space-between;
     gap: 8px;
-    margin-bottom: 6px;
+    margin-bottom: 8px;
 }
 
 .ifc-details-status {
@@ -501,15 +508,15 @@ p:has(+ .ifc-item-tags) {
 }
 
 .ifc-item-tag-icon .ifc-glyph {
-    width: 11px;
-    height: 11px;
+    width: 12px;
+    height: 12px;
 }
 
 /* ==================== GLYPH ICONS (×, +) ==================== */
 /* Inline Xbox icons inside small buttons (setGlyph() in core.js) */
 .ifc-glyph {
-    width: 10px;
-    height: 10px;
+    width: 12px;
+    height: 12px;
     fill: currentColor;
     flex-shrink: 0;
     pointer-events: none;
@@ -524,7 +531,7 @@ p:has(+ .ifc-item-tags) {
 .ifc-sort-add-icon {
     display: inline-flex;
     vertical-align: -1px;
-    margin-right: 2px;
+    margin-right: 4px;
 }
 
 .ifc-sort-remove,
@@ -543,11 +550,11 @@ p:has(+ .ifc-item-tags) {
     z-index: 999;
     display: flex;
     flex-direction: column;
-    min-width: 190px;
+    min-width: 192px;
     padding: 4px;
     background-color: var(--ifc-menu-bg);
     border: 1px solid var(--ifc-control-border);
-    border-radius: 6px;
+    border-radius: 8px;
     box-shadow: var(--ifc-menu-shadow);
 }
 
@@ -558,7 +565,7 @@ p:has(+ .ifc-item-tags) {
     color: var(--ifc-text);
     font-size: 0.8125rem;
     text-align: left;
-    padding: 6px 10px;
+    padding: 8px 12px;
     cursor: pointer;
 }
 
@@ -575,8 +582,8 @@ p:has(+ .ifc-item-tags) {
 /* Search, then Saved filters, then Quick filters - each section opens with a divider
    and a small heading */
 .ifc-panel-section {
-    margin-top: 10px;
-    padding-top: 10px;
+    margin-top: 12px;
+    padding-top: 12px;
     border-top: 1px solid rgba(117, 117, 117, 0.3);
 }
 
@@ -589,7 +596,7 @@ p:has(+ .ifc-item-tags) {
 
 .ifc-saved-presets-row {
     display: flex;
-    gap: 6px;
+    gap: 8px;
     align-items: center;
 }
 
@@ -622,7 +629,7 @@ p:has(+ .ifc-item-tags) {
     border-radius: 0 999px 999px 0;
     color: var(--ifc-text-muted);
     font-size: 0.75rem;
-    padding: 4px 8px 4px 6px;
+    padding: 4px 8px;
     cursor: pointer;
 }
 
@@ -636,8 +643,8 @@ p:has(+ .ifc-item-tags) {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
-    padding: 10px 0;
-    margin-top: 10px;
+    padding: 12px 0;
+    margin-top: 12px;
     /* The divider above; the first filter group's top border closes the row below */
     border-top: 1px solid rgba(117, 117, 117, 0.3);
 }
@@ -651,7 +658,7 @@ p:has(+ .ifc-item-tags) {
     border-radius: 4px;
     font-size: 0.75rem;
     font-weight: 500;
-    gap: 6px;
+    gap: 8px;
 }
 
 .theme-dark .ifc-filter-tag {
@@ -676,12 +683,12 @@ p:has(+ .ifc-item-tags) {
 
     .ifc-tag-remove:hover {
         background-color: rgba(255, 255, 255, 0.2);
-        border-radius: 2px;
+        border-radius: 4px;
     }
 
 /* ==================== STATIC FILTER BLOCKS ==================== */
 .ifc-filter-block-static {
-    padding: 10px;
+    padding: 12px;
     width: 100%;
     box-sizing: border-box;
 }
@@ -691,7 +698,7 @@ p:has(+ .ifc-item-tags) {
     font-size: 0.875rem;
     font-weight: 600;
     color: var(--ifc-text);
-    margin: 0 0 10px 0;
+    margin: 0 0 12px 0;
     padding: 0;
 }
 
@@ -703,7 +710,7 @@ p:has(+ .ifc-item-tags) {
 /* Price and Discount Range share these, so both sections are the same size: heading,
    value, then the slider with the same space above and below it */
 .ifc-slider-container {
-    padding: 6px 10px;
+    padding: 8px 12px;
     margin: 0;
     max-width: 100%;
     box-sizing: border-box;
@@ -725,9 +732,9 @@ p:has(+ .ifc-item-tags) {
 
 .ifc-slider-track {
     position: relative;
-    height: 18px;
+    height: 20px;
     background: transparent;
-    border-radius: 3px;
+    border-radius: 4px;
     margin: 0;
     width: 100%;
     max-width: 100%;
@@ -741,9 +748,9 @@ p:has(+ .ifc-item-tags) {
         top: 50%;
         left: 0;
         right: 0;
-        height: 6px;
+        height: 8px;
         background-color: var(--ifc-track);
-        border-radius: 3px;
+        border-radius: 4px;
         transform: translateY(-50%);
         z-index: 0;
     }
@@ -754,9 +761,9 @@ p:has(+ .ifc-item-tags) {
 
 .ifc-slider-range {
     position: absolute;
-    height: 6px;
+    height: 8px;
     background-color: #107c10;
-    border-radius: 3px;
+    border-radius: 4px;
     pointer-events: none;
     top: 50%;
     transform: translateY(-50%);
@@ -770,7 +777,7 @@ p:has(+ .ifc-item-tags) {
 .ifc-slider {
     position: absolute;
     width: 100%;
-    height: 18px;
+    height: 20px;
     top: 0;
     left: 0;
     margin: 0;
@@ -783,12 +790,12 @@ p:has(+ .ifc-item-tags) {
 }
 
     .ifc-slider::-webkit-slider-runnable-track {
-        height: 18px;
+        height: 20px;
         background: transparent;
     }
 
     .ifc-slider::-moz-range-track {
-        height: 18px;
+        height: 20px;
         background: transparent;
         border: none;
     }
@@ -796,8 +803,8 @@ p:has(+ .ifc-item-tags) {
     .ifc-slider::-webkit-slider-thumb {
         -webkit-appearance: none;
         appearance: none;
-        width: 18px;
-        height: 18px;
+        width: 20px;
+        height: 20px;
         background-color: #107c10;
         border: 2px solid #ffffff;
         border-radius: 50%;
@@ -817,8 +824,8 @@ p:has(+ .ifc-item-tags) {
         }
 
     .ifc-slider::-moz-range-thumb {
-        width: 18px;
-        height: 18px;
+        width: 20px;
+        height: 20px;
         background-color: #107c10;
         border: 2px solid #ffffff;
         border-radius: 50%;
@@ -865,7 +872,7 @@ p:has(+ .ifc-item-tags) {
     height: 1.25rem;
     text-align: center;
     min-width: 2.5rem;
-    padding: 0 .375rem;
+    padding: 0 .5rem;
     margin-left: 8px;
     display: inline-flex;
     align-items: center;
@@ -916,13 +923,13 @@ p:has(+ .ifc-item-tags) {
 
 /* ==================== SORT CONTAINER ==================== */
 .ifc-sort-criteria-container {
-    padding: 10px;
+    padding: 12px;
 }
 
 .ifc-sort-criterion {
     display: flex;
     gap: 8px;
-    margin-bottom: 10px;
+    margin-bottom: 12px;
     align-items: center;
 }
 
@@ -994,7 +1001,7 @@ p:has(+ .ifc-item-tags) {
     color: #ffffff;
     font-size: 0.875rem;
     font-weight: 600;
-    margin-top: 10px;
+    margin-top: 12px;
 }
 
     .ifc-sort-add:hover {
@@ -1088,7 +1095,7 @@ p:has(+ .ifc-item-tags) {
     align-items: center;
     justify-content: space-between;
     width: 100%;
-    padding: 14px 4px;
+    padding: 12px 4px;
     background: transparent;
     border: none;
     cursor: pointer;
@@ -1108,7 +1115,7 @@ p:has(+ .ifc-item-tags) {
     .ifc-accordion-header:focus-visible {
         outline: 2px solid currentColor;
         outline-offset: -2px;
-        border-radius: 2px;
+        border-radius: 4px;
     }
 
 .ifc-accordion-title {
@@ -1151,7 +1158,7 @@ p:has(+ .ifc-item-tags) {
 }
 
     .ifc-checkbox-list-scrollable::-webkit-scrollbar {
-        width: 6px;
+        width: 8px;
     }
 
     .ifc-checkbox-list-scrollable::-webkit-scrollbar-track {
@@ -1160,7 +1167,7 @@ p:has(+ .ifc-item-tags) {
 
     .ifc-checkbox-list-scrollable::-webkit-scrollbar-thumb {
         background: #107c10;
-        border-radius: 3px;
+        border-radius: 4px;
     }
 
         .ifc-checkbox-list-scrollable::-webkit-scrollbar-thumb:hover {
@@ -1170,8 +1177,8 @@ p:has(+ .ifc-item-tags) {
 .ifc-checkbox-item {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 7px 4px;
+    gap: 12px;
+    padding: 8px 4px;
     cursor: pointer;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     font-size: 0.875rem;
@@ -1194,7 +1201,7 @@ p:has(+ .ifc-item-tags) {
     min-width: 16px;
     min-height: 16px;
     border: 1.5px solid var(--ifc-check);
-    border-radius: 2px;
+    border-radius: 4px;
     background-color: transparent;
     cursor: pointer;
     position: relative;
@@ -1222,7 +1229,7 @@ p:has(+ .ifc-item-tags) {
     .ifc-checkbox:focus-visible {
         outline: 2px solid var(--ifc-check);
         outline-offset: 2px;
-        border-radius: 2px;
+        border-radius: 4px;
     }
 
 .ifc-checkbox-label {
@@ -1269,8 +1276,8 @@ body .ifc-HeartHost > a.ifc-WishlistHeart {
 }
 
 body .ifc-HeartHost > a.ifc-WishlistHeart svg {
-    width: 18px;
-    height: 18px;
+    width: 20px;
+    height: 20px;
     fill: currentColor;
 }
 

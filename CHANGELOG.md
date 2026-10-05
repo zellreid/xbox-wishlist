@@ -14,6 +14,15 @@ for how a version is bumped and published.
 
 ---
 
+## v1.5.26278.1 (Oct 2026) - rest of the injected UI on the 4px grid (T-47)
+
+- Layout sizes in `styles.css` (padding, margins, gaps, widths, heights, corner radii, offsets) that were
+  off the 4px grid now sit on it: 6 / 10 / 14 / 7 became 8 / 12, 3 / 2 radii became 4, 18 and 11 became 20
+  and 12 (sliders and thumbs, glyphs, the heart icon), the deal / price chips use `line-height: 16px`
+  instead of 1px padding, and tag chips and the refresh / flag buttons are 20px tall.
+- Left as they are: 1px / 2px strokes (borders, outlines, shadows), the checkbox tick geometry and the
+  `-1px` icon baseline nudge.
+
 ## v1.5.26273.1 (Sep 2026) - toolbar and panels on a 4px grid; toolbar no longer blocks clicks
 
 - The toolbar is 64px tall (24px label row, 8px gap, 32px buttons) at a fixed 72px from the top, instead

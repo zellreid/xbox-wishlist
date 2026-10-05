@@ -1,143 +1,111 @@
-# Project Handoff Document - Xbox Wishlist v1.4
+# Project Handoff Document - Xbox Wishlist v1.5
 
 ## Current Status
 
-**Date:** February 26, 2026
-**Version:** 1.4.26056.5
-**Status:** Production - filtering, sorting, public wishlist support
+**Date:** 5 October 2026
+**Version:** 1.5.26278.1 (extension and userscript share one version)
+**Status:** Live. Everything built up to 2026-10-05 is confirmed in Edge; the Chrome / Tampermonkey pass (T-06) is still to do.
+**Live state and open work:** `STATUS.md` (repo root) - always read it first. Full history: `CHANGELOG.md`. Feature detail: `docs/04-FEATURE-BREAKDOWN.md`.
 
 ---
 
-## Architecture Overview
+## What it is
 
-### File Structure
+A Chrome/Edge MV3 extension and a Tampermonkey userscript that add filtering, sorting, export and extra
+information to the Xbox wishlist (`xbox.com/{locale}/wishlist`), plus wishlist hearts on store, browse,
+deals and add-on pages. Both platforms run the same shared core.
+
+---
+
+## Architecture
+
 ```
-C:\Dev\zellreid\_personal\XBOX\xbox-wishlist\
-├── xbox-wishlist.user.js    # Main userscript (1041 lines)
-├── xbox-wishlist.user.css   # Stylesheet (751 lines, loaded via @resource)
-├── filter.svg               # Filter button icon
-├── sort.svg                 # Sort button icon
-├── expand.svg               # Accordion expand chevron
-├── collapse.svg             # Accordion collapse chevron
-├── README.md                # Project overview
-├── HANDOFF-DOCUMENT.md      # This file
-├── LICENSE                  # MIT License
-└── *.md                     # Legacy v1.2 docs (kept for history)
-```
-
-### Resilient Selector System
-Xbox uses CSS modules with hashed class names that change on every rebuild (e.g. `WishlistPage-module__itemContainer___Ab12c`). The script resolves these at runtime:
-
-```javascript
-const PREFIXES = {
-    itemContainer: 'WishlistPage-module__itemContainer',
-    menuContainer: 'WishlistPage-module__menuContainer',
-    imageContainer: 'WishlistPage-module__imageContainer',
-    productDetails: 'WishlistPage-module__productDetails',
-    // ... more prefixes
-};
-
-function resolveClass(prefix) {
-    // Scans document.styleSheets for any class starting with prefix
-    // Caches result for subsequent lookups
-}
+browser-extension/src/
+  manifest.json              MV3: storage permission, host xbox.com/*/wishlist*; content scripts also on
+                             /games/store/*, /games/browse*, /games/all-games*, /promotions/sales/*
+  content.js                 Extension adapter (chrome.storage.local, chrome.runtime.getURL) -> core
+  request-watcher.js         MAIN-world script: notices Xbox's own wishlist PUT/DELETE, posts a tagged message
+  shared/xbox-wishlist.core.js   All logic (~3,900 lines) - the single source of truth
+  shared/styles.css          All injected styles (~1,300 lines)
+  shared/icons/*.svg         Toolbar / chip icons
+tools/userscript/            header.template.js + core + adapter.js -> xbox-wishlist.user.js (generated)
+tools/mock-harness/          Offline test harness (see "Testing")
+mock_examples/               Saved xbox.com pages (git-ignored, personal data)
+docs/                        PRD, design, feature breakdown (04), data fields (07), xbox.com requests (08)
 ```
 
-### State Structure (v1.4)
-```javascript
-state = {
-    info: { script: { version, name, description } },
-    containers: [],       // All wishlist item containers
-    cache: { elements: Map(), classes: Map() },
-    ui: {
-        floatButtons, lblFilter, btnFilter, btnSort,
-        divFilter, divSort, divFilterShow, divSortShow
-    },
-    filters: {
-        totalCount, filteredCount, activeTags: [],
-        owned:     { selected: [], options: ['Owned','Not Owned','Un-Purchasable'] },
-        publishers: { selected: [], list: Map() },
-        priceRange:    { min, max, currentMin, currentMax, enabled },
-        discountRange: { min, max, currentMin, currentMax, enabled }
-    },
-    sort: {
-        criteria: [{ field, order, label }],  // Up to 3 levels
-        fields: [
-            { value: 'ifcId', label: 'Default' },
-            { value: 'ifcName', label: 'Name' },
-            { value: 'ifcPublisher', label: 'Publisher' },
-            { value: 'ifcPrice', label: 'Price' },
-            { value: 'ifcPriceDiscountPercent', label: 'Discount %' },
-            { value: 'ifcPriceDiscountAmount', label: 'Discount Amount' }
-        ]
-    }
-};
-```
+Rules that matter most (full set in `AGENTS.md`):
+- All logic in the core; adapters only wire storage and resources. No `chrome.storage.sync`.
+- Xbox class names only via `resolveClass(PREFIXES.x)` - their hashes change on every Xbox release.
+- `manifest.json` changes and new permissions need HITL approval.
+- Sizes in injected UI on a 4px grid (toolbar 72px top / 64px tall, panels top 144px).
+- Never read or forward sign-in tokens (TIER 1). Wishlist data on other pages is fetched same-origin and kept in memory only.
+
+### Core sections (in file order)
+State, config, `PREFIXES` -> initialisation -> selector resolver -> persistence -> tags -> filter UI ->
+export -> product data (page payload) -> price history -> light/dark theme (wishlist pages only) ->
+refresh -> stored data -> saved filters -> Genres / Platforms / Type / Age rating lists -> capabilities and
+"Load details" -> sort -> item filtering (`FLAG_FILTERS`, `shouldShowContainer`) -> payload-first item facts ->
+context-lost handling -> wishlist hearts on other pages -> in-app navigation watch -> start.
+
+### Key ideas
+- **Payload first:** item data comes from the page's embedded state (`__PRELOADED_STATE__`, `core2.products`,
+  `core2.wishlist`), not scraped text, so it works in every language. `docs/07` and `docs/08` list the fields.
+- **Data attributes:** facts are written to each item as `data-ifc-*` once; filters and sorts read only those.
+- **Three-state quick filters:** one `FLAG_FILTERS` table (`true | 'not' | false`); On Sale / >=50% Off use
+  `state.filters.discountBelow` for their "is not" step.
+- **Store page reads:** "Load details" and the per-item refresh fetch a game's store page (same origin) for
+  capabilities, add-on count and install size; cached 7 days under `ifc_xbox_wishlist_caps`.
+- **Live wishlist changes:** `request-watcher.js` -> tagged `postMessage` -> core resyncs; other tabs pick it up
+  via the `ifc_xbox_wishlist_changed` storage key when they come back into view.
 
 ---
 
-## Key Functions Reference
+## Features (current)
 
-| Function | Purpose |
-|----------|---------|
-| `resolveClass(prefix)` | Finds hashed CSS module class from stable prefix |
-| `floatButtons()` | Injects Filter/Sort buttons (handles public wishlists) |
-| `createFilterBlock(id, text, collapsible)` | Creates accordion or static filter group |
-| `addFilterContainerOwned()` | Owned checkbox filter |
-| `addFilterContainerPublishers()` | Publisher multi-select filter |
-| `addPriceRangeFilter()` | Dual-handle price slider |
-| `addDiscountRangeFilter()` | Dual-handle discount slider |
-| `shouldShowContainer(container)` | Master filter logic (inverted: none = all) |
-| `toggleContainers()` | Applies all filters, updates counts/tags |
-| `renderSortCriteria()` | Renders multi-level sort UI |
-| `applySorting()` | DOM reorder based on sort criteria |
-| `loadSVGIntoContainer()` | Loads SVG icons from GM resources |
-| `setContainerData()` | Reads prices/publishers/ownership into data attributes |
+Filters: search (name, publisher, developer), Owned, Publishers, Subscriptions, Genres, Platforms, Type,
+Age rating, Capabilities, price and discount sliders. Quick filters (three-state): On Sale, >=50% Off, In a
+pass, In my pass, Leaving pass soon, New in pass, Just for you, Pre-order, Added Recently, Has add-ons,
+Handheld optimised, Flagged, Cheap; Owned / Not Owned two-state. Saved filters, Clear All, tags.
+Sort: up to 3 criteria incl. Date Added, Price, Discount, Rating, Release Date, Deal Ends, Install Size, Flagged.
+Item chips: Just for you, In your pass, Leaves pass, New in pass, Pre-order, capabilities, add-ons, DLC,
+price change / lowest seen / deal ends. Export CSV/JSON. Light/dark toggle. Flags (stars). Price history.
+Other pages: filled heart on wishlisted cards ("On your wish list since"), opens the wishlist in a new tab.
 
 ---
 
-## Version History
+## Testing
 
-See [CHANGELOG.md](../CHANGELOG.md) for the full, canonical version history across both the userscript and browser extension.
+- **Mock harness:** `node tools/mock-harness/server.js` then open any
+  `http://localhost:8792/mock_examples/<type>/<market>/<name>.harness.html`. 46 fixtures (20 wishlist across
+  12 markets, 26 smoke checks for store / deals / games / add-ons / locale pages). Run all after every change.
+- The server also answers `/<locale>/wishlist` with that market's newest capture (used by the card hearts).
+- The harness loads our stylesheet last; the live site loads it first - check CSS in both orders.
+- New mocks: save the page (Ctrl+S, complete) into `mock_examples/_inbox/`, run
+  `node tools/mock-harness/file-mocks.js --prepare`.
+- Live check: Edge, Load unpacked -> `browser-extension/src/`.
 
----
+## Releasing
 
-## Design Principles
-
-1. **Match Xbox native styling** - buttons, fonts, colors blend seamlessly
-2. **Inverted filter logic** - none selected = show all (industry standard)
-3. **Resilient selectors** - survives Xbox site rebuilds
-4. **Real-time feedback** - instant filtering and sorting
-5. **Minimal dependencies** - jQuery + Select2, auto-loaded
-6. **Dark mode support** - both themes work correctly
-
-## Xbox Theme Colors
-- Green: `#107c10` (primary accent, scrollbar, tags)
-- Yellow: `#ffd800` (discount badges)
-- Background: `#1a1a1a` / `#262626` (dark theme)
-- Text: `#f5f5f5` / `#ffffff`
-
-## Technical Stack
-- Vanilla JavaScript (ES6+), HTML5 range inputs, CSS3
-- jQuery 3.6.0 (for Select2), Select2 4.0.13
-- Tampermonkey GM APIs: `GM_getResourceURL`, `GM_getValue`, `GM_setValue`
-- SVG icons loaded via `@resource` declarations
-
-## How to Continue Development
-
-**Local dev path:** `C:\Dev\zellreid\_personal\XBOX\xbox-wishlist` (accessible via Desktop Commander)
-**Repository:** https://github.com/zellreid/xbox-wishlist
-**GitHub raw URLs:**
-- JS: `https://github.com/zellreid/xbox-wishlist/raw/refs/heads/main/xbox-wishlist.user.js`
-- CSS: `https://github.com/zellreid/xbox-wishlist/raw/refs/heads/main/xbox-wishlist.user.css`
-**Target site:** https://www.xbox.com/*/wishlist
-**Xbox browse reference:** https://www.xbox.com/en-ZA/games/browse?noSplash=1
-
-Provide Claude with:
-- The GitHub raw URLs or local path for JS and CSS
-- This handoff document for context
-- Describe the feature or fix needed
+1. `node tools/userscript/bump-version.js` (bumps manifest + userscript, rebuilds `xbox-wishlist.user.js`).
+2. CHANGELOG entry, STATUS.md update.
+3. Commit (`type(scope): description`); pushing and store / GreasyFork publishing are done by hand.
 
 ---
 
-*Last updated: February 26, 2026 - v1.4.26056.5*
+## Open items at handover
+
+See `STATUS.md` for the live list. At this date:
+- **Do first:** delete `mock_examples/_inbox/20260929_1400-wishlist-add-remove.har` - its sign-in request body
+  holds a Microsoft sign-in token (sanitized HAR exports keep request bodies). Everything useful from it is in
+  `docs/08-XBOX-REQUESTS.md`.
+- Waiting on you: remaining wishlist mocks (T-32), 40px toolbar decision (T-48), Serbian Cyrillic locale (T-28).
+- To check: Chrome + Tampermonkey pass (T-06).
+- To do: install size chip (T-46), hearts on edition cards
+  (T-38), localised labels (T-26); data ideas in `docs/08` section 9.
+- Known limits: install sizes only after "Load details" (the wishlist page has almost none); no owned tick on
+  browse cards (needs the sign-in token); "Leaving pass soon" depends on Xbox publishing exit dates.
+
+---
+
+*Last updated: 5 October 2026 - v1.5.26278.1*
