@@ -132,6 +132,8 @@ empty store, so the sanity checks always see a clean slate.
 
 **Language (T-26):** every wishlist run also checks that the page's language file loaded and that no raw catalogue key shows in our UI ("language:" line). With `?locale=de-DE` the same fixture runs in German, `?locale=ja-JP` in Japanese, and so on - all 42 catalogues were run this way (add `?locale=sr-Cyrl-RS` or `zh-TW` for the script variants).
 
+**Direction (T-57):** every wishlist run also reports "direction:" - the toolbar must sit on the inline-end side (right in a left-to-right page, left in a right-to-left one) and the price sliders must stay left to right. The `ar-sa` fixture is right to left; `?locale=he-IL` on it runs Hebrew.
+
 **Testing another market:** add `?locale=xx-YY` (e.g. `?locale=en-US`, or `?realpath` for the capture's own
 locale). The harness rewrites the address bar to the capture's real path with that locale
 (`/en-US/wishlist`), so the core sees that market as it does live; only the address changes, the page stays

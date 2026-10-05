@@ -368,7 +368,9 @@ window.XboxWishlistCore = {
             'details.loaded': 'Loaded {ok} of {total}.',
             'details.loadedFailed': 'Loaded {ok} of {total}, {failed} failed.'
         };
-        const I18N = { code: 'en', locale: null, messages: {}, rules: null };
+        const I18N = { code: 'en', locale: null, messages: {}, rules: null, rtl: false };
+        // Languages written right to left (T-57); their texts get bidi isolation around each filled-in value
+        const RTL_CODES = ['ar', 'he', 'fa', 'ur'];
 
         // 'de-AT' -> 'de', 'zh-TW' -> 'zh-Hant', 'sr-Latn-RS' -> 'sr-Latn'; null = no catalogue (English)
         function catalogueFor(locale) {
@@ -391,14 +393,14 @@ window.XboxWishlistCore = {
 
         async function loadLanguage() {
             try {
-                I18N.locale = pageLocale(); I18N.messages = {}; I18N.code = 'en';
+                I18N.locale = pageLocale(); I18N.messages = {}; I18N.code = 'en'; I18N.rtl = false;
                 try { I18N.rules = new Intl.PluralRules(I18N.locale || 'en'); } catch (ex) { I18N.rules = null; }
                 const code = catalogueFor(I18N.locale);
                 if (!code) return;
                 const url = adapter.getResourceUrl('I18N_' + code.replace('-', '_'));
                 const text = url ? await getSVG(url) : null;   // (getSVG is a plain cached text fetch)
                 const messages = text ? JSON.parse(text) : null;
-                if (messages && typeof messages === 'object') { I18N.messages = messages; I18N.code = code; }
+                if (messages && typeof messages === 'object') { I18N.messages = messages; I18N.code = code; I18N.rtl = RTL_CODES.includes(code); }
             } catch (ex) { console.error('Failed to load the language file:', ex); }
         }
 
@@ -407,7 +409,10 @@ window.XboxWishlistCore = {
             let text = I18N.messages[key];
             if (typeof text !== 'string') text = EN[key];
             if (typeof text !== 'string') return key;
-            return params ? text.replace(/\{(\w+)\}/g, (m, k) => (params[k] !== undefined ? params[k] : m)) : text;
+            // In a right-to-left language each filled-in value is wrapped in a first-strong isolate (U+2068 ... U+2069),
+            // so a number, date or Latin title keeps its own order and "6 GB" does not turn into "GB 6"
+            const fill = v => (I18N.rtl ? '⁨' + v + '⁩' : v);
+            return params ? text.replace(/\{(\w+)\}/g, (m, k) => (params[k] !== undefined ? fill(params[k]) : m)) : text;
         }
         const trDate = (ms, opts) => new Date(ms).toLocaleDateString(uiLocale(), opts);
 

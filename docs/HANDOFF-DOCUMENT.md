@@ -3,7 +3,7 @@
 ## Current Status
 
 **Date:** 5 October 2026
-**Version:** 1.5.26278.13 (extension and userscript share one version)
+**Version:** 1.5.26278.14 (extension and userscript share one version)
 **Status:** Live. Everything built up to 2026-10-05 is confirmed in Edge; the Chrome / Tampermonkey pass (T-06) is still to do.
 **Live state and open work:** `STATUS.md` (repo root) - always read it first. Full history: `CHANGELOG.md`. Feature detail: `docs/04-FEATURE-BREAKDOWN.md`. Where each item attribute comes from: `docs/09-ITEM-DATA-MODEL.md`. Languages: `shared/i18n/<code>.json` (42), checked with `node tools/i18n/check.js`.
 
@@ -107,4 +107,4 @@ See `STATUS.md` for the live list. At this date:
 
 ---
 
-*Last updated: 5 October 2026 - v1.5.26278.13*
+*Last updated: 5 October 2026 - v1.5.26278.14*

@@ -14,6 +14,21 @@ for how a version is bumped and published.
 
 ---
 
+## v1.5.26278.14 (Oct 2026) - right-to-left pages (Arabic, Hebrew) (T-57)
+
+- **Toolbar, filter / sort panels, Export menu, discount dot and wishlist hearts mirror to the inline end** (`inset-inline-end`):
+  the right in left-to-right pages (unchanged), the left in right-to-left ones. Before, in Arabic the toolbar
+  sat on Xbox's page title and the panels covered the (mirrored) item names.
+- Every other physical left / right rule in `styles.css` is now logical: chip margins (`margin-inline-start`),
+  the sort "add" icon, label and Export item alignment (`text-align: start / end`), the accordion header. The flagged
+  tile's gold bar moves to the right edge in right-to-left pages.
+- The price / discount range sliders stay left to right (`.ifc-slider-track { direction: ltr }`): the green fill is
+  positioned from the left, and low-to-high reads left to right in Arabic and Hebrew as well.
+- `tr()`: in a right-to-left language (`RTL_CODES`: ar, he, fa, ur) every filled-in value is wrapped in a first-strong
+  bidi isolate, so "6 GB", dates and Latin game titles keep their own order instead of scrambling ("GB 6").
+- Harness: new "direction" line per wishlist run - fails if the toolbar is not on the inline-end side or a slider is not
+  left to right. Arabic (`ar-sa` fixture, and `?locale=he-IL`) run alongside the 46 fixtures.
+
 ## v1.5.26278.13 (Oct 2026) - the extension can load the language files
 
 - `manifest.json`: `shared/i18n/*.json` added to `web_accessible_resources` (HITL-approved 2026-10-05). No new

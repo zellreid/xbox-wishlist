@@ -85,8 +85,11 @@ body[data-theme="light"] {
 #ifc_ButtonContainer {
     position: fixed;
     top: 72px;
-    right: 100px;
-    left: auto;
+    /* The inline end: the right in left-to-right pages, the left in right-to-left
+       ones (T-57), where Xbox's page title sits at the right and the item names
+       and art are mirrored to the right */
+    inset-inline-end: 100px;
+    inset-inline-start: auto;
     width: auto;
     margin: 0;
     row-gap: 8px;
@@ -111,7 +114,7 @@ body[data-theme="light"] {
 .ifc-badge-dot {
     position: absolute;
     top: 4px;
-    right: 4px;
+    inset-inline-end: 4px;
     width: 8px;
     height: 8px;
     border-radius: 50%;
@@ -128,7 +131,7 @@ body[data-theme="light"] {
 
 #ifc_lbl_Filter {
     flex-basis: 100%;
-    text-align: right;
+    text-align: end;
     margin: 0 4px;
     line-height: 24px;
 }
@@ -146,7 +149,7 @@ body[data-theme="light"] {
        above); keep in sync if the bar moves or changes height. The panel
        stops 72px above the bottom of the window. 4px grid throughout. */
     top: 144px;
-    right: 100px;
+    inset-inline-end: 100px;
     width: 320px;
     border-radius: 8px;
     padding: 16px;
@@ -261,7 +264,7 @@ ul.ifc-filter-groups {
 /* ==================== DEAL END BADGE ==================== */
 /* Sits right after the -N% discount badge in the item's price row */
 .ifc-deal-ends {
-    margin-left: 8px;
+    margin-inline-start: 8px;
     padding: 0 8px;
     line-height: 16px;
     border-radius: 4px;
@@ -279,7 +282,7 @@ ul.ifc-filter-groups {
 
 /* F-26: "Since 22 Sep" (sale first seen) - same quiet chip as "Ends" */
 .ifc-deal-since {
-    margin-left: 8px;
+    margin-inline-start: 8px;
     padding: 0 8px;
     line-height: 16px;
     border-radius: 4px;
@@ -292,7 +295,7 @@ ul.ifc-filter-groups {
 
 /* F-26: price change since the last visit - green when it dropped, amber when it went up */
 .ifc-price-change {
-    margin-left: 8px;
+    margin-inline-start: 8px;
     padding: 0 8px;
     line-height: 16px;
     border-radius: 4px;
@@ -309,7 +312,7 @@ ul.ifc-filter-groups {
 
 /* F-27: lowest price seen in the last 90 days - quiet, green when the current price is it */
 .ifc-price-low {
-    margin-left: 8px;
+    margin-inline-start: 8px;
     padding: 0 8px;
     line-height: 16px;
     border-radius: 4px;
@@ -482,6 +485,10 @@ p:has(+ .ifc-item-tags) {
     box-shadow: inset 3px 0 0 var(--ifc-flag);
 }
 
+[dir="rtl"] .ifc-flagged {
+    box-shadow: inset -3px 0 0 var(--ifc-flag);
+}
+
 @keyframes ifc-spin {
     to { transform: rotate(360deg); }
 }
@@ -535,7 +542,7 @@ p:has(+ .ifc-item-tags) {
 .ifc-sort-add-icon {
     display: inline-flex;
     vertical-align: -1px;
-    margin-right: 4px;
+    margin-inline-end: 4px;
 }
 
 .ifc-sort-remove,
@@ -550,7 +557,7 @@ p:has(+ .ifc-item-tags) {
 .ifc-export-menu {
     position: absolute;
     top: calc(100% + 4px);
-    right: 0;
+    inset-inline-end: 0;
     z-index: 999;
     display: flex;
     flex-direction: column;
@@ -565,7 +572,7 @@ p:has(+ .ifc-item-tags) {
 .ifc-export-item {
     height: var(--gds-button-small-height, 32px);
     justify-content: flex-start;
-    text-align: left;
+    text-align: start;
 }
 
 /* ==================== PANEL SECTIONS (SAVED / QUICK FILTERS) ==================== */
@@ -703,7 +710,11 @@ p:has(+ .ifc-item-tags) {
     color: #ffffff;
 }
 
+/* Stays left-to-right in right-to-left pages (T-57): the browser flips a range
+   input's direction, but the green fill is positioned from the left in core.js,
+   and a number line reads low to high left to right in Arabic and Hebrew too */
 .ifc-slider-track {
+    direction: ltr;
     position: relative;
     height: 20px;
     background: transparent;
@@ -846,7 +857,7 @@ p:has(+ .ifc-item-tags) {
     text-align: center;
     min-width: 2.5rem;
     padding: 0 .5rem;
-    margin-left: 8px;
+    margin-inline-start: 8px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -888,7 +899,7 @@ p:has(+ .ifc-item-tags) {
 @media (max-width: 768px) {
     .ifc-filter-section {
         width: calc(100vw - 40px);
-        right: 20px;
+        inset-inline-end: 20px;
         /* 144px top + 24px clear at the bottom (100vh - 120px ran 20px off-screen) */
         max-height: calc(100vh - 168px);
     }
@@ -1042,7 +1053,7 @@ p:has(+ .ifc-item-tags) {
     font-size: 0.9375rem;
     font-weight: 600;
     line-height: 1.25rem;
-    text-align: left;
+    text-align: start;
     transition: opacity 0.15s ease;
 }
 
@@ -1198,7 +1209,7 @@ p:has(+ .ifc-item-tags) {
 body .ifc-HeartHost > a.ifc-WishlistHeart {
     position: absolute;
     top: 8px;
-    right: 8px;
+    inset-inline-end: 8px;
     z-index: 2;
     display: flex;
     flex-direction: row;

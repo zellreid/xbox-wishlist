@@ -362,6 +362,18 @@ function buildHarnessBlock(outDir, meta) {
             if (raw.length) failures.push('raw catalogue keys shown: ' + raw.slice(0, 5).join(', '));
         }
 
+        // T-57, direction: the toolbar sits at the inline end (right in a left-to-right page, left in a right-to-left
+        // one, clear of Xbox's page title), and the price sliders stay left to right
+        const bar = document.getElementById('ifc_ButtonContainer');
+        if (bar) {
+            const dir = getComputedStyle(bar).direction, r = bar.getBoundingClientRect(), mid = (r.left + r.right) / 2;
+            const side = mid < window.innerWidth / 2 ? 'left' : 'right';
+            lines.push('direction: ' + dir + ', toolbar on the ' + side);
+            if (side !== (dir === 'rtl' ? 'left' : 'right')) failures.push('toolbar is on the ' + side + ' in a ' + dir + ' page');
+            const track = document.querySelector('.ifc-slider-track');
+            if (track && getComputedStyle(track).direction !== 'ltr') failures.push('price slider is not left to right');
+        }
+
         // Per-market storage: with ?locale=xx-YY the price history must be saved under that market
         lines.push('address seen by the core: ' + location.pathname);
         const wanted = new URLSearchParams(location.search).get('locale');
