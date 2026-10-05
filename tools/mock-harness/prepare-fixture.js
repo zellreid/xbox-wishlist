@@ -347,6 +347,21 @@ function buildHarnessBlock(outDir, meta) {
             if (changed) failures.push(changed + ' items changed after loading details');
         }
 
+        // T-26, language: the page's language file must have loaded (a missing or broken file would quietly fall
+        // back to English), and none of our texts may show a raw catalogue key ("section.owned")
+        if (state.debug && state.debug.language) {
+            const lang = state.debug.language();
+            const keyLike = /^[a-z][A-Za-z]*(\\.[A-Za-z-]+)+$/;
+            const raw = [];
+            document.querySelectorAll('[id^="ifc_"], [class*="ifc-"]').forEach(el => {
+                const own = Array.from(el.childNodes).filter(n => n.nodeType === 3).map(n => n.textContent.trim()).join(' ');
+                [own, el.getAttribute('title'), el.getAttribute('aria-label'), el.getAttribute('placeholder')].forEach(t => { if (t && keyLike.test(t)) raw.push(t); });
+            });
+            lines.push('language: ' + lang.code + ' (page ' + lang.locale + '), ' + raw.length + ' raw keys');
+            if (lang.code !== lang.expected) failures.push('language file for ' + lang.expected + ' did not load (using ' + lang.code + ')');
+            if (raw.length) failures.push('raw catalogue keys shown: ' + raw.slice(0, 5).join(', '));
+        }
+
         // Per-market storage: with ?locale=xx-YY the price history must be saved under that market
         lines.push('address seen by the core: ' + location.pathname);
         const wanted = new URLSearchParams(location.search).get('locale');

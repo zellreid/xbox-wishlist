@@ -14,6 +14,26 @@ for how a version is bumped and published.
 
 ---
 
+## v1.5.26278.12 (Oct 2026) - every text is localised: 42 language catalogues (T-26)
+
+- All text we show now comes from a catalogue by key (163 keys): the built-in English one (`EN` in the core) and
+  one file per language in `shared/i18n/<code>.json`, loaded for the page's language only. 42 catalogues cover
+  Xbox's 41 languages (Chinese Simplified / Traditional and Serbian Cyrillic / Latin are separate files): ar, bg,
+  bs-Latn, cs, da, de, el, es, et, fi, fr, he, hr, hu, id, is, it, ja, ka, ko, lt, lv, mk, mt, nb, nl, pl, pt, ro, ru,
+  sk, sl, sq, sr-Cyrl, sr-Latn, sv, th, tr, uk, vi, zh-Hans, zh-Hant. The page's locale picks the file
+  (/de-AT/ -> de, /zh-TW/ -> zh-Hant); a missing key or file shows English. Dates and times use the page's locale.
+- Stored values stay English keys (filter and sort choices, saved filters), and so do the CSV / JSON export
+  columns; only what is displayed is translated. Item type and Owned / Not Owned / Un-Purchasable go through the
+  catalogue for display only.
+- The two counted texts ("Export as CSV (items: 12)", "Add-ons for this game: 3") are worded without a counted noun,
+  so they need no per-language plural rules.
+- The translations were written without native review: treat them as a first pass (see STATUS T-55).
+- `tools/i18n/check.js` lists every language's coverage and flags unknown keys, changed {placeholders}, empty
+  texts and en / em dashes. The harness now also checks that the page's language file loaded and that no raw key
+  shows in our UI; all 42 languages and all 46 fixtures pass.
+- Needs one manifest line (`shared/i18n/*.json` in `web_accessible_resources`) before the extension can load the
+  files; the userscript has an `@resource` per language.
+
 ## v1.5.26278.10 (Oct 2026) - item data made consistent (T-54)
 
 - Load details no longer replaces a game's record with the store page's. It only fills fields the wishlist record

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         XBOX Wishlist
 // @namespace    https://github.com/zellreid/xbox-wishlist
-// @version      1.5.26278.10
+// @version      1.5.26278.12
 // @description  Advanced filtering and sorting suite with multi-level sort (up to 3 criteria) - Resilient selectors - Public wishlist support
 // @author       ZellReid
 // @homepage     https://github.com/zellreid/xbox-wishlist
@@ -14,7 +14,7 @@
 // @match        https://www.xbox.com/*/promotions/sales/*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=xbox.com
 // @run-at       document-body
-// @resource     CSSFilter https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/styles.css?ver=1.5.26278.10
+// @resource     CSSFilter https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/styles.css?ver=1.5.26278.12
 // @resource     IMGFilter https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/filter.svg
 // @resource     IMGSort https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/sort.svg
 // @resource     IMGExport https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/export.svg
@@ -27,6 +27,48 @@
 // @resource     IMGStar https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/star.svg
 // @resource     IMGStarFilled https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/star-filled.svg
 // @resource     IMGHeart https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/heart.svg
+// @resource     I18N_ar https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/i18n/ar.json
+// @resource     I18N_bg https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/i18n/bg.json
+// @resource     I18N_bs_Latn https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/i18n/bs-Latn.json
+// @resource     I18N_cs https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/i18n/cs.json
+// @resource     I18N_da https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/i18n/da.json
+// @resource     I18N_de https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/i18n/de.json
+// @resource     I18N_el https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/i18n/el.json
+// @resource     I18N_es https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/i18n/es.json
+// @resource     I18N_et https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/i18n/et.json
+// @resource     I18N_fi https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/i18n/fi.json
+// @resource     I18N_fr https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/i18n/fr.json
+// @resource     I18N_he https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/i18n/he.json
+// @resource     I18N_hr https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/i18n/hr.json
+// @resource     I18N_hu https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/i18n/hu.json
+// @resource     I18N_id https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/i18n/id.json
+// @resource     I18N_is https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/i18n/is.json
+// @resource     I18N_it https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/i18n/it.json
+// @resource     I18N_ja https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/i18n/ja.json
+// @resource     I18N_ka https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/i18n/ka.json
+// @resource     I18N_ko https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/i18n/ko.json
+// @resource     I18N_lt https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/i18n/lt.json
+// @resource     I18N_lv https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/i18n/lv.json
+// @resource     I18N_mk https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/i18n/mk.json
+// @resource     I18N_mt https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/i18n/mt.json
+// @resource     I18N_nb https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/i18n/nb.json
+// @resource     I18N_nl https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/i18n/nl.json
+// @resource     I18N_pl https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/i18n/pl.json
+// @resource     I18N_pt https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/i18n/pt.json
+// @resource     I18N_ro https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/i18n/ro.json
+// @resource     I18N_ru https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/i18n/ru.json
+// @resource     I18N_sk https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/i18n/sk.json
+// @resource     I18N_sl https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/i18n/sl.json
+// @resource     I18N_sq https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/i18n/sq.json
+// @resource     I18N_sr_Cyrl https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/i18n/sr-Cyrl.json
+// @resource     I18N_sr_Latn https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/i18n/sr-Latn.json
+// @resource     I18N_sv https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/i18n/sv.json
+// @resource     I18N_th https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/i18n/th.json
+// @resource     I18N_tr https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/i18n/tr.json
+// @resource     I18N_uk https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/i18n/uk.json
+// @resource     I18N_vi https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/i18n/vi.json
+// @resource     I18N_zh_Hans https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/i18n/zh-Hans.json
+// @resource     I18N_zh_Hant https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/i18n/zh-Hant.json
 // @resource     IMGExpand https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/expand.svg
 // @resource     IMGCollapse https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/collapse.svg
 // @grant        GM_getResourceURL
@@ -113,15 +155,15 @@ window.XboxWishlistCore = {
                 // not a page-order guess - see wishlistAddedDatesFrom(). Newest first.
                 criteria: [{ field: 'ifcAddedDate', order: 'desc', label: 'Date Added' }],
                 fields: [
-                    { value: 'ifcAddedDate', label: 'Date Added' }, { value: 'ifcName', label: 'Name' },
-                    { value: 'ifcPublisher', label: 'Publisher' }, { value: 'ifcPrice', label: 'Price' },
-                    { value: 'ifcPriceDiscountPercent', label: 'Discount %' },
-                    { value: 'ifcPriceDiscountAmount', label: 'Discount Amount' },
-                    { value: 'ifcRating', label: 'Rating' },
-                    { value: 'ifcReleaseDate', label: 'Release Date' },
-                    { value: 'ifcDealEnds', label: 'Deal Ends' },
-                    { value: 'ifcInstallSize', label: 'Install Size' },   // T-44
-                    { value: 'ifcFlagged', label: 'Flagged' }
+                    { value: 'ifcAddedDate', get label() { return tr('sort.ifcAddedDate'); } }, { value: 'ifcName', get label() { return tr('sort.ifcName'); } },
+                    { value: 'ifcPublisher', get label() { return tr('sort.ifcPublisher'); } }, { value: 'ifcPrice', get label() { return tr('sort.ifcPrice'); } },
+                    { value: 'ifcPriceDiscountPercent', get label() { return tr('sort.ifcPriceDiscountPercent'); } },
+                    { value: 'ifcPriceDiscountAmount', get label() { return tr('sort.ifcPriceDiscountAmount'); } },
+                    { value: 'ifcRating', get label() { return tr('sort.ifcRating'); } },
+                    { value: 'ifcReleaseDate', get label() { return tr('sort.ifcReleaseDate'); } },
+                    { value: 'ifcDealEnds', get label() { return tr('sort.ifcDealEnds'); } },
+                    { value: 'ifcInstallSize', get label() { return tr('sort.ifcInstallSize'); } },   // T-44
+                    { value: 'ifcFlagged', get label() { return tr('sort.ifcFlagged'); } }
                 ]
             },
             // Named filter combinations (F-23): [{ name, filters }] - see snapshotFilters()
@@ -245,6 +287,221 @@ window.XboxWishlistCore = {
             thisEditionBadge: 'EditionCard-module__thisEditionBadge___',   // marks the edition being viewed   // a game card on store/browse/deals pages (F-38b/F-35b hearts)
         };
 
+        // ==================== LANGUAGE (T-26) ====================
+        // Every text we show comes from a catalogue by key: this built-in English one, and one file per
+        // language in shared/i18n/<code>.json (loaded once, for the page's language; English wherever a key or
+        // a whole language is missing). The language is the page's locale (/en-ZA/wishlist -> en, /zh-TW/ ->
+        // zh-Hant). Stored values (filter and sort keys, export columns) stay English - only what is displayed
+        // is translated.
+        const I18N_CODES = ['ar', 'bg', 'bs-Latn', 'cs', 'da', 'de', 'el', 'es', 'et', 'fi', 'fr', 'he', 'hr', 'hu', 'id', 'is', 'it', 'ja', 'ka', 'ko', 'lt', 'lv', 'mk', 'mt', 'nb', 'nl', 'pl', 'pt', 'ro', 'ru', 'sk', 'sl', 'sq', 'sr-Cyrl', 'sr-Latn', 'sv', 'th', 'tr', 'uk', 'vi', 'zh-Hans', 'zh-Hant'];
+        const EN = {
+            'sort.ifcAddedDate': 'Date Added',
+            'sort.ifcName': 'Name',
+            'sort.ifcPublisher': 'Publisher',
+            'sort.ifcPrice': 'Price',
+            'sort.ifcPriceDiscountPercent': 'Discount %',
+            'sort.ifcPriceDiscountAmount': 'Discount Amount',
+            'sort.ifcRating': 'Rating',
+            'sort.ifcReleaseDate': 'Release Date',
+            'sort.ifcDealEnds': 'Deal Ends',
+            'sort.ifcInstallSize': 'Install Size',
+            'sort.ifcFlagged': 'Flagged',
+            'sort.title': 'Sort',
+            'sort.asc': 'Ascending',
+            'sort.desc': 'Descending',
+            'sort.remove': 'Remove sort criterion',
+            'sort.add': 'Add Sort Level',
+            'toolbar.filter': 'Filter',
+            'toolbar.filterActive': 'Filter (filters applied)',
+            'toolbar.sort': 'Sort',
+            'toolbar.sortActive': 'Sort (custom sort active)',
+            'toolbar.export': 'Export',
+            'toolbar.switchTheme': 'Switch theme',
+            'toolbar.toDark': 'Switch to dark mode',
+            'toolbar.toLight': 'Switch to light mode',
+            'toolbar.refresh': 'Refresh wishlist',
+            'status.viewing': 'Viewing {shown} of {total} results',
+            'status.updated': 'Xbox Wishlist Manager was updated - reload this page to keep using it',
+            'export.items': 'Export as {format} (items: {n})',
+            'filters.title': 'Filters',
+            'filters.clearAll': 'Clear All',
+            'filters.search': 'Search wishlist...',
+            'filters.quick': 'Quick filters',
+            'filters.saved': 'Saved filters',
+            'filters.name': 'Name these filters...',
+            'filters.nameLabel': 'Name for saved filters',
+            'filters.save': 'Save',
+            'filters.deleteSaved': 'Delete "{name}"',
+            'filters.deleteSavedLabel': 'Delete saved filters {name}',
+            'filters.hint.none': 'Set some filters first',
+            'filters.hint.max': 'At most {max} saved filters',
+            'filters.hint.name': 'Enter a name first',
+            'filters.hint.save': 'Save the current filters',
+            'tag.search': 'Search: "{term}"',
+            'tag.remove': 'Remove {label}',
+            'tag.price': 'Price: {min} - {max}',
+            'tag.discount': 'Discount: {min} - {max}',
+            'section.owned': 'Owned',
+            'section.publishers': 'Publishers',
+            'section.subscriptions': 'Subscriptions',
+            'section.genres': 'Genres',
+            'section.platforms': 'Platforms',
+            'section.types': 'Type',
+            'section.age': 'Age rating',
+            'section.capabilities': 'Capabilities',
+            'section.price': 'Price Range',
+            'section.discount': 'Discount Range',
+            'owned.Owned': 'Owned',
+            'owned.Not Owned': 'Not Owned',
+            'owned.Un-Purchasable': 'Un-Purchasable',
+            'type.Game': 'Game',
+            'type.DLC': 'DLC',
+            'type.Consumable': 'Consumable',
+            'age.all': 'All ages',
+            'age.plus': 'Ages {age}+',
+            'noun.publishers': 'publishers',
+            'noun.genres': 'genres',
+            'noun.capabilities': 'capabilities',
+            'search.placeholder': 'Search {noun}...',
+            'search.label': 'Search {noun}',
+            'quick.onSale': 'On Sale',
+            'quick.notOnSale': 'Not on sale',
+            'quick.halfOff': '≥50% Off',
+            'quick.underHalf': 'Under 50% off',
+            'quick.cheap': 'Cheap',
+            'quick.notCheap': 'Not cheap',
+            'quick.hint': 'Click: {label}. Again: {notLabel}. Again: off.',
+            'quick.discountBelow': 'Under {n}% off',
+            'flag.inPass': 'In a pass',
+            'flag.inPass.not': 'Not in a pass',
+            'flag.inMyPass': 'In my pass',
+            'flag.inMyPass.not': 'Not in my pass',
+            'flag.leavingPass': 'Leaving pass soon',
+            'flag.leavingPass.not': 'Not leaving pass soon',
+            'flag.newToPass': 'New in pass',
+            'flag.newToPass.not': 'Not new in pass',
+            'flag.justForYou': 'Just for you',
+            'flag.justForYou.not': 'Not just for you',
+            'flag.preorder': 'Pre-order',
+            'flag.preorder.not': 'Not pre-order',
+            'flag.recentlyAdded': 'Added Recently',
+            'flag.recentlyAdded.not': 'Not added recently',
+            'flag.recentlyAdded.tag': 'Added in the last {days} days',
+            'flag.recentlyAdded.tag.not': 'Not added in the last {days} days',
+            'flag.hasAddOns': 'Has add-ons',
+            'flag.hasAddOns.not': 'No add-ons',
+            'flag.handheldOptimized': 'Handheld optimised',
+            'flag.handheldOptimized.not': 'Not handheld optimised',
+            'flag.flagged': 'Flagged',
+            'flag.flagged.not': 'Not flagged',
+            'chip.justForYou': 'Just for you',
+            'chip.justForYou.reason': 'Just for you: {reason}',
+            'chip.dlc.tip': 'Add-on / downloadable content - needs the base game',
+            'chip.consumable.tip': 'In-game consumable item',
+            'chip.myPass': 'In your pass',
+            'chip.myPass.tip': 'Included with your pass',
+            'chip.myPass.renews': 'Included with your pass - it renews {date}',
+            'chip.myPass.until': 'Included with your pass until {date}',
+            'chip.leaves': 'Leaves pass {date}',
+            'chip.leaves.tip': 'Leaves every pass it is in on {date}',
+            'chip.new': 'New in pass',
+            'chip.new.tip': 'Joined a pass on {date}',
+            'chip.preorder': 'Pre-order',
+            'chip.xs.tip': 'Optimized for Xbox Series X|S',
+            'chip.smartDelivery': 'Smart Delivery',
+            'chip.playAnywhere': 'Play Anywhere',
+            'chip.playAnywhere.tip': 'Xbox Play Anywhere',
+            'chip.size.tip': 'Install size (the largest the store lists for this game)',
+            'chip.addons': 'Add-ons',
+            'chip.addons.count': 'Add-ons ({n})',
+            'chip.addons.tip': 'Add-ons for this game: {n} - open the list in a new tab',
+            'chip.addons.tip.unknown': 'This game has add-ons - open the list in a new tab (Load details or ↻ adds the count)',
+            'item.thisGame': 'this game',
+            'item.refresh': 'Refresh details for {title}',
+            'item.refreshing': 'Refreshing...',
+            'item.refreshFailed': 'Couldn\'t refresh ({error}) - click to retry',
+            'item.refreshed': 'Refreshed {time} - click to refresh again',
+            'item.refreshTip': '{label} (reads its store page; updates every copy of this game)',
+            'item.flag': 'Flag {title}',
+            'item.unflag': 'Unflag {title}',
+            'price.history': 'Price history (90 days):',
+            'price.onSaleSince': 'On sale since {date}',
+            'price.onSaleSinceLeast': 'On sale since at least {date} (already on sale when first seen)',
+            'price.since': 'Since {date}',
+            'price.firstSeenSale': 'First seen on sale {datetime}',
+            'price.lowest': 'Lowest seen',
+            'price.low': 'Low {price}',
+            'price.lowestTip': 'Lowest price seen. ',
+            'price.lowestTipPrice': 'Lowest seen {price}. ',
+            'price.dropped': 'Price dropped from {was} (seen {wasDate}) to {now} ({changedDate})',
+            'price.wentUp': 'Price went up from {was} (seen {wasDate}) to {now} ({changedDate})',
+            'deal.endsIn': 'Ends in {h}h',
+            'deal.ends': 'Ends {date}',
+            'deal.endsTip': 'Deal ends {datetime}',
+            'badge.discount': '{pct}% discount',
+            'heart.since': 'On your wish list since {date}',
+            'stored.title': 'Stored data',
+            'stored.clearCache': 'Clear cached data',
+            'stored.reset': 'Reset everything',
+            'stored.confirm': 'Click again to confirm',
+            'stored.clearCache.tip': 'Removes the saved price history (every market) and the saved game details (capabilities, add-on counts). Filters, saved filters and starred games stay. The page reloads.',
+            'stored.reset.tip': 'Removes everything the extension stored: the cached data above plus filters, saved filters, price ranges, sort, theme and starred games. The page reloads.',
+            'details.loading': 'Loading details {done} / {total}...',
+            'details.cancel': 'Cancel',
+            'details.status': 'Details for {loaded} of {total} games.',
+            'details.load': 'Load details',
+            'details.upToDate': 'Details up to date',
+            'details.tip': 'Reads each game\'s store page (and, for games with add-ons, its add-ons page for the count), about one a second (slower if Xbox is slow to answer); results are kept for 7 days.',
+            'size.gb': '{n} GB',
+            'size.mb': '{n} MB',
+            'details.limited': 'Xbox is limiting requests - stopped; try again later.',
+            'details.stopped': 'Stopped after {done} of {total}.',
+            'details.loaded': 'Loaded {ok} of {total}.',
+            'details.loadedFailed': 'Loaded {ok} of {total}, {failed} failed.'
+        };
+        const I18N = { code: 'en', locale: null, messages: {}, rules: null };
+
+        // 'de-AT' -> 'de', 'zh-TW' -> 'zh-Hant', 'sr-Latn-RS' -> 'sr-Latn'; null = no catalogue (English)
+        function catalogueFor(locale) {
+            const parts = String(locale || '').split('-'), lang = (parts[0] || '').toLowerCase();
+            const script = parts.slice(1).find(x => /^[A-Za-z]{4}$/.test(x)), region = parts.slice(1).find(x => /^[A-Za-z]{2}$/.test(x));
+            const cap = x => x.charAt(0).toUpperCase() + x.slice(1).toLowerCase();
+            let code = lang === 'no' ? 'nb' : lang;
+            if (lang === 'zh') code = script ? 'zh-' + cap(script) : (/^(TW|HK|MO)$/i.test(region || '') ? 'zh-Hant' : 'zh-Hans');
+            else if (lang === 'sr' || lang === 'bs') code = script ? lang + '-' + cap(script) : (lang === 'sr' ? 'sr-Cyrl' : 'bs-Latn');
+            return I18N_CODES.includes(code) ? code : null;
+        }
+
+        // The address names the market (/en-ZA/wishlist); else the page data's locale; else the document's
+        function pageLocale() {
+            const first = location.pathname.split('/').filter(Boolean)[0];
+            if (/^[a-z]{2,3}(-[A-Za-z]{4})?-[A-Za-z]{2}$/.test(first || '')) return first;
+            return state.currency.locale || document.documentElement.lang || null;
+        }
+        function uiLocale() { return I18N.locale || undefined; }
+
+        async function loadLanguage() {
+            try {
+                I18N.locale = pageLocale(); I18N.messages = {}; I18N.code = 'en';
+                try { I18N.rules = new Intl.PluralRules(I18N.locale || 'en'); } catch (ex) { I18N.rules = null; }
+                const code = catalogueFor(I18N.locale);
+                if (!code) return;
+                const url = adapter.getResourceUrl('I18N_' + code.replace('-', '_'));
+                const text = url ? await getSVG(url) : null;   // (getSVG is a plain cached text fetch)
+                const messages = text ? JSON.parse(text) : null;
+                if (messages && typeof messages === 'object') { I18N.messages = messages; I18N.code = code; }
+            } catch (ex) { console.error('Failed to load the language file:', ex); }
+        }
+
+        // Text for a key, {name} placeholders filled; the language's own, else English, else the key itself
+        function tr(key, params) {
+            let text = I18N.messages[key];
+            if (typeof text !== 'string') text = EN[key];
+            if (typeof text !== 'string') return key;
+            return params ? text.replace(/\{(\w+)\}/g, (m, k) => (params[k] !== undefined ? params[k] : m)) : text;
+        }
+        const trDate = (ms, opts) => new Date(ms).toLocaleDateString(uiLocale(), opts);
+
         // ==================== INITIALIZATION ====================
         async function initialize() {
             try {
@@ -255,6 +512,8 @@ window.XboxWishlistCore = {
                 // Parse this page's embedded product data once (local, ~20 ms) so the first
                 // updateScreen() can attach rating/genre/release/deal data to every item
                 await loadProductData();
+                // The page's locale is known now: its language file (T-26)
+                await loadLanguage();
                 // Now the page's currency is known: swap in the price range saved for it
                 selectPriceRangeForCurrency();
                 // Capabilities fetched on earlier visits via "Load details" (F-36)
@@ -644,11 +903,11 @@ window.XboxWishlistCore = {
         function updateActiveTags() {
             const tags = [];
             if (state.filters.search.term.trim() !== '') {
-                tags.push({ type: 'search', value: 'search', label: `Search: "${state.filters.search.term.trim()}"` });
+                tags.push({ type: 'search', value: 'search', label: tr('tag.search', { term: state.filters.search.term.trim() }) });
             }
             state.filters.owned.selected.forEach(item => {
                 const count = state.filters.owned.counts ? (state.filters.owned.counts.get(item) || 0) : null;
-                tags.push({ type: 'owned', value: item, label: count === null ? item : `${item} (${count})` });
+                tags.push({ type: 'owned', value: item, label: count === null ? ownedLabel(item) : `${ownedLabel(item)} (${count})` });
             });
             state.filters.publishers.selected.forEach(pub => {
                 const count = state.filters.publishers.list.get(pub) || 0;
@@ -676,9 +935,9 @@ window.XboxWishlistCore = {
                 const count = state.filters.capabilities.list.get(cap) || 0;
                 tags.push({ type: 'capability', value: cap, label: `${cap} (${count})` });
             });
-            state.filters.types.selected.forEach(t => {
-                const count = state.filters.types.list.get(t) || 0;
-                tags.push({ type: 'itemType', value: t, label: `${t} (${count})` });
+            state.filters.types.selected.forEach(ty => {
+                const count = state.filters.types.list.get(ty) || 0;
+                tags.push({ type: 'itemType', value: ty, label: `${typeLabel(ty)} (${count})` });
             });
             state.filters.ages.selected.forEach(a => {
                 const count = state.filters.ages.list.get(a) || 0;
@@ -686,11 +945,11 @@ window.XboxWishlistCore = {
             });
             if (state.filters.priceRange.enabled) {
                 const { currentMin, currentMax } = state.filters.priceRange;
-                tags.push({ type: 'price', value: 'price', label: `Price: ${formatCurrency(currentMin)} - ${formatCurrency(currentMax)}` });
+                tags.push({ type: 'price', value: 'price', label: tr('tag.price', { min: formatCurrency(currentMin), max: formatCurrency(currentMax) }) });
             }
             if (state.filters.discountRange.enabled) {
                 const { currentMin, currentMax } = state.filters.discountRange;
-                tags.push({ type: 'discount', value: 'discount', label: `Discount: ${formatPercentage(currentMin)} - ${formatPercentage(currentMax)}` });
+                tags.push({ type: 'discount', value: 'discount', label: tr('tag.discount', { min: formatPercentage(currentMin), max: formatPercentage(currentMax) }) });
             }
             state.filters.activeTags = tags;
             renderTags();
@@ -709,7 +968,7 @@ window.XboxWishlistCore = {
                 tagEl.className = 'ifc-filter-tag'; tagEl.textContent = tag.label;
                 const removeBtn = document.createElement('button');
                 removeBtn.className = 'ifc-tag-remove'; setGlyph(removeBtn, 'IMGClose', '×');
-                removeBtn.setAttribute('aria-label', `Remove ${tag.label}`);
+                removeBtn.setAttribute('aria-label', tr('tag.remove', { label: tag.label }));
                 removeBtn.onclick = () => removeTag(tag);
                 tagEl.appendChild(removeBtn); tagContainer.appendChild(tagEl);
             });
@@ -931,7 +1190,7 @@ window.XboxWishlistCore = {
             if (state.ui.lblFilter) return;
             try {
                 const bc = getElement(`#${CONFIG.ids.buttonContainer}`); if (!bc) return;
-                const label = createLabel('Filter', `Viewing ${state.filters.filteredCount} of ${state.filters.totalCount} results`);
+                const label = createLabel('Filter', tr('status.viewing', { shown: state.filters.filteredCount, total: state.filters.totalCount }));
                 bc.insertBefore(label, bc.firstChild);
                 state.ui.lblFilter = true;
             } catch (ex) { console.error('Failed to add filter label:', ex); }
@@ -940,7 +1199,7 @@ window.XboxWishlistCore = {
             if (state.ui.btnFilter) return;
             try {
                 const bc = getElement(`#${CONFIG.ids.buttonContainer}`); if (!bc) return;
-                const btn = createImageButton('Filter', adapter.getResourceUrl('IMGFilter'), 'Filter', 'svg');
+                const btn = createImageButton('Filter', adapter.getResourceUrl('IMGFilter'), tr('toolbar.filter'), 'svg');
                 // Wired here (not with the panel) so a toolbar re-created after the store app
                 // re-renders the wishlist still opens the panel that survived in <body>
                 btn.addEventListener('click', toggleFilterContainer);
@@ -952,7 +1211,7 @@ window.XboxWishlistCore = {
             if (state.ui.btnSort) return;
             try {
                 const bc = getElement(`#${CONFIG.ids.buttonContainer}`); if (!bc) return;
-                const btn = createImageButton('Sort', adapter.getResourceUrl('IMGSort'), 'Sort', 'svg');
+                const btn = createImageButton('Sort', adapter.getResourceUrl('IMGSort'), tr('toolbar.sort'), 'svg');
                 btn.addEventListener('click', toggleSortContainer);   // see addFilterButton
                 bc.appendChild(btn);
                 state.ui.btnSort = true;
@@ -965,7 +1224,7 @@ window.XboxWishlistCore = {
             if (state.ui.btnExport) return;
             try {
                 const bc = getElement(`#${CONFIG.ids.buttonContainer}`); if (!bc) return;
-                const btn = createImageButton('Export', adapter.getResourceUrl('IMGExport'), 'Export', 'svg');
+                const btn = createImageButton('Export', adapter.getResourceUrl('IMGExport'), tr('toolbar.export'), 'svg');
                 btn.setAttribute('aria-haspopup', 'menu'); btn.setAttribute('aria-expanded', 'false');
                 const menu = document.createElement('div');
                 menu.id = CONFIG.ids.exportMenu; menu.className = 'ifc-export-menu ifc-hidden';
@@ -1003,7 +1262,7 @@ window.XboxWishlistCore = {
                 // Label with the live count so it's clear only the visible items are exported
                 const n = getVisibleItems().length;
                 menu.querySelectorAll('.ifc-export-item').forEach(item => {
-                    item.textContent = `Export ${n} item${n === 1 ? '' : 's'} as ${item.dataset.ifcLabel}`;
+                    item.textContent = tr('export.items', { n, format: item.dataset.ifcLabel });
                     item.disabled = n === 0;
                 });
             }
@@ -1073,6 +1332,9 @@ window.XboxWishlistCore = {
         const PLATFORM_LABELS = { XboxSeriesX: 'Xbox Series X|S', XboxOne: 'Xbox One', PC: 'PC', Handheld: 'Handheld' };
         // Product kinds in the data: Durable = add-on / DLC, Consumable = in-game items
         const PRODUCT_KIND_LABELS = { Game: 'Game', Durable: 'DLC', Consumable: 'Consumable' };
+        // Stored / exported values stay English; what is shown goes through the catalogue
+        const ownedLabel = v => tr('owned.' + v);
+        const typeLabel = v => tr('type.' + v);
 
         // fresh: false reads this page as loaded (no network); true re-fetches the
         // wishlist page for current data. Returns the map (also kept in state).
@@ -1320,38 +1582,38 @@ window.XboxWishlistCore = {
                 if (canFlag) add(ITEM_TAG_ORDER.FLAG, createItemFlagButton(info));
                 if (info.kindLabel) {
                     const kind = document.createElement('span'); kind.className = 'ifc-item-tag ifc-item-tag-kind';
-                    kind.textContent = info.kindLabel;
-                    kind.title = info.kindLabel === 'DLC' ? 'Add-on / downloadable content - needs the base game' : 'In-game consumable item';
+                    kind.textContent = typeLabel(info.kindLabel);
+                    kind.title = info.kindLabel === 'DLC' ? tr('chip.dlc.tip') : tr('chip.consumable.tip');
                     add(info.kindLabel === 'DLC' ? ITEM_TAG_ORDER.DLC : ITEM_TAG_ORDER.CONSUMABLE, kind);
                 }
                 if (info.personal) {
                     const jfy = document.createElement('span'); jfy.className = 'ifc-item-tag ifc-item-tag-jfy';
-                    jfy.textContent = 'Just for you';
-                    if (info.reason) { jfy.title = info.reason; jfy.setAttribute('aria-label', `Just for you: ${info.reason}`); }
+                    jfy.textContent = tr('chip.justForYou');
+                    if (info.reason) { jfy.title = info.reason; jfy.setAttribute('aria-label', tr('chip.justForYou.reason', { reason: info.reason })); }
                     add(ITEM_TAG_ORDER.JUST_FOR_YOU, jfy);
                 }
                 if (info.myPass) {
                     const mine = document.createElement('span'); mine.className = 'ifc-item-tag ifc-item-tag-mypass';
-                    mine.textContent = 'In your pass';
-                    const on = info.myPass.ends ? new Date(info.myPass.ends).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) : null;
-                    const text = !on ? 'Included with your pass'
-                        : info.myPass.renews ? `Included with your pass - it renews ${on}` : `Included with your pass until ${on}`;
+                    mine.textContent = tr('chip.myPass');
+                    const on = info.myPass.ends ? trDate(info.myPass.ends, { day: 'numeric', month: 'short', year: 'numeric' }) : null;
+                    const text = !on ? tr('chip.myPass.tip')
+                        : info.myPass.renews ? tr('chip.myPass.renews', { date: on }) : tr('chip.myPass.until', { date: on });
                     mine.title = text; mine.setAttribute('aria-label', text);
                     add(ITEM_TAG_ORDER.MY_PASS, mine);
                 }
                 // T-43: leaving every pass within PASS_SOON_DAYS / joined its first current pass within it
-                const passDay = ms => new Date(ms).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+                const passDay = ms => trDate(ms, { day: 'numeric', month: 'short' });
                 if (info.passLeaves) {
                     const leaves = document.createElement('span'); leaves.className = 'ifc-item-tag ifc-item-tag-passleaves';
-                    leaves.textContent = `Leaves pass ${passDay(info.passLeaves)}`;
-                    const text = `Leaves every pass it is in on ${new Date(info.passLeaves).toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' })}`;
+                    leaves.textContent = tr('chip.leaves', { date: passDay(info.passLeaves) });
+                    const text = tr('chip.leaves.tip', { date: trDate(info.passLeaves, { day: 'numeric', month: 'long', year: 'numeric' }) });
                     leaves.title = text; leaves.setAttribute('aria-label', text);
                     add(ITEM_TAG_ORDER.PASS_LEAVES, leaves);
                 }
                 if (info.passJoined) {
                     const fresh = document.createElement('span'); fresh.className = 'ifc-item-tag ifc-item-tag-passnew';
-                    fresh.textContent = 'New in pass';
-                    const text = `Joined a pass on ${new Date(info.passJoined).toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' })}`;
+                    fresh.textContent = tr('chip.new');
+                    const text = tr('chip.new.tip', { date: trDate(info.passJoined, { day: 'numeric', month: 'long', year: 'numeric' }) });
                     fresh.title = text; fresh.setAttribute('aria-label', text);
                     add(ITEM_TAG_ORDER.PASS_NEW, fresh);
                 }
@@ -1359,7 +1621,7 @@ window.XboxWishlistCore = {
                     const pre = document.createElement('span'); pre.className = 'ifc-item-tag ifc-item-tag-preorder';
                     const icon = document.createElement('span'); icon.className = 'ifc-item-tag-icon';
                     setGlyph(icon, 'IMGPreorder', '');
-                    pre.append(icon, 'Pre-order');
+                    pre.append(icon, tr('chip.preorder'));
                     add(ITEM_TAG_ORDER.PREORDER, pre);
                 }
                 const chip = (order, cls, text, title, iconKey) => {
@@ -1369,14 +1631,14 @@ window.XboxWishlistCore = {
                     el.append(text);
                     add(order, el);
                 };
-                if (info.optimizedXS) chip(ITEM_TAG_ORDER.OPTIMIZED_XS, 'ifc-item-tag-xs', 'X|S', 'Optimized for Xbox Series X|S');
-                if (info.smartDelivery) chip(ITEM_TAG_ORDER.SMART_DELIVERY, 'ifc-item-tag-sd', 'Smart Delivery', 'Smart Delivery');
-                if (info.playAnywhere) chip(ITEM_TAG_ORDER.PLAY_ANYWHERE, 'ifc-item-tag-xpa', 'Play Anywhere', 'Xbox Play Anywhere', 'IMGPlayAnywhere');
+                if (info.optimizedXS) chip(ITEM_TAG_ORDER.OPTIMIZED_XS, 'ifc-item-tag-xs', 'X|S', tr('chip.xs.tip'));
+                if (info.smartDelivery) chip(ITEM_TAG_ORDER.SMART_DELIVERY, 'ifc-item-tag-sd', tr('chip.smartDelivery'), tr('chip.smartDelivery'));
+                if (info.playAnywhere) chip(ITEM_TAG_ORDER.PLAY_ANYWHERE, 'ifc-item-tag-xpa', tr('chip.playAnywhere'), tr('chip.playAnywhere.tip'), 'IMGPlayAnywhere');
                 // T-46: install size once known (the wishlist's own data rarely has it; Load details / the refresh button cache it)
                 if (info.installSize) {
                     const size = document.createElement('span'); size.className = 'ifc-item-tag ifc-item-tag-size';
                     size.textContent = formatInstallSize(info.installSize);
-                    size.title = 'Install size (the largest the store lists for this game)';
+                    size.title = tr('chip.size.tip');
                     add(ITEM_TAG_ORDER.INSTALL_SIZE, size);
                 }
                 // F-40: "Add-ons" / "Add-ons (462)" - a link to the store's add-ons list for this game
@@ -1384,9 +1646,8 @@ window.XboxWishlistCore = {
                     const n = info.addOns.count, known = typeof n === 'number';
                     const link = document.createElement('a'); link.className = 'ifc-item-tag ifc-item-tag-addons';
                     link.href = info.addOns.url; link.target = '_blank'; link.rel = 'noopener';
-                    link.textContent = known ? `Add-ons (${n})` : 'Add-ons';
-                    link.title = known ? `${n} add-on${n === 1 ? '' : 's'} for this game - open the list in a new tab`
-                        : 'This game has add-ons - open the list in a new tab (Load details or ↻ adds the count)';
+                    link.textContent = known ? tr('chip.addons.count', { n }) : tr('chip.addons');
+                    link.title = known ? tr('chip.addons.tip', { n }) : tr('chip.addons.tip.unknown');
                     // The item card may sit inside Xbox's own click handling - let the link just open
                     link.addEventListener('click', (e) => e.stopPropagation());
                     add(ITEM_TAG_ORDER.ADD_ONS, link);
@@ -1404,12 +1665,12 @@ window.XboxWishlistCore = {
             btn.className = 'ifc-item-refresh' + (st && st.busy ? ' ifc-busy' : '') + (st && st.error ? ' ifc-error' : '');
             btn.dataset.ifcRefreshId = info.productId;
             btn.disabled = !!(st && st.busy);
-            const label = `Refresh details for ${info.title || 'this game'}`;
+            const label = tr('item.refresh', { title: info.title || tr('item.thisGame') });
             btn.setAttribute('aria-label', label);
-            btn.title = st && st.busy ? 'Refreshing...'
-                : st && st.error ? `Couldn't refresh (${st.error}) - click to retry`
-                : st && st.at ? `Refreshed ${new Date(st.at).toLocaleTimeString()} - click to refresh again`
-                : `${label} (reads its store page; updates every copy of this game)`;
+            btn.title = st && st.busy ? tr('item.refreshing')
+                : st && st.error ? tr('item.refreshFailed', { error: st.error })
+                : st && st.at ? tr('item.refreshed', { time: new Date(st.at).toLocaleTimeString(uiLocale()) })
+                : tr('item.refreshTip', { label });
             setGlyph(btn, 'IMGRefresh', '↻');
             // The item card may sit inside Xbox's own link/click handling - keep the click ours
             btn.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); refreshItem(info.productId, info.url); });
@@ -1423,7 +1684,7 @@ window.XboxWishlistCore = {
             btn.className = 'ifc-item-flag' + (info.flagged ? ' ifc-flag-on' : '');
             btn.dataset.ifcFlagId = info.productId;
             btn.setAttribute('aria-pressed', info.flagged ? 'true' : 'false');
-            const label = `${info.flagged ? 'Unflag' : 'Flag'} ${info.title || 'this game'}`;
+            const label = tr(info.flagged ? 'item.unflag' : 'item.flag', { title: info.title || tr('item.thisGame') });
             btn.setAttribute('aria-label', label); btn.title = label;
             setGlyph(btn, info.flagged ? 'IMGStarFilled' : 'IMGStar', info.flagged ? '★' : '☆');
             btn.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); toggleFlag(info.productId); });
@@ -1540,7 +1801,7 @@ window.XboxWishlistCore = {
 
         function injectPriceHistory(container, e) {
             try {
-                const day = ms => new Date(ms).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+                const day = ms => trDate(ms, { day: 'numeric', month: 'short' });
                 const changed = !!(e && e.changed && e.was !== null && e.was !== e.p && Date.now() - e.changed < PRICE_CHANGE_SHOW_MS);
                 const dealKnown = !!(e && e.deal && e.deal > e.first);
                 setDataAttribute(container, 'ifcPriceWas', e && e.was !== null ? e.was : null);
@@ -1550,12 +1811,12 @@ window.XboxWishlistCore = {
                 // F-27: price points (newest first in the tooltip) and the lowest of them
                 const points = e && Array.isArray(e.h) ? e.h : [];
                 const low = points.length ? Math.min(...points.map(pt => pt[1])) : null;
-                const historyText = points.length > 1 ? 'Price history (90 days):\n' + points.slice(-PRICE_POINTS_TOOLTIP).reverse()
+                const historyText = points.length > 1 ? tr('price.history') + '\n' + points.slice(-PRICE_POINTS_TOOLTIP).reverse()
                     .map(pt => `${day(pt[0])}: ${formatCurrency(pt[1])}`).join('\n') : '';
                 setDataAttribute(container, 'ifcPriceLow', points.length > 1 ? low : null);
                 setDataAttribute(container, 'ifcPriceHistory', points.length > 1 ? JSON.stringify(points) : null);
                 const discount = container.querySelector('.ifc-discount-badge');
-                if (discount) discount.title = e && e.deal ? (dealKnown ? `On sale since ${day(e.deal)}` : `On sale since at least ${day(e.deal)} (already on sale when first seen)`) : '';
+                if (discount) discount.title = e && e.deal ? tr(dealKnown ? 'price.onSaleSince' : 'price.onSaleSinceLeast', { date: day(e.deal) }) : '';
                 // "Since 22 Sep" after the deal badges - only when the start was actually seen
                 let since = container.querySelector('.ifc-deal-since');
                 if (!dealKnown || !discount) { if (since) since.remove(); }
@@ -1563,8 +1824,8 @@ window.XboxWishlistCore = {
                     if (!since) { since = document.createElement('span'); since.className = 'ifc-deal-since'; }
                     const after = container.querySelector('.ifc-deal-ends') || discount;
                     if (after.nextElementSibling !== since) after.insertAdjacentElement('afterend', since);
-                    since.textContent = `Since ${day(e.deal)}`;
-                    since.title = `First seen on sale ${new Date(e.deal).toLocaleString()}`;
+                    since.textContent = tr('price.since', { date: day(e.deal) });
+                    since.title = tr('price.firstSeenSale', { datetime: new Date(e.deal).toLocaleString(uiLocale()) });
                 }
                 const priceRow = () => {
                     const pd = CONFIG.selectors.productDetails ? safeQuerySelector(container, CONFIG.selectors.productDetails) : null;
@@ -1579,8 +1840,8 @@ window.XboxWishlistCore = {
                     if (lowChip) {
                         const atLow = e.p <= low;
                         lowChip.className = 'ifc-price-low' + (atLow ? ' ifc-price-low-now' : '');
-                        lowChip.textContent = atLow ? 'Lowest seen' : `Low ${formatCurrency(low)}`;
-                        lowChip.title = historyText; lowChip.setAttribute('aria-label', (atLow ? 'Lowest price seen. ' : `Lowest seen ${formatCurrency(low)}. `) + historyText);
+                        lowChip.textContent = atLow ? tr('price.lowest') : tr('price.low', { price: formatCurrency(low) });
+                        lowChip.title = historyText; lowChip.setAttribute('aria-label', (atLow ? tr('price.lowestTip') : tr('price.lowestTipPrice', { price: formatCurrency(low) })) + historyText);
                     }
                 }
                 // "▼ R 40.00" / "▲ R 40.00" at the end of the price row for a week after a change
@@ -1593,7 +1854,7 @@ window.XboxWishlistCore = {
                 const down = e.p < e.was, delta = Math.round(Math.abs(e.p - e.was) * 100) / 100;
                 badge.className = 'ifc-price-change ' + (down ? 'ifc-price-down' : 'ifc-price-up');
                 badge.textContent = `${down ? '▼' : '▲'} ${formatCurrency(delta)}`;
-                const text = `Price ${down ? 'dropped' : 'went up'} from ${formatCurrency(e.was)} (seen ${day(e.wasAt || e.changed)}) to ${formatCurrency(e.p)} (${day(e.changed)})`;
+                const text = tr(down ? 'price.dropped' : 'price.wentUp', { was: formatCurrency(e.was), wasDate: day(e.wasAt || e.changed), now: formatCurrency(e.p), changedDate: day(e.changed) });
                 badge.title = historyText ? `${text}\n\n${historyText}` : text; badge.setAttribute('aria-label', text);
             } catch (ex) { console.error('Failed to show price history:', ex); }
         }
@@ -1610,10 +1871,10 @@ window.XboxWishlistCore = {
                 }
                 const left = endsMs - Date.now(), end = new Date(endsMs);
                 const soon = left < 24 * 60 * 60 * 1000;
-                badge.textContent = soon ? `Ends in ${Math.max(1, Math.ceil(left / 3600000))}h`
-                    : `Ends ${end.toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}`;
+                badge.textContent = soon ? tr('deal.endsIn', { h: Math.max(1, Math.ceil(left / 3600000)) })
+                    : tr('deal.ends', { date: end.toLocaleDateString(uiLocale(), { day: 'numeric', month: 'short' }) });
                 badge.classList.toggle('ifc-deal-ends-soon', soon);
-                badge.title = `Deal ends ${end.toLocaleString()}`;
+                badge.title = tr('deal.endsTip', { datetime: end.toLocaleString(uiLocale()) });
             } catch (ex) { console.error('Failed to inject deal end badge:', ex); }
         }
 
@@ -1621,7 +1882,8 @@ window.XboxWishlistCore = {
         // lets the harness run "Load details" without the real pause between requests.
         state.debug = { loadProductData, getProductData, fetchPageState, loadDetails, detailsDelayMs: undefined,
             scrape: { prices: scrapePrices, owned: scrapeOwned }, payload: { prices: payloadPrices, owned: payloadOwned },
-            refreshItem, applyStorePage, updateScreen };   // requestLog itself is read straight off state (window.injected.requestLog)
+            refreshItem, applyStorePage, updateScreen,
+            language: () => ({ code: I18N.code, locale: I18N.locale, expected: catalogueFor(I18N.locale) || 'en' }) };   // requestLog itself is read straight off state (window.injected.requestLog)
 
         // ==================== LIGHT / DARK TOGGLE (F-39) ====================
         // Xbox marks its theme on <body> (data-theme="light|dark" + the dark class), on the
@@ -1872,14 +2134,14 @@ window.XboxWishlistCore = {
         }
         function updateThemeButton() {
             const btn = getElement(`#${CONFIG.ids.themeButton}`, false); if (!btn) return;
-            const text = currentTheme() === 'light' ? 'Switch to dark mode' : 'Switch to light mode';
+            const text = currentTheme() === 'light' ? tr('toolbar.toDark') : tr('toolbar.toLight');
             btn.title = text; btn.setAttribute('aria-label', text);
         }
         function addThemeButton() {
             if (state.ui.btnTheme) return;
             try {
                 const bc = getElement(`#${CONFIG.ids.buttonContainer}`); if (!bc) return;
-                const btn = createImageButton('Theme', adapter.getResourceUrl('IMGTheme'), 'Switch theme', 'svg');
+                const btn = createImageButton('Theme', adapter.getResourceUrl('IMGTheme'), tr('toolbar.switchTheme'), 'svg');
                 btn.removeAttribute('aria-pressed');   // an action, not a panel toggle
                 btn.addEventListener('click', () => {
                     if (contextLost()) { handleContextLost(); return; }
@@ -1903,7 +2165,7 @@ window.XboxWishlistCore = {
             if (state.ui.btnRefresh) return;
             try {
                 const bc = getElement(`#${CONFIG.ids.buttonContainer}`); if (!bc) return;
-                const btn = createImageButton('Refresh', adapter.getResourceUrl('IMGRefresh'), 'Refresh wishlist', 'svg');
+                const btn = createImageButton('Refresh', adapter.getResourceUrl('IMGRefresh'), tr('toolbar.refresh'), 'svg');
                 btn.removeAttribute('aria-pressed');   // an action, not a toggle
                 btn.addEventListener('click', () => {
                     try {
@@ -2027,7 +2289,7 @@ window.XboxWishlistCore = {
             const box = document.createElement('div');
             box.id = CONFIG.ids.storedData; box.className = 'ifc-stored-data ifc-panel-section';
             const heading = document.createElement('div');
-            heading.className = 'ifc-section-heading'; heading.textContent = 'Stored data';
+            heading.className = 'ifc-section-heading'; heading.textContent = tr('stored.title');
             const row = document.createElement('div'); row.className = 'ifc-quick-filters';
             const make = (label, everything, tip) => {
                 const btn = document.createElement('button');
@@ -2035,13 +2297,13 @@ window.XboxWishlistCore = {
                 // Two clicks: the first arms the button for a few seconds, the second does it
                 btn.addEventListener('click', () => {
                     if (btn.dataset.ifcArmed) { clearTimeout(btn._armTimer); clearStoredData(everything); return; }
-                    btn.dataset.ifcArmed = 'true'; btn.textContent = 'Click again to confirm'; btn.classList.add('ifc-Danger');
+                    btn.dataset.ifcArmed = 'true'; btn.textContent = tr('stored.confirm'); btn.classList.add('ifc-Danger');
                     btn._armTimer = setTimeout(() => { delete btn.dataset.ifcArmed; btn.textContent = label; btn.classList.remove('ifc-Danger'); }, 5000);
                 });
                 row.appendChild(btn);
             };
-            make('Clear cached data', false, 'Removes the saved price history (every market) and the saved game details (capabilities, add-on counts). Filters, saved filters and starred games stay. The page reloads.');
-            make('Reset everything', true, 'Removes everything the extension stored: the cached data above plus filters, saved filters, price ranges, sort, theme and starred games. The page reloads.');
+            make(tr('stored.clearCache'), false, tr('stored.clearCache.tip'));
+            make(tr('stored.reset'), true, tr('stored.reset.tip'));
             box.appendChild(heading); box.appendChild(row);
             return box;
         }
@@ -2059,13 +2321,13 @@ window.XboxWishlistCore = {
                 headerRow.className = 'ifc-filter-header-row';
                 const h = document.createElement('h2');
                 h.classList.add('ifc-filter-text-heading');
-                h.textContent = 'Filters';
+                h.textContent = tr('filters.title');
                 const clearBtn = document.createElement('button');
                 clearBtn.id = CONFIG.ids.clearButton;
                 clearBtn.type = 'button';
                 clearBtn.className = 'ifc-clear-all-btn ifc-hidden';
                 styleAsXboxButton(clearBtn, 'tertiary');
-                clearBtn.textContent = 'Clear All';
+                clearBtn.textContent = tr('filters.clearAll');
                 clearBtn.addEventListener('click', clearAllFilters);
                 headerRow.appendChild(h); headerRow.appendChild(clearBtn);
                 const tc = document.createElement('div');
@@ -2133,7 +2395,7 @@ window.XboxWishlistCore = {
                 input.type = 'text';
                 input.id = CONFIG.ids.searchInput;
                 input.className = 'ifc-search-input';
-                input.placeholder = 'Search wishlist...';
+                input.placeholder = tr('filters.search');
                 input.value = state.filters.search.term;
                 input.addEventListener('input', (e) => {
                     state.filters.search.term = e.target.value;
@@ -2176,7 +2438,7 @@ window.XboxWishlistCore = {
                 // Own section with a divider above and a small heading, like Saved filters
                 const section = document.createElement('div'); section.className = 'ifc-panel-section';
                 const heading = document.createElement('div');
-                heading.className = 'ifc-section-heading'; heading.textContent = 'Quick filters';
+                heading.className = 'ifc-section-heading'; heading.textContent = tr('filters.quick');
                 section.append(heading, row);
                 tc.parentNode.insertBefore(section, tc);
                 updateQuickFilterStates();
@@ -2221,10 +2483,10 @@ window.XboxWishlistCore = {
             const whenAny = test => ({ isAvailable: () => items().some(test) });
             return [
                 // Owned / Not Owned are each other's opposite already, so they stay two-state
-                { key: 'owned', label: 'Owned', isActive: () => ownedOnly('Owned'), apply: () => setOwned(['Owned']), clear: () => setOwned([]) },
-                { key: 'notOwned', label: 'Not Owned', isActive: () => ownedOnly('Not Owned'), apply: () => setOwned(['Not Owned']), clear: () => setOwned([]) },
-                discountPreset('onSale', 'On Sale', 'Not on sale', 1),
-                discountPreset('halfOff', '≥50% Off', 'Under 50% off', 50, { isAvailable: () => dr().max >= 50 }),
+                { key: 'owned', get label() { return ownedLabel('Owned'); }, isActive: () => ownedOnly('Owned'), apply: () => setOwned(['Owned']), clear: () => setOwned([]) },
+                { key: 'notOwned', get label() { return ownedLabel('Not Owned'); }, isActive: () => ownedOnly('Not Owned'), apply: () => setOwned(['Not Owned']), clear: () => setOwned([]) },
+                discountPreset('onSale', tr('quick.onSale'), tr('quick.notOnSale'), 1),
+                discountPreset('halfOff', tr('quick.halfOff'), tr('quick.underHalf'), 50, { isAvailable: () => dr().max >= 50 }),
                 // Included with a subscription pass right now (from the page's product data) -
                 // unlike the Subscriptions filter, which reads "with <pass>" member-price badges
                 flag('inPass'),
@@ -2243,7 +2505,7 @@ window.XboxWishlistCore = {
                 // T-44: the store's "Handheld Optimised" badge
                 flag('handheldOptimized', whenAny(c => c.dataset.ifcHandheldOptimized === 'true')),
                 flag('flagged'),
-                { key: 'cheap', label: 'Cheap', notLabel: 'Not cheap',
+                { key: 'cheap', label: tr('quick.cheap'), notLabel: tr('quick.notCheap'),
                     isActive: () => pr().enabled && pr().currentMin === pr().min && pr().currentMax === cheapMax(),
                     apply: () => {
                         pr().enabled = true; pr().currentMin = pr().min; pr().currentMax = cheapMax();
@@ -2276,7 +2538,7 @@ window.XboxWishlistCore = {
                     const text = negated ? p.notLabel : p.label;
                     if (btn.textContent !== text) btn.textContent = text;
                     btn.setAttribute('aria-pressed', active || negated ? 'true' : 'false');
-                    if (p.applyNot) btn.title = `Click: ${p.label}. Again: ${p.notLabel}. Again: off.`;
+                    if (p.applyNot) btn.title = tr('quick.hint', { label: p.label, notLabel: p.notLabel });
                 });
             } catch (ex) { console.error('Failed to update quick filter states:', ex); }
         }
@@ -2439,19 +2701,19 @@ window.XboxWishlistCore = {
                 const box = document.createElement('div');
                 box.id = CONFIG.ids.savedPresets; box.className = 'ifc-saved-presets ifc-panel-section';
                 const heading = document.createElement('div');
-                heading.className = 'ifc-section-heading'; heading.textContent = 'Saved filters';
+                heading.className = 'ifc-section-heading'; heading.textContent = tr('filters.saved');
                 const list = document.createElement('div');
                 list.id = CONFIG.ids.savedPresetsList; list.className = 'ifc-quick-filters';
                 const row = document.createElement('div'); row.className = 'ifc-saved-presets-row';
                 const input = document.createElement('input');
                 input.type = 'text'; input.id = CONFIG.ids.savedPresetName; input.className = 'ifc-search-input';
-                input.maxLength = MAX_PRESET_NAME; input.placeholder = 'Name these filters...';
-                input.setAttribute('aria-label', 'Name for saved filters');
+                input.maxLength = MAX_PRESET_NAME; input.placeholder = tr('filters.name');
+                input.setAttribute('aria-label', tr('filters.nameLabel'));
                 input.addEventListener('input', updateSavedPresetStates);
                 input.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); saveCurrentAsPreset(); } });
                 const saveBtn = document.createElement('button');
                 saveBtn.type = 'button'; saveBtn.id = CONFIG.ids.savedPresetSave; saveBtn.className = 'ifc-quick-filter-btn'; styleAsXboxButton(saveBtn, 'secondary');
-                saveBtn.textContent = 'Save';
+                saveBtn.textContent = tr('filters.save');
                 saveBtn.addEventListener('click', saveCurrentAsPreset);
                 row.appendChild(input); row.appendChild(saveBtn);
                 box.appendChild(heading); box.appendChild(list); box.appendChild(row);
@@ -2476,7 +2738,7 @@ window.XboxWishlistCore = {
                 });
                 const del = document.createElement('button');
                 del.type = 'button'; del.className = 'ifc-saved-preset-remove'; styleAsXboxButton(del, 'secondary'); setGlyph(del, 'IMGClose', '×');
-                del.title = `Delete "${p.name}"`; del.setAttribute('aria-label', `Delete saved filters ${p.name}`);
+                del.title = tr('filters.deleteSaved', { name: p.name }); del.setAttribute('aria-label', tr('filters.deleteSavedLabel', { name: p.name }));
                 del.addEventListener('click', () => deletePreset(p.name));
                 wrap.appendChild(btn); wrap.appendChild(del); list.appendChild(wrap);
             });
@@ -2500,7 +2762,7 @@ window.XboxWishlistCore = {
                     const name = input ? input.value.trim() : '';
                     const full = state.savedPresets.length >= MAX_SAVED_PRESETS && !state.savedPresets.some(p => p.name.toLowerCase() === name.toLowerCase());
                     saveBtn.disabled = !name || !hasPresetableFilters() || full;
-                    saveBtn.title = !hasPresetableFilters() ? 'Set some filters first' : full ? `At most ${MAX_SAVED_PRESETS} saved filters` : !name ? 'Enter a name first' : 'Save the current filters';
+                    saveBtn.title = !hasPresetableFilters() ? tr('filters.hint.none') : full ? tr('filters.hint.max', { max: MAX_SAVED_PRESETS }) : !name ? tr('filters.hint.name') : tr('filters.hint.save');
                 }
             } catch (ex) { console.error('Failed to update saved filter states:', ex); }
         }
@@ -2514,10 +2776,10 @@ window.XboxWishlistCore = {
                 if (!fg) return;
                 if (!state.filters.owned.selected) state.filters.owned.selected = [];
                 if (!Array.isArray(state.filters.owned.options)) state.filters.owned.options = ['Owned', 'Not Owned', 'Un-Purchasable'];
-                const fb = createFilterBlock(gn, 'Owned', true);
+                const fb = createFilterBlock(gn, tr('section.owned'), true);
                 const cc = fb.querySelector('.ifc-accordion-content');
                 if (cc) {
-                    const options = state.filters.owned.options.map(opt => ({ value: opt, label: opt }));
+                    const options = state.filters.owned.options.map(opt => ({ value: opt, label: ownedLabel(opt) }));
                     cc.appendChild(createCheckboxList(CONFIG.ids.ownedSelect, options, state.filters.owned.selected, () => {
                         state.filters.owned.selected = getCheckboxValues(CONFIG.ids.ownedSelect); updateScreen();
                     }));
@@ -2544,7 +2806,7 @@ window.XboxWishlistCore = {
             if (!container) return;
             container.querySelectorAll('.ifc-checkbox-item').forEach(label => {
                 const cb = label.querySelector('input'), span = label.querySelector('.ifc-checkbox-label');
-                if (cb && span) span.textContent = `${cb.value} (${counts.get(cb.value) || 0})`;
+                if (cb && span) span.textContent = `${ownedLabel(cb.value)} (${counts.get(cb.value) || 0})`;
             });
         }
 
@@ -2586,10 +2848,10 @@ window.XboxWishlistCore = {
                 if (getElement(`#ifc_group_${gn}`, false)) { updatePublishersCheckboxes(); return; }
                 const fg = getElement(`#${CONFIG.ids.filterContainer} ${CONFIG.selectors.filterGroups}`);
                 if (!fg) return;
-                const fb = createFilterBlock(gn, 'Publishers', true);
+                const fb = createFilterBlock(gn, tr('section.publishers'), true);
                 const cc = fb.querySelector('.ifc-accordion-content');
                 if (cc) {
-                    cc.appendChild(createListSearch(CONFIG.ids.publishersSelect, CONFIG.ids.publisherSearch, 'publishers'));
+                    cc.appendChild(createListSearch(CONFIG.ids.publishersSelect, CONFIG.ids.publisherSearch, tr('noun.publishers')));
                     const sc = document.createElement('div');
                     sc.id = CONFIG.ids.publishersSelect;
                     sc.className = 'ifc-checkbox-list ifc-checkbox-list-scrollable';
@@ -2629,8 +2891,8 @@ window.XboxWishlistCore = {
             si.type = 'text';
             si.id = inputId;
             si.className = 'ifc-search-input';
-            si.placeholder = `Search ${noun}...`;
-            si.setAttribute('aria-label', `Search ${noun}`);
+            si.placeholder = tr('search.placeholder', { noun });
+            si.setAttribute('aria-label', tr('search.label', { noun }));
             si.value = state.ui.listSearch[listId] || '';
             si.addEventListener('input', (e) => { state.ui.listSearch[listId] = e.target.value; applyListSearch(listId); });
             sw.appendChild(si);
@@ -2662,7 +2924,7 @@ window.XboxWishlistCore = {
                 // (toggleContainers() calls updateSubscriptionsCheckboxes() every cycle).
                 const fg = getElement(`#${CONFIG.ids.filterContainer} ${CONFIG.selectors.filterGroups}`);
                 if (!fg) return;
-                const fb = createFilterBlock(gn, 'Subscriptions', true);
+                const fb = createFilterBlock(gn, tr('section.subscriptions'), true);
                 const cc = fb.querySelector('.ifc-accordion-content');
                 if (cc) {
                     const sc = document.createElement('div');
@@ -2721,10 +2983,10 @@ window.XboxWishlistCore = {
                 if (getElement(`#ifc_group_${gn}`, false)) { updateGenresCheckboxes(); return; }
                 const fg = getElement(`#${CONFIG.ids.filterContainer} ${CONFIG.selectors.filterGroups}`);
                 if (!fg) return;
-                const fb = createFilterBlock(gn, 'Genres', true);
+                const fb = createFilterBlock(gn, tr('section.genres'), true);
                 const cc = fb.querySelector('.ifc-accordion-content');
                 if (cc) {
-                    cc.appendChild(createListSearch(CONFIG.ids.genresSelect, CONFIG.ids.genreSearch, 'genres'));
+                    cc.appendChild(createListSearch(CONFIG.ids.genresSelect, CONFIG.ids.genreSearch, tr('noun.genres')));
                     const gc = document.createElement('div');
                     gc.id = CONFIG.ids.genresSelect;
                     gc.className = 'ifc-checkbox-list ifc-checkbox-list-scrollable';
@@ -2770,7 +3032,7 @@ window.XboxWishlistCore = {
                 if (getElement(`#ifc_group_${gn}`, false)) { updatePlatformsCheckboxes(); return; }
                 const fg = getElement(`#${CONFIG.ids.filterContainer} ${CONFIG.selectors.filterGroups}`);
                 if (!fg) return;
-                const fb = createFilterBlock(gn, 'Platforms', true);
+                const fb = createFilterBlock(gn, tr('section.platforms'), true);
                 const cc = fb.querySelector('.ifc-accordion-content');
                 if (cc) {
                     const pc = document.createElement('div');
@@ -2820,7 +3082,7 @@ window.XboxWishlistCore = {
                 if (getElement(`#ifc_group_${gn}`, false)) { updateTypesCheckboxes(); return; }
                 const fg = getElement(`#${CONFIG.ids.filterContainer} ${CONFIG.selectors.filterGroups}`);
                 if (!fg) return;
-                const fb = createFilterBlock(gn, 'Type', true);
+                const fb = createFilterBlock(gn, tr('section.types'), true);
                 const cc = fb.querySelector('.ifc-accordion-content');
                 if (cc) {
                     const list = document.createElement('div');
@@ -2844,7 +3106,7 @@ window.XboxWishlistCore = {
                 cb.type = 'checkbox'; cb.value = name; cb.checked = state.filters.types.selected.includes(name);
                 cb.className = 'ifc-checkbox';
                 cb.addEventListener('change', () => { state.filters.types.selected = getCheckboxValues(CONFIG.ids.typesSelect); updateScreen(); });
-                const span = document.createElement('span'); span.className = 'ifc-checkbox-label'; span.textContent = `${name} (${count})`;
+                const span = document.createElement('span'); span.className = 'ifc-checkbox-label'; span.textContent = `${typeLabel(name)} (${count})`;
                 label.appendChild(cb); label.appendChild(span); container.appendChild(label);
             });
         }
@@ -2852,7 +3114,7 @@ window.XboxWishlistCore = {
         // ==================== AGE RATING (T-44) ====================
         // By minimum age rather than by board: one market mixes boards (en-ZA shows PEGI and FPB), and
         // the age reads the same in every language. Values are the age as a string ("16"), youngest first.
-        const ageLabel = age => (age === '0' ? 'All ages' : `Ages ${age}+`);
+        const ageLabel = age => (age === '0' ? tr('age.all') : tr('age.plus', { age }));
         function collectAges() {
             const ages = new Map();
             Array.from(document.getElementsByClassName(CONFIG.selectors.items)).forEach(c => {
@@ -2870,7 +3132,7 @@ window.XboxWishlistCore = {
                 if (getElement(`#ifc_group_${gn}`, false)) { updateAgesCheckboxes(); return; }
                 const fg = getElement(`#${CONFIG.ids.filterContainer} ${CONFIG.selectors.filterGroups}`);
                 if (!fg) return;
-                const fb = createFilterBlock(gn, 'Age rating', true);
+                const fb = createFilterBlock(gn, tr('section.age'), true);
                 const cc = fb.querySelector('.ifc-accordion-content');
                 if (cc) {
                     const ac = document.createElement('div');
@@ -2950,9 +3212,10 @@ window.XboxWishlistCore = {
         // Bytes as the store counts them (decimal): "94 GB", "4.5 GB", "800 MB"
         function formatInstallSize(bytes) {
             const gb = bytes / 1e9;
-            if (gb >= 10) return `${Math.round(gb)} GB`;
-            if (gb >= 1) return `${Math.round(gb * 10) / 10} GB`;
-            return `${Math.max(1, Math.round(bytes / 1e6))} MB`;
+            const num = x => x.toLocaleString(uiLocale(), { maximumFractionDigits: 1 });
+            if (gb >= 10) return tr('size.gb', { n: num(Math.round(gb)) });
+            if (gb >= 1) return tr('size.gb', { n: num(Math.round(gb * 10) / 10) });
+            return tr('size.mb', { n: num(Math.max(1, Math.round(bytes / 1e6))) });
         }
         function getCachedInstallSize(productId) {
             const entry = productId ? state.capCache[String(productId).toUpperCase()] : null;
@@ -3051,7 +3314,7 @@ window.XboxWishlistCore = {
                     eased = Date.now() - t0 < DETAILS_SLOW_MS * (needCaps && needsAddOnsCount(id) ? 2 : 1);
                 } catch (ex) {
                     d.failed++;
-                    if (/HTTP 429/.test(ex.message)) { d.message = 'Xbox is limiting requests - stopped; try again later.'; d.done++; break; }
+                    if (/HTTP 429/.test(ex.message)) { d.message = tr('details.limited'); d.done++; break; }
                 }
                 gap = eased ? Math.max(delay, Math.round(gap / 2)) : Math.min(gap * 2, DETAILS_MAX_DELAY_MS);
                 d.done++;
@@ -3059,8 +3322,8 @@ window.XboxWishlistCore = {
                 renderDetailsStatus();
                 if (i < queue.length - 1 && !d.cancel) await new Promise(r => setTimeout(r, gap));
             }
-            if (!d.message) d.message = d.cancel ? `Stopped after ${d.done} of ${d.total}.`
-                : `Loaded ${d.done - d.failed} of ${d.total}${d.failed ? `, ${d.failed} failed` : ''}.`;
+            if (!d.message) d.message = d.cancel ? tr('details.stopped', { done: d.done, total: d.total })
+                : tr(d.failed ? 'details.loadedFailed' : 'details.loaded', { ok: d.done - d.failed, total: d.total, failed: d.failed });
             d.running = false;
             saveCapabilityCache(); updateScreen();
         }
@@ -3101,14 +3364,14 @@ window.XboxWishlistCore = {
                 const d = state.details, queue = detailsQueue();
                 const loaded = queue.filter(e => getCachedCapabilities(e.id)).length, stale = queue.filter(e => !isDetailsFresh(e.id)).length;
                 if (d.running) {
-                    status.textContent = `Loading details ${d.done} / ${d.total}...`;
-                    btn.textContent = 'Cancel'; btn.disabled = false;
+                    status.textContent = tr('details.loading', { done: d.done, total: d.total });
+                    btn.textContent = tr('details.cancel'); btn.disabled = false;
                 } else {
-                    status.textContent = `${d.message ? d.message + ' ' : ''}Details for ${loaded} of ${queue.length} games.`;
-                    btn.textContent = stale ? 'Load details' : 'Details up to date';
+                    status.textContent = `${d.message ? d.message + ' ' : ''}${tr('details.status', { loaded, total: queue.length })}`;
+                    btn.textContent = stale ? tr('details.load') : tr('details.upToDate');
                     btn.disabled = stale === 0;
                 }
-                btn.title = 'Reads each game\'s store page (and, for games with add-ons, its add-ons page for the count), about one a second (slower if Xbox is slow to answer); results are kept for 7 days.';
+                btn.title = tr('details.tip');
             } catch (ex) { console.error('Failed to render details status:', ex); }
         }
 
@@ -3128,7 +3391,7 @@ window.XboxWishlistCore = {
                 if (getElement(`#ifc_group_${gn}`, false)) { updateCapabilitiesCheckboxes(); return; }
                 const fg = getElement(`#${CONFIG.ids.filterContainer} ${CONFIG.selectors.filterGroups}`);
                 if (!fg) return;
-                const fb = createFilterBlock(gn, 'Capabilities', true);
+                const fb = createFilterBlock(gn, tr('section.capabilities'), true);
                 const cc = fb.querySelector('.ifc-accordion-content');
                 if (cc) {
                     const bar = document.createElement('div'); bar.className = 'ifc-details-bar';
@@ -3137,7 +3400,7 @@ window.XboxWishlistCore = {
                     const btn = document.createElement('button'); btn.type = 'button'; btn.id = CONFIG.ids.detailsButton; btn.className = 'ifc-quick-filter-btn'; styleAsXboxButton(btn, 'secondary');
                     btn.addEventListener('click', () => { if (state.details.running) state.details.cancel = true; else loadDetails(); });
                     bar.append(status, btn); cc.appendChild(bar);
-                    cc.appendChild(createListSearch(CONFIG.ids.capabilitiesSelect, 'ifc_input_capability_search', 'capabilities'));
+                    cc.appendChild(createListSearch(CONFIG.ids.capabilitiesSelect, 'ifc_input_capability_search', tr('noun.capabilities')));
                     const list = document.createElement('div');
                     list.id = CONFIG.ids.capabilitiesSelect;
                     list.className = 'ifc-checkbox-list ifc-checkbox-list-scrollable';
@@ -3222,7 +3485,7 @@ window.XboxWishlistCore = {
                 // Re-applies a restored selection (loadFilterState) to this page's range
                 state.filters.priceRange = rerangeSelection(state.filters.priceRange, min, max);
                 const { currentMin, currentMax } = state.filters.priceRange;
-                const fb = createFilterBlock(gn, 'Price Range', false);
+                const fb = createFilterBlock(gn, tr('section.price'), false);
                 const cc = fb.querySelector('.ifc-filter-block-static');
                 if (cc) {
                     const slider = createRangeSlider(CONFIG.ids.priceSlider, min, max, currentMin, currentMax, (minVal, maxVal) => {
@@ -3285,7 +3548,7 @@ window.XboxWishlistCore = {
                 // Re-applies a restored selection (loadFilterState) to this page's range
                 state.filters.discountRange = rerangeSelection(state.filters.discountRange, min, max);
                 const { currentMin, currentMax } = state.filters.discountRange;
-                const fb = createFilterBlock(gn, 'Discount Range', false);
+                const fb = createFilterBlock(gn, tr('section.discount'), false);
                 const cc = fb.querySelector('.ifc-filter-block-static');
                 if (cc) {
                     const slider = createRangeSlider(CONFIG.ids.discountSlider, min, max, currentMin, currentMax, (minVal, maxVal) => {
@@ -3379,7 +3642,7 @@ window.XboxWishlistCore = {
                 sl.classList.add('ifc-filter-list');
                 const h = document.createElement('h2');
                 h.classList.add('ifc-filter-text-heading');
-                h.textContent = 'Sort';
+                h.textContent = tr('sort.title');
                 const scc = document.createElement('div');
                 scc.id = 'ifc_sort_criteria_container'; scc.className = 'ifc-sort-criteria-container';
                 sl.appendChild(h); sl.appendChild(scc); sc.appendChild(sl);
@@ -3431,18 +3694,18 @@ window.XboxWishlistCore = {
                 });
                 const toggleBtn = document.createElement('button'); toggleBtn.className = 'ifc-sort-toggle'; styleAsXboxButton(toggleBtn, 'brand');
                 toggleBtn.textContent = criterion.order === 'asc' ? '↑' : '↓';
-                toggleBtn.title = criterion.order === 'asc' ? 'Ascending' : 'Descending';
+                toggleBtn.title = criterion.order === 'asc' ? tr('sort.asc') : tr('sort.desc');
                 toggleBtn.addEventListener('click', () => {
                     state.sort.criteria[index].order = criterion.order === 'asc' ? 'desc' : 'asc';
                     toggleBtn.textContent = state.sort.criteria[index].order === 'asc' ? '↑' : '↓';
-                    toggleBtn.title = state.sort.criteria[index].order === 'asc' ? 'Ascending' : 'Descending';
+                    toggleBtn.title = state.sort.criteria[index].order === 'asc' ? tr('sort.asc') : tr('sort.desc');
                     onSortChanged();
                 });
                 row.appendChild(select); row.appendChild(toggleBtn);
                 if (index > 0) {
                     const removeBtn = document.createElement('button'); removeBtn.className = 'ifc-sort-remove'; styleAsXboxButton(removeBtn, 'secondary');
-                    setGlyph(removeBtn, 'IMGClose', '×'); removeBtn.title = 'Remove sort criterion';
-                    removeBtn.setAttribute('aria-label', 'Remove sort criterion');
+                    setGlyph(removeBtn, 'IMGClose', '×'); removeBtn.title = tr('sort.remove');
+                    removeBtn.setAttribute('aria-label', tr('sort.remove'));
                     removeBtn.addEventListener('click', () => { state.sort.criteria.splice(index, 1); renderSortCriteria(); onSortChanged(); });
                     row.appendChild(removeBtn);
                 }
@@ -3452,10 +3715,10 @@ window.XboxWishlistCore = {
                 const addBtn = document.createElement('button'); addBtn.className = 'ifc-sort-add'; styleAsXboxButton(addBtn, 'brand');
                 const plus = document.createElement('span'); plus.className = 'ifc-sort-add-icon';
                 setGlyph(plus, 'IMGPlus', '+');
-                addBtn.append(plus, ' Add Sort Level');
+                addBtn.append(plus, ' ' + tr('sort.add'));
                 addBtn.addEventListener('click', () => {
                     if (state.sort.criteria.length < 3) {
-                        state.sort.criteria.push({ field: 'ifcName', order: 'asc', label: 'Name' });
+                        state.sort.criteria.push({ field: 'ifcName', order: 'asc', label: tr('sort.ifcName') });
                         renderSortCriteria(); onSortChanged();
                     }
                 });
@@ -3474,12 +3737,12 @@ window.XboxWishlistCore = {
         // Dot on the sort button while a non-default sort is active - including one
         // restored on load, which would otherwise be easy to miss.
         function updateSortIndicator() {
-            setButtonBadge(CONFIG.ids.sortButton, !isDefaultSort(), 'Sort', 'Sort (custom sort active)');
+            setButtonBadge(CONFIG.ids.sortButton, !isDefaultSort(), tr('toolbar.sort'), tr('toolbar.sortActive'));
         }
 
         // Same dot on the filter button while any filter is applied (anything with a tag)
         function updateFilterIndicator() {
-            setButtonBadge(CONFIG.ids.filterButton, state.filters.activeTags.length > 0, 'Filter', 'Filter (filters applied)');
+            setButtonBadge(CONFIG.ids.filterButton, state.filters.activeTags.length > 0, tr('toolbar.filter'), tr('toolbar.filterActive'));
         }
 
         function setButtonBadge(buttonId, custom, plainLabel, activeLabel) {
@@ -3542,7 +3805,7 @@ window.XboxWishlistCore = {
                 const badge = document.createElement('span'); badge.className = 'ifc-discount-badge';
                 const dtc = resolveClass(PREFIXES.discountTag); if (dtc) badge.classList.add(dtc);
                 badge.textContent = `-${discountPercent}%`;
-                badge.setAttribute('aria-label', `${discountPercent}% discount`);
+                badge.setAttribute('aria-label', tr('badge.discount', { pct: discountPercent }));
                 const pc = pd.querySelector('div');
                 if (pc) { pc.classList.add('ifc-price-row'); pc.appendChild(badge); }
             } catch (ex) { console.error('Failed to inject discount badge:', ex); }
@@ -3733,16 +3996,16 @@ window.XboxWishlistCore = {
         // the filter test, tags, tag removal and saved state, so a new flag is added in one place.
         const FLAG_NOT = 'not';
         const FLAG_FILTERS = [
-            { key: 'inPass', label: 'In a pass', notLabel: 'Not in a pass', test: c => c.dataset.ifcInPass === 'true' },
-            { key: 'inMyPass', label: 'In my pass', notLabel: 'Not in my pass', test: c => c.dataset.ifcInMyPass === 'true' },
-            { key: 'leavingPass', label: 'Leaving pass soon', notLabel: 'Not leaving pass soon', test: isLeavingPassSoon },
-            { key: 'newToPass', label: 'New in pass', notLabel: 'Not new in pass', test: isNewToPass },
-            { key: 'justForYou', label: 'Just for you', notLabel: 'Not just for you', test: c => c.dataset.ifcDealType === 'personal' },
-            { key: 'preorder', label: 'Pre-order', notLabel: 'Not pre-order', test: c => c.dataset.ifcPreorder === 'true' },
-            { key: 'recentlyAdded', label: 'Added Recently', notLabel: 'Not added recently', tagLabel: `Added in the last ${RECENTLY_ADDED_DAYS} days`, notTagLabel: `Not added in the last ${RECENTLY_ADDED_DAYS} days`, test: isRecentlyAdded },
-            { key: 'hasAddOns', label: 'Has add-ons', notLabel: 'No add-ons', test: c => c.dataset.ifcHasAddOns === 'true' },
-            { key: 'handheldOptimized', label: 'Handheld optimised', notLabel: 'Not handheld optimised', test: c => c.dataset.ifcHandheldOptimized === 'true' },
-            { key: 'flagged', label: 'Flagged', notLabel: 'Not flagged', test: c => c.dataset.ifcFlagged === '1' }
+            { key: 'inPass', get label() { return tr('flag.inPass'); }, get notLabel() { return tr('flag.inPass.not'); }, test: c => c.dataset.ifcInPass === 'true' },
+            { key: 'inMyPass', get label() { return tr('flag.inMyPass'); }, get notLabel() { return tr('flag.inMyPass.not'); }, test: c => c.dataset.ifcInMyPass === 'true' },
+            { key: 'leavingPass', get label() { return tr('flag.leavingPass'); }, get notLabel() { return tr('flag.leavingPass.not'); }, test: isLeavingPassSoon },
+            { key: 'newToPass', get label() { return tr('flag.newToPass'); }, get notLabel() { return tr('flag.newToPass.not'); }, test: isNewToPass },
+            { key: 'justForYou', get label() { return tr('flag.justForYou'); }, get notLabel() { return tr('flag.justForYou.not'); }, test: c => c.dataset.ifcDealType === 'personal' },
+            { key: 'preorder', get label() { return tr('flag.preorder'); }, get notLabel() { return tr('flag.preorder.not'); }, test: c => c.dataset.ifcPreorder === 'true' },
+            { key: 'recentlyAdded', get label() { return tr('flag.recentlyAdded'); }, get notLabel() { return tr('flag.recentlyAdded.not'); }, get tagLabel() { return tr('flag.recentlyAdded.tag', { days: RECENTLY_ADDED_DAYS }); }, get notTagLabel() { return tr('flag.recentlyAdded.tag.not', { days: RECENTLY_ADDED_DAYS }); }, test: isRecentlyAdded },
+            { key: 'hasAddOns', get label() { return tr('flag.hasAddOns'); }, get notLabel() { return tr('flag.hasAddOns.not'); }, test: c => c.dataset.ifcHasAddOns === 'true' },
+            { key: 'handheldOptimized', get label() { return tr('flag.handheldOptimized'); }, get notLabel() { return tr('flag.handheldOptimized.not'); }, test: c => c.dataset.ifcHandheldOptimized === 'true' },
+            { key: 'flagged', get label() { return tr('flag.flagged'); }, get notLabel() { return tr('flag.flagged.not'); }, test: c => c.dataset.ifcFlagged === '1' }
         ];
         const isFlagValue = v => v === true || v === false || v === FLAG_NOT;
         const flagValue = v => (v === true || v === FLAG_NOT ? v : false);
@@ -3750,7 +4013,7 @@ window.XboxWishlistCore = {
         function flagTagLabel(f, value) { return value === FLAG_NOT ? (f.notTagLabel || f.notLabel) : (f.tagLabel || f.label); }
         // state.filters.discountBelow: 0 (off) or a whole percentage 1..100
         const discountBelowValue = v => (Number.isInteger(v) && v > 0 && v <= 100 ? v : 0);
-        const discountBelowLabel = n => (n === 1 ? 'Not on sale' : `Under ${n}% off`);
+        const discountBelowLabel = n => (n === 1 ? tr('quick.notOnSale') : tr('quick.discountBelow', { n }));
 
         function shouldShowContainer(container) {
             const isOwned = container.dataset.ifcOwned === 'true';
@@ -3854,7 +4117,7 @@ window.XboxWishlistCore = {
         function updateFilterLabels() {
             updateFilterCounts();
             const l = getElement(`#${CONFIG.ids.filterLabel}`);
-            if (l) l.textContent = `Viewing ${state.filters.filteredCount} of ${state.filters.totalCount} results`;
+            if (l) l.textContent = tr('status.viewing', { shown: state.filters.filteredCount, total: state.filters.totalCount });
         }
         // ==================== EXTENSION RELOADED UNDER US ====================
         // If the extension is reloaded/updated while this tab stays open, the extension
@@ -3874,7 +4137,7 @@ window.XboxWishlistCore = {
                 document.querySelectorAll(`[id^="ifc_btn_"], .ifc-item-refresh, #${CONFIG.ids.filterContainer} input, #${CONFIG.ids.filterContainer} button, #${CONFIG.ids.sortContainer} select, #${CONFIG.ids.sortContainer} button`)
                     .forEach(el => { el.disabled = true; });
                 const l = getElement(`#${CONFIG.ids.filterLabel}`, false);
-                if (l) { l.textContent = 'Xbox Wishlist Manager was updated - reload this page to keep using it'; l.classList.add('ifc-context-lost'); }
+                if (l) { l.textContent = tr('status.updated'); l.classList.add('ifc-context-lost'); }
                 console.info('[XBOX Wishlist] Extension was reloaded or updated - reload the page to use it again.');
             } catch (ex) { /* best effort - nothing else to do */ }
         }
@@ -3994,7 +4257,7 @@ window.XboxWishlistCore = {
                         return;
                     }
                     if (!heart) { heart = createHeart(); card.appendChild(heart); card.classList.add('ifc-HeartHost'); }
-                    const text = `On your wish list since ${new Date(at).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}`;
+                    const text = tr('heart.since', { date: trDate(at, { day: 'numeric', month: 'short', year: 'numeric' }) });
                     if (heart.title !== text) { heart.title = text; heart.setAttribute('aria-label', text); }
                     if (href && heart.getAttribute('href') !== href) heart.setAttribute('href', href);
                 });
