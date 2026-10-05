@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         XBOX Wishlist
 // @namespace    https://github.com/zellreid/xbox-wishlist
-// @version      1.5.26278.3
+// @version      1.5.26278.4
 // @description  Advanced filtering and sorting suite with multi-level sort (up to 3 criteria) - Resilient selectors - Public wishlist support
 // @author       ZellReid
 // @homepage     https://github.com/zellreid/xbox-wishlist
@@ -14,7 +14,7 @@
 // @match        https://www.xbox.com/*/promotions/sales/*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=xbox.com
 // @run-at       document-body
-// @resource     CSSFilter https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/styles.css?ver=1.5.26278.3
+// @resource     CSSFilter https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/styles.css?ver=1.5.26278.4
 // @resource     IMGFilter https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/filter.svg
 // @resource     IMGSort https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/sort.svg
 // @resource     IMGExport https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/export.svg
@@ -1273,8 +1273,8 @@ window.XboxWishlistCore = {
         // Fixed position of each entry in an item's tag row, whatever order the code builds them in.
         // Spaced by 10 so a new entry can go between two existing ones without renumbering.
         const ITEM_TAG_ORDER = Object.freeze({
-            REFRESH: 10, FLAG: 20, ADD_ONS: 30, JUST_FOR_YOU: 40, MY_PASS: 45, PASS_LEAVES: 46, PASS_NEW: 47, PREORDER: 50,
-            OPTIMIZED_XS: 60, PLAY_ANYWHERE: 70, SMART_DELIVERY: 80, INSTALL_SIZE: 85, DLC: 90, CONSUMABLE: 100
+            REFRESH: 10, FLAG: 20, INSTALL_SIZE: 25, ADD_ONS: 30, JUST_FOR_YOU: 40, MY_PASS: 45, PASS_LEAVES: 46, PASS_NEW: 47, PREORDER: 50,
+            OPTIMIZED_XS: 60, PLAY_ANYWHERE: 70, SMART_DELIVERY: 80, DLC: 90, CONSUMABLE: 100
         });
 
         function injectItemTags(container, info) {

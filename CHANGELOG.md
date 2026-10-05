@@ -14,6 +14,18 @@ for how a version is bumped and published.
 
 ---
 
+## v1.5.26278.4 (Oct 2026) - Xbox's own colours first (T-50 phase 2a); size chip after the flag
+
+- Our theme colours now read Xbox's `--gds-*` design tokens where one matches, with our previous value as the
+  fallback (Xbox only defines the active theme's tokens, so a missing token changes nothing): toolbar button
+  backgrounds and text (identical to Xbox's secondary icon button), body text, the export menu background, and
+  the dark-theme warning colour.
+- The brand green is one token, `--ifc-brand` / `--ifc-brand-hover`, replacing 27 hard-coded greens; it follows
+  Xbox's brand green (#008746) instead of our #107c10.
+- Not changed on purpose: translucent overlays (hover / control backgrounds - Xbox's hover token is a white
+  overlay that would vanish on a light page), the light-theme warning and accent text (contrast), the flag gold.
+- The install size chip now sits right after the flag star in the tag row.
+
 ## v1.5.26278.3 (Oct 2026) - install size chip on each item (T-46)
 
 - A quiet chip ("94 GB", "4.5 GB", "800 MB") in the item's tag row, after Smart Delivery and before DLC, shown only

@@ -1,10 +1,11 @@
 /* ==================== THEME TOKENS (T-19) ==================== */
-/* Our colours. Dark by default (the original look); Xbox marks its theme on
+/* Our colours (T-50: wherever Xbox has a matching --gds-* design token we use it, with our value as
+   the fallback - Xbox only defines the active theme's tokens). Dark by default (the original look); Xbox marks its theme on
    <body> (data-theme="light" | "dark"), and on a light page the light set
    takes over. Text we don't colour (accordion headings, checkbox labels)
    inherits the page's own text colour, so it follows the theme by itself. */
 body {
-    --ifc-text: #f5f5f5;
+    --ifc-text: var(--gds-contentOnBackplatePrimary, #f5f5f5);
     --ifc-text-strong: #ffffff;
     --ifc-text-soft: rgba(245, 245, 245, 0.8);
     --ifc-tag-text: rgba(245, 245, 245, 0.85);
@@ -12,7 +13,7 @@ body {
     --ifc-placeholder: rgba(245, 245, 245, 0.5);
     --ifc-panel-bg: rgba(30, 30, 30, 0.70);
     --ifc-panel-shadow: none;
-    --ifc-menu-bg: #1f1f1f;
+    --ifc-menu-bg: var(--gds-containerSolidContainer, #1f1f1f);
     --ifc-menu-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
     --ifc-field-bg: #2d2d2d;
     --ifc-control-bg: rgba(255, 255, 255, 0.08);
@@ -23,19 +24,22 @@ body {
     --ifc-chip-border-strong: rgba(255, 255, 255, 0.35);
     --ifc-accent-text: #9dd85c;
     --ifc-accent-border: rgba(157, 216, 92, 0.45);
-    --ifc-warn: #ffb900;
+    --ifc-warn: var(--gds-activityWarning, #ffb900);
     --ifc-track: #3d3d3d;
     --ifc-check: #ffffff;
     --ifc-check-mark: #262626;
-    --ifc-tool-bg: #2d3036;
-    --ifc-tool-bg-hover: #515863;
-    --ifc-tool-bg-press: #222428;
-    --ifc-tool-text: #ffffff;
+    --ifc-tool-bg: var(--gds-backplateSolidSecondaryRest, #2d3036);
+    --ifc-tool-bg-hover: var(--gds-backplateSolidSecondaryHover, #515863);
+    --ifc-tool-bg-press: var(--gds-backplateSolidSecondaryPress, #222428);
+    --ifc-tool-text: var(--gds-contentOnBackplateSolidSecondaryRest, #ffffff);
     --ifc-flag: #ffb900;
+    /* Xbox's own brand green, ours as the fallback (T-50) */
+    --ifc-brand: var(--gds-backplateSolidBrandRest, #107c10);
+    --ifc-brand-hover: var(--gds-backplateSolidBrandHover, #0e7a0e);
 }
 
 body[data-theme="light"] {
-    --ifc-text: #1a1a1a;
+    --ifc-text: var(--gds-contentOnBackplatePrimary, #1a1a1a);
     --ifc-text-strong: #000000;
     --ifc-text-soft: rgba(0, 0, 0, 0.72);
     --ifc-tag-text: rgba(0, 0, 0, 0.75);
@@ -43,7 +47,7 @@ body[data-theme="light"] {
     --ifc-placeholder: rgba(0, 0, 0, 0.45);
     --ifc-panel-bg: rgba(255, 255, 255, 0.94);
     --ifc-panel-shadow: 0 4px 16px rgba(0, 0, 0, 0.16), 0 0 0 1px rgba(0, 0, 0, 0.08);
-    --ifc-menu-bg: #ffffff;
+    --ifc-menu-bg: var(--gds-containerSolidContainer, #ffffff);
     --ifc-menu-shadow: 0 4px 12px rgba(0, 0, 0, 0.16);
     --ifc-field-bg: #ffffff;
     --ifc-control-bg: rgba(0, 0, 0, 0.04);
@@ -58,10 +62,10 @@ body[data-theme="light"] {
     --ifc-track: #d2d2d2;
     --ifc-check: #1a1a1a;
     --ifc-check-mark: #ffffff;
-    --ifc-tool-bg: #d8dade;
-    --ifc-tool-bg-hover: #f4f5f6;
-    --ifc-tool-bg-press: #bdc0c7;
-    --ifc-tool-text: #303030;
+    --ifc-tool-bg: var(--gds-backplateSolidSecondaryRest, #d8dade);
+    --ifc-tool-bg-hover: var(--gds-backplateSolidSecondaryHover, #f4f5f6);
+    --ifc-tool-bg-press: var(--gds-backplateSolidSecondaryPress, #bdc0c7);
+    --ifc-tool-text: var(--gds-contentOnBackplateSolidSecondaryRest, #303030);
     --ifc-flag: #b36b00;
 }
 
@@ -111,7 +115,7 @@ body[data-theme="light"] {
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    background-color: #107C10;
+    background-color: var(--ifc-brand);
     box-shadow: 0 0 0 1.5px #f5f5f5;
     pointer-events: none;
 }
@@ -226,8 +230,8 @@ ul.ifc-filter-groups {
 
 .ifc-quick-filter-btn.ifc-Active,
 .ifc-quick-filter-btn.ifc-Active:hover {
-    background-color: #107C10;
-    border-color: #107C10;
+    background-color: var(--ifc-brand);
+    border-color: var(--ifc-brand);
     color: #ffffff;
 }
 
@@ -370,7 +374,7 @@ p:has(+ .ifc-item-tags) {
 
 /* T-31: covered by the viewer's own pass - Xbox green, end date on hover */
 .ifc-item-tag-mypass {
-    background-color: #107c10;
+    background-color: var(--ifc-brand);
     color: #ffffff;
     cursor: help;
 }
@@ -613,8 +617,8 @@ p:has(+ .ifc-item-tags) {
 }
 
 .ifc-saved-preset .ifc-quick-filter-btn.ifc-Active + .ifc-saved-preset-remove:not(:hover) {
-    background-color: #107C10;
-    border-color: #107C10;
+    background-color: var(--ifc-brand);
+    border-color: var(--ifc-brand);
     color: #ffffff;
 }
 
@@ -653,7 +657,7 @@ p:has(+ .ifc-item-tags) {
 .ifc-filter-tag {
     display: inline-flex;
     align-items: center;
-    background-color: #107c10;
+    background-color: var(--ifc-brand);
     color: #ffffff;
     padding: 4px 8px;
     border-radius: 4px;
@@ -663,7 +667,7 @@ p:has(+ .ifc-item-tags) {
 }
 
 .theme-dark .ifc-filter-tag {
-    background-color: #0e7a0e;
+    background-color: var(--ifc-brand-hover);
 }
 
 .ifc-tag-remove {
@@ -763,7 +767,7 @@ p:has(+ .ifc-item-tags) {
 .ifc-slider-range {
     position: absolute;
     height: 8px;
-    background-color: #107c10;
+    background-color: var(--ifc-brand);
     border-radius: 4px;
     pointer-events: none;
     top: 50%;
@@ -772,7 +776,7 @@ p:has(+ .ifc-item-tags) {
 }
 
 .theme-dark .ifc-slider-range {
-    background-color: #0e7a0e;
+    background-color: var(--ifc-brand-hover);
 }
 
 .ifc-slider {
@@ -806,7 +810,7 @@ p:has(+ .ifc-item-tags) {
         appearance: none;
         width: 20px;
         height: 20px;
-        background-color: #107c10;
+        background-color: var(--ifc-brand);
         border: 2px solid #ffffff;
         border-radius: 50%;
         cursor: pointer;
@@ -817,7 +821,7 @@ p:has(+ .ifc-item-tags) {
 
         .ifc-slider::-webkit-slider-thumb:hover {
             transform: scale(1.15);
-            background-color: #0e7a0e;
+            background-color: var(--ifc-brand-hover);
         }
 
         .ifc-slider::-webkit-slider-thumb:active {
@@ -827,7 +831,7 @@ p:has(+ .ifc-item-tags) {
     .ifc-slider::-moz-range-thumb {
         width: 20px;
         height: 20px;
-        background-color: #107c10;
+        background-color: var(--ifc-brand);
         border: 2px solid #ffffff;
         border-radius: 50%;
         cursor: pointer;
@@ -838,7 +842,7 @@ p:has(+ .ifc-item-tags) {
 
         .ifc-slider::-moz-range-thumb:hover {
             transform: scale(1.15);
-            background-color: #0e7a0e;
+            background-color: var(--ifc-brand-hover);
         }
 
         .ifc-slider::-moz-range-thumb:active {
@@ -904,12 +908,12 @@ p:has(+ .ifc-item-tags) {
 }
 
 .ifc-filter-section::-webkit-scrollbar-thumb {
-    background: #107c10;
+    background: var(--ifc-brand);
     border-radius: 4px;
 }
 
     .ifc-filter-section::-webkit-scrollbar-thumb:hover {
-        background: #0e7a0e;
+        background: var(--ifc-brand-hover);
     }
 
 /* ==================== RESPONSIVE ADJUSTMENTS ==================== */
@@ -951,7 +955,7 @@ p:has(+ .ifc-item-tags) {
 
 .ifc-sort-select:focus {
     outline: none;
-    border-color: #107c10;
+    border-color: var(--ifc-brand);
     box-shadow: 0 0 0 2px rgba(16, 124, 16, 0.2);
 }
 
@@ -969,14 +973,14 @@ p:has(+ .ifc-item-tags) {
     width: 36px;
     height: 36px;
     padding: 0;
-    background-color: #107c10;
+    background-color: var(--ifc-brand);
     color: #ffffff;
     font-size: 1.2rem;
     font-weight: bold;
 }
 
     .ifc-sort-toggle:hover {
-        background-color: #0e7a0e;
+        background-color: var(--ifc-brand-hover);
         transform: scale(1.05);
     }
 
@@ -998,7 +1002,7 @@ p:has(+ .ifc-item-tags) {
 .ifc-sort-add {
     width: 100%;
     padding: 8px;
-    background-color: #107c10;
+    background-color: var(--ifc-brand);
     color: #ffffff;
     font-size: 0.875rem;
     font-weight: 600;
@@ -1006,7 +1010,7 @@ p:has(+ .ifc-item-tags) {
 }
 
     .ifc-sort-add:hover {
-        background-color: #0e7a0e;
+        background-color: var(--ifc-brand-hover);
     }
 
 /* Toolbar buttons on a shared (public) wishlist: the page has no menu buttons whose
@@ -1064,8 +1068,8 @@ p:has(+ .ifc-item-tags) {
    dark icon on a dark one. Scoped to our toolbar id so it outranks Xbox's own menu
    button colours (also !important, same specificity otherwise, and loaded after ours) */
 #ifc_ButtonContainer .ifc-active-button {
-    background-color: #107c10 !important;
-    border-color: #107c10 !important;
+    background-color: var(--ifc-brand) !important;
+    border-color: var(--ifc-brand) !important;
     color: #ffffff !important;
 }
 
@@ -1155,7 +1159,7 @@ p:has(+ .ifc-item-tags) {
     max-height: 220px;
     overflow-y: auto;
     scrollbar-width: thin;
-    scrollbar-color: #107c10 transparent;
+    scrollbar-color: var(--ifc-brand) transparent;
 }
 
     .ifc-checkbox-list-scrollable::-webkit-scrollbar {
@@ -1167,12 +1171,12 @@ p:has(+ .ifc-item-tags) {
     }
 
     .ifc-checkbox-list-scrollable::-webkit-scrollbar-thumb {
-        background: #107c10;
+        background: var(--ifc-brand);
         border-radius: 4px;
     }
 
         .ifc-checkbox-list-scrollable::-webkit-scrollbar-thumb:hover {
-            background: #0e7a0e;
+            background: var(--ifc-brand-hover);
         }
 
 .ifc-checkbox-item {
@@ -1284,5 +1288,5 @@ body .ifc-HeartHost > a.ifc-WishlistHeart svg {
 
 body .ifc-HeartHost > a.ifc-WishlistHeart:hover,
 body .ifc-HeartHost > a.ifc-WishlistHeart:focus-visible {
-    background: #107c10 !important;
+    background: var(--ifc-brand) !important;
 }
