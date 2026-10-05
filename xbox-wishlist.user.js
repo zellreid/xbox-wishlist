@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         XBOX Wishlist
 // @namespace    https://github.com/zellreid/xbox-wishlist
-// @version      1.5.26278.8
+// @version      1.5.26278.9
 // @description  Advanced filtering and sorting suite with multi-level sort (up to 3 criteria) - Resilient selectors - Public wishlist support
 // @author       ZellReid
 // @homepage     https://github.com/zellreid/xbox-wishlist
@@ -14,7 +14,7 @@
 // @match        https://www.xbox.com/*/promotions/sales/*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=xbox.com
 // @run-at       document-body
-// @resource     CSSFilter https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/styles.css?ver=1.5.26278.8
+// @resource     CSSFilter https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/styles.css?ver=1.5.26278.9
 // @resource     IMGFilter https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/filter.svg
 // @resource     IMGSort https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/sort.svg
 // @resource     IMGExport https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/export.svg
@@ -3094,7 +3094,7 @@ window.XboxWishlistCore = {
                     btn.textContent = 'Cancel'; btn.disabled = false;
                 } else {
                     status.textContent = `${d.message ? d.message + ' ' : ''}Details for ${loaded} of ${queue.length} games.`;
-                    btn.textContent = stale ? `Load details (${stale})` : 'Details up to date';
+                    btn.textContent = stale ? 'Load details' : 'Details up to date';
                     btn.disabled = stale === 0;
                 }
                 btn.title = 'Reads each game\'s store page (and, for games with add-ons, its add-ons page for the count), about one a second (slower if Xbox is slow to answer); results are kept for 7 days.';

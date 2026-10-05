@@ -14,6 +14,11 @@ for how a version is bumped and published.
 
 ---
 
+## v1.5.26278.9 (Oct 2026) - Load details button says just "Load details"
+
+- The button no longer carries the count ("Load details (312)" wrapped to three lines in its 24px box); the status
+  text beside it already says "Details for 2 of 314 games."
+
 ## v1.5.26278.8 (Oct 2026) - unpurchasable items keep their highlight after Load details
 
 - Fixed: after Load details, some unpurchasable items lost their red highlight and the "Un-Purchasable" filter

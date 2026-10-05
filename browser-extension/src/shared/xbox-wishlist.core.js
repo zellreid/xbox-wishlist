@@ -3045,7 +3045,7 @@ window.XboxWishlistCore = {
                     btn.textContent = 'Cancel'; btn.disabled = false;
                 } else {
                     status.textContent = `${d.message ? d.message + ' ' : ''}Details for ${loaded} of ${queue.length} games.`;
-                    btn.textContent = stale ? `Load details (${stale})` : 'Details up to date';
+                    btn.textContent = stale ? 'Load details' : 'Details up to date';
                     btn.disabled = stale === 0;
                 }
                 btn.title = 'Reads each game\'s store page (and, for games with add-ons, its add-ons page for the count), about one a second (slower if Xbox is slow to answer); results are kept for 7 days.';
