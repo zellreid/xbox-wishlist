@@ -3798,6 +3798,8 @@ window.XboxWishlistCore = {
         // page (same origin, like "Load details") and kept in memory only. Adding and removing stays
         // with Xbox's own buttons - their calls need the sign-in token, which this code never touches.
         let heartsLoading = null, heartsTimer = null;
+        // Xbox's own heart glyph (icons/heart.svg), read once; '' = it couldn't load (a text heart is used)
+        let heartSvgText = null;
 
         // The wishlist address for the locale and region the viewer is browsing in (/en-ZA/wishlist)
         function wishlistUrl() {
@@ -3835,12 +3837,12 @@ window.XboxWishlistCore = {
             const heart = document.createElement('a');
             heart.className = 'ifc-WishlistHeart';
             heart.target = '_blank'; heart.rel = 'noopener';   // the wishlist opens in a new tab, this page stays
-            const ns = 'http://www.w3.org/2000/svg';
-            const svg = document.createElementNS(ns, 'svg');
-            svg.setAttribute('viewBox', '0 0 24 24'); svg.setAttribute('aria-hidden', 'true');
-            const path = document.createElementNS(ns, 'path');
-            path.setAttribute('d', 'M12 21 10.6 19.7C5.4 15 2 11.9 2 8.1 2 5 4.4 2.6 7.5 2.6c1.7 0 3.4.8 4.5 2.1 1.1-1.3 2.8-2.1 4.5-2.1 3.1 0 5.5 2.4 5.5 5.5 0 3.8-3.4 6.9-8.6 11.6L12 21Z');
-            svg.appendChild(path); heart.appendChild(svg);
+            // Xbox's own heart (T-51), preloaded by updateCardHearts so the card never shows an empty circle
+            const holder = document.createElement('span');
+            holder.innerHTML = heartSvgText;
+            const svg = holder.querySelector('svg');
+            if (svg) { svg.setAttribute('aria-hidden', 'true'); svg.setAttribute('focusable', 'false'); heart.appendChild(svg); }
+            else heart.textContent = '♥';
             // The card's own link sits underneath: a click here goes to the wishlist, not the game
             heart.addEventListener('click', (ev) => ev.stopPropagation());
             return heart;
@@ -3851,6 +3853,10 @@ window.XboxWishlistCore = {
                 if (isWishlistPage() || contextLost()) return;
                 const cls = productCardClass(); if (!cls) return;
                 const cards = document.getElementsByClassName(cls); if (!cards.length) return;
+                if (heartSvgText === null) {
+                    getSVG(adapter.getResourceUrl('IMGHeart')).then(t => { heartSvgText = t || ''; updateCardHearts(); });
+                    return;
+                }
                 if (!state.hearts.dates) {
                     // Arrived from the wishlist in this tab: its own data is already here
                     if (state.productDataFromWishlist) { state.hearts.dates = new Map(state.wishlistAddedDates); state.hearts.loadedAt = state.productDataLoadedAt || Date.now(); }

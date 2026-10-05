@@ -26,6 +26,7 @@
 // @resource     IMGPlayAnywhere https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/play-anywhere.svg
 // @resource     IMGStar https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/star.svg
 // @resource     IMGStarFilled https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/star-filled.svg
+// @resource     IMGHeart https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/heart.svg
 // @resource     IMGExpand https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/expand.svg
 // @resource     IMGCollapse https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/collapse.svg
 // @grant        GM_getResourceURL

@@ -14,6 +14,14 @@ for how a version is bumped and published.
 
 ---
 
+## v1.5.26278.5 (Oct 2026) - the card heart is Xbox's own heart icon (T-51)
+
+- The wishlist heart on store, browse and deals cards is now Xbox's own heart glyph (`shared/icons/heart.svg`,
+  exported with `tools/icons/catalogue.js` from the "Open wishlist" icon in a saved Xbox page), loaded like the
+  other icons (registered in `content.js` and the userscript header; no manifest change) instead of a
+  hand-drawn path in `createHeart()`. It is read once before the first heart is drawn, so a card never shows an
+  empty circle; if it can't load, a text heart is used.
+
 ## v1.5.26278.4 (Oct 2026) - Xbox's own colours first (T-50 phase 2a); size chip after the flag
 
 - Our theme colours now read Xbox's `--gds-*` design tokens where one matches, with our previous value as the
