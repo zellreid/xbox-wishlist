@@ -14,6 +14,19 @@ for how a version is bumped and published.
 
 ---
 
+## v1.5.26278.6 (Oct 2026) - panel buttons use Xbox's own button classes (T-50 phase 2b)
+
+- Clear All, the quick-filter pills (incl. Save, saved filters and Load details), the Sort toggle / remove /
+  add buttons and the Export menu items now wear Xbox's own button classes through `styleAsXboxButton()`
+  (found with `resolveClass()`, like the toolbar buttons): colours, hover / press / focus / disabled states,
+  radius and font are Xbox's. An active pill swaps Xbox's grey (secondary) type for its green (brand) type.
+- `styles.css` shrinks to sizing only (Xbox's `--gds-button-*-height` tokens, 24 / 32px; the 36px sort
+  squares) plus the two states Xbox has no type for (armed "Click again to confirm" red, and the outlined
+  "is not" state). If the classes can't be found the button gets `ifc-btn-plain`, a basic look.
+- Visible changes: pills are 4px-radius rectangles (were fully rounded), the Sort remove button is Xbox grey
+  (was red), a saved filter's × stays grey beside a green name, hover colours are Xbox's. Pill text stays 12px
+  (Xbox's button font is 14px) to keep the panel compact.
+
 ## v1.5.26278.5 (Oct 2026) - the card heart is Xbox's own heart icon (T-51)
 
 - The wishlist heart on store, browse and deals cards is now Xbox's own heart glyph (`shared/icons/heart.svg`,

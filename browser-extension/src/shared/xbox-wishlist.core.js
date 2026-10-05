@@ -183,6 +183,9 @@ window.XboxWishlistCore = {
             btnOverlaySolid: 'Button-module__overlayModeSolid___',
             btnIcon: 'Button-module__buttonIcon___',
             btnNoMargin: 'Button-module__noMargin___',
+            btnDefaultBase: 'Button-module__defaultBase___',
+            btnTypeTertiary: 'Button-module__typeTertiary___',
+            btnTypeBrand: 'Button-module__typeBrand___',
             iconBase: 'Icon-module__icon___',
             iconXXSmall: 'Icon-module__xxSmall___',
             discountTag: 'Price-module__discountTag___',
@@ -310,6 +313,29 @@ window.XboxWishlistCore = {
         }
 
         function clearSelectorCache() { SELECTOR_CACHE.clear(); }
+
+        // T-50 phase 2b: our panel buttons wear Xbox's own button classes (all present on the wishlist
+        // page, on its own buttons) so colours, hover / press / focus / disabled states, radius and font
+        // are Xbox's; ifc-xbtn only sets the size (from Xbox's --gds-* height tokens). If the classes
+        // can't be found (e.g. a page without those buttons) ifc-btn-plain gives a basic look instead.
+        // type: 'secondary' (grey), 'tertiary' (text) or 'brand' (green)
+        function xboxButtonTypes() {
+            return { secondary: resolveClass(PREFIXES.btnTypeSecondary), tertiary: resolveClass(PREFIXES.btnTypeTertiary), brand: resolveClass(PREFIXES.btnTypeBrand) };
+        }
+        function styleAsXboxButton(btn, type) {
+            const base = [PREFIXES.btnBase, PREFIXES.btnDefaultBase, PREFIXES.btnNoUnderline, PREFIXES.btnBorderRadius, PREFIXES.btnOverlaySolid].map(resolveClass);
+            const typeClass = xboxButtonTypes()[type];
+            if (!typeClass || base.some(c => !c)) { btn.classList.add('ifc-btn-plain'); return btn; }
+            btn.classList.add('ifc-xbtn', ...base, typeClass);
+            return btn;
+        }
+        // Grey while off, Xbox green while on (a no-op on a plain button, whose CSS follows ifc-Active)
+        function setXboxButtonActive(btn, active) {
+            if (!btn.classList.contains('ifc-xbtn')) return;
+            const t = xboxButtonTypes();
+            if (t.brand) btn.classList.toggle(t.brand, active);
+            if (t.secondary) btn.classList.toggle(t.secondary, !active);
+        }
 
         function resolveSelectors() {
             clearSelectorCache();
@@ -895,7 +921,7 @@ window.XboxWishlistCore = {
                 menu.setAttribute('role', 'menu');
                 [['csv', 'CSV'], ['json', 'JSON']].forEach(([format, label]) => {
                     const item = document.createElement('button');
-                    item.type = 'button'; item.className = 'ifc-export-item'; item.setAttribute('role', 'menuitem');
+                    item.type = 'button'; item.className = 'ifc-export-item'; styleAsXboxButton(item, 'tertiary'); item.setAttribute('role', 'menuitem');
                     item.dataset.ifcFormat = format; item.dataset.ifcLabel = label;
                     item.addEventListener('click', () => { exportVisibleItems(format); setExportMenuOpen(false); });
                     menu.appendChild(item);
@@ -1959,7 +1985,7 @@ window.XboxWishlistCore = {
             const row = document.createElement('div'); row.className = 'ifc-quick-filters';
             const make = (label, everything, tip) => {
                 const btn = document.createElement('button');
-                btn.type = 'button'; btn.className = 'ifc-quick-filter-btn'; btn.textContent = label; btn.title = tip;
+                btn.type = 'button'; btn.className = 'ifc-quick-filter-btn'; styleAsXboxButton(btn, 'secondary'); btn.textContent = label; btn.title = tip;
                 // Two clicks: the first arms the button for a few seconds, the second does it
                 btn.addEventListener('click', () => {
                     if (btn.dataset.ifcArmed) { clearTimeout(btn._armTimer); clearStoredData(everything); return; }
@@ -1992,6 +2018,7 @@ window.XboxWishlistCore = {
                 clearBtn.id = CONFIG.ids.clearButton;
                 clearBtn.type = 'button';
                 clearBtn.className = 'ifc-clear-all-btn ifc-hidden';
+                styleAsXboxButton(clearBtn, 'tertiary');
                 clearBtn.textContent = 'Clear All';
                 clearBtn.addEventListener('click', clearAllFilters);
                 headerRow.appendChild(h); headerRow.appendChild(clearBtn);
@@ -2084,6 +2111,7 @@ window.XboxWishlistCore = {
                     const btn = document.createElement('button');
                     btn.type = 'button';
                     btn.className = 'ifc-quick-filter-btn';
+                    styleAsXboxButton(btn, 'secondary');
                     btn.dataset.ifcPreset = preset.key;
                     btn.textContent = preset.label;
                     btn.setAttribute('aria-pressed', 'false');
@@ -2196,6 +2224,7 @@ window.XboxWishlistCore = {
                     const negated = available && !active && !!p.isNegated && p.isNegated();
                     btn.disabled = !available;
                     btn.classList.toggle('ifc-Active', active);
+                    setXboxButtonActive(btn, active);
                     btn.classList.toggle('ifc-Negated', negated);
                     // The button names what it filters for right now: "In a pass" or "Not in a pass"
                     const text = negated ? p.notLabel : p.label;
@@ -2375,7 +2404,7 @@ window.XboxWishlistCore = {
                 input.addEventListener('input', updateSavedPresetStates);
                 input.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); saveCurrentAsPreset(); } });
                 const saveBtn = document.createElement('button');
-                saveBtn.type = 'button'; saveBtn.id = CONFIG.ids.savedPresetSave; saveBtn.className = 'ifc-quick-filter-btn';
+                saveBtn.type = 'button'; saveBtn.id = CONFIG.ids.savedPresetSave; saveBtn.className = 'ifc-quick-filter-btn'; styleAsXboxButton(saveBtn, 'secondary');
                 saveBtn.textContent = 'Save';
                 saveBtn.addEventListener('click', saveCurrentAsPreset);
                 row.appendChild(input); row.appendChild(saveBtn);
@@ -2392,7 +2421,7 @@ window.XboxWishlistCore = {
             state.savedPresets.forEach(p => {
                 const wrap = document.createElement('span'); wrap.className = 'ifc-saved-preset';
                 const btn = document.createElement('button');
-                btn.type = 'button'; btn.className = 'ifc-quick-filter-btn'; btn.textContent = p.name;
+                btn.type = 'button'; btn.className = 'ifc-quick-filter-btn'; styleAsXboxButton(btn, 'secondary'); btn.textContent = p.name;
                 btn.dataset.ifcSavedPreset = p.name;
                 btn.addEventListener('click', () => {
                     const cur = state.savedPresets.find(q => q.name === p.name);
@@ -2400,7 +2429,7 @@ window.XboxWishlistCore = {
                     if (isPresetActive(cur)) clearAllFilters(); else applyPreset(cur);
                 });
                 const del = document.createElement('button');
-                del.type = 'button'; del.className = 'ifc-saved-preset-remove'; setGlyph(del, 'IMGClose', '×');
+                del.type = 'button'; del.className = 'ifc-saved-preset-remove'; styleAsXboxButton(del, 'secondary'); setGlyph(del, 'IMGClose', '×');
                 del.title = `Delete "${p.name}"`; del.setAttribute('aria-label', `Delete saved filters ${p.name}`);
                 del.addEventListener('click', () => deletePreset(p.name));
                 wrap.appendChild(btn); wrap.appendChild(del); list.appendChild(wrap);
@@ -2416,6 +2445,7 @@ window.XboxWishlistCore = {
                     const p = state.savedPresets.find(q => q.name === btn.dataset.ifcSavedPreset);
                     const active = !!p && isPresetActive(p);
                     btn.classList.toggle('ifc-Active', active);
+                    setXboxButtonActive(btn, active);
                     btn.setAttribute('aria-pressed', active ? 'true' : 'false');
                 });
                 const saveBtn = getElement(`#${CONFIG.ids.savedPresetSave}`, false);
@@ -3042,7 +3072,7 @@ window.XboxWishlistCore = {
                     const bar = document.createElement('div'); bar.className = 'ifc-details-bar';
                     const status = document.createElement('div'); status.id = CONFIG.ids.detailsStatus; status.className = 'ifc-details-status';
                     status.setAttribute('aria-live', 'polite');
-                    const btn = document.createElement('button'); btn.type = 'button'; btn.id = CONFIG.ids.detailsButton; btn.className = 'ifc-quick-filter-btn';
+                    const btn = document.createElement('button'); btn.type = 'button'; btn.id = CONFIG.ids.detailsButton; btn.className = 'ifc-quick-filter-btn'; styleAsXboxButton(btn, 'secondary');
                     btn.addEventListener('click', () => { if (state.details.running) state.details.cancel = true; else loadDetails(); });
                     bar.append(status, btn); cc.appendChild(bar);
                     cc.appendChild(createListSearch(CONFIG.ids.capabilitiesSelect, 'ifc_input_capability_search', 'capabilities'));
@@ -3337,7 +3367,7 @@ window.XboxWishlistCore = {
                     if (e.target.value === 'ifcFlagged') { state.sort.criteria[index].order = 'desc'; renderSortCriteria(); }
                     onSortChanged();
                 });
-                const toggleBtn = document.createElement('button'); toggleBtn.className = 'ifc-sort-toggle';
+                const toggleBtn = document.createElement('button'); toggleBtn.className = 'ifc-sort-toggle'; styleAsXboxButton(toggleBtn, 'brand');
                 toggleBtn.textContent = criterion.order === 'asc' ? '↑' : '↓';
                 toggleBtn.title = criterion.order === 'asc' ? 'Ascending' : 'Descending';
                 toggleBtn.addEventListener('click', () => {
@@ -3348,7 +3378,7 @@ window.XboxWishlistCore = {
                 });
                 row.appendChild(select); row.appendChild(toggleBtn);
                 if (index > 0) {
-                    const removeBtn = document.createElement('button'); removeBtn.className = 'ifc-sort-remove';
+                    const removeBtn = document.createElement('button'); removeBtn.className = 'ifc-sort-remove'; styleAsXboxButton(removeBtn, 'secondary');
                     setGlyph(removeBtn, 'IMGClose', '×'); removeBtn.title = 'Remove sort criterion';
                     removeBtn.setAttribute('aria-label', 'Remove sort criterion');
                     removeBtn.addEventListener('click', () => { state.sort.criteria.splice(index, 1); renderSortCriteria(); onSortChanged(); });
@@ -3357,7 +3387,7 @@ window.XboxWishlistCore = {
                 container.appendChild(row);
             });
             if (state.sort.criteria.length < 3) {
-                const addBtn = document.createElement('button'); addBtn.className = 'ifc-sort-add';
+                const addBtn = document.createElement('button'); addBtn.className = 'ifc-sort-add'; styleAsXboxButton(addBtn, 'brand');
                 const plus = document.createElement('span'); plus.className = 'ifc-sort-add-icon';
                 setGlyph(plus, 'IMGPlus', '+');
                 addBtn.append(plus, ' Add Sort Level');

@@ -172,18 +172,46 @@ ul.ifc-filter-groups {
     gap: 8px;
 }
 
-.ifc-clear-all-btn {
-    background: none;
-    border: none;
-    color: var(--ifc-accent-text);
-    font-size: 0.8rem;
-    font-weight: 600;
+/* ==================== XBOX-STYLED BUTTONS (T-50) ==================== */
+/* Our panel buttons wear Xbox's own button classes (styleAsXboxButton in core.js): colours, hover /
+   press / focus / disabled states, radius and font are Xbox's. These rules only set what Xbox's
+   size classes would (we use its --gds-* height tokens instead, those classes aren't always on the page). */
+.ifc-xbtn {
+    box-sizing: border-box;
+    min-width: 0;   /* Xbox's buttons are 128px wide at least */
     cursor: pointer;
-    padding: 4px 4px;
 }
 
-.ifc-clear-all-btn:hover {
-    text-decoration: underline;
+.ifc-clear-all-btn,
+.ifc-quick-filter-btn,
+.ifc-saved-preset-remove {
+    height: var(--gds-button-xsmall-height, 24px);
+    font-size: 0.75rem;
+}
+
+/* Basic look when Xbox's button classes can't be found on the page */
+.ifc-btn-plain {
+    background-color: var(--ifc-control-bg);
+    border: 1px solid var(--ifc-control-border);
+    border-radius: 4px;
+    color: var(--ifc-text);
+    padding: 0 8px;
+    cursor: pointer;
+}
+
+.ifc-btn-plain:hover {
+    background-color: var(--ifc-control-bg-hover);
+}
+
+.ifc-btn-plain:disabled {
+    opacity: 0.4;
+    cursor: default;
+}
+
+.ifc-btn-plain.ifc-Active {
+    background-color: var(--ifc-brand);
+    border-color: var(--ifc-brand);
+    color: #ffffff;
 }
 
 /* ==================== SEARCH ==================== */
@@ -214,49 +242,20 @@ ul.ifc-filter-groups {
     margin-bottom: 8px;
 }
 
-.ifc-quick-filter-btn {
-    background-color: var(--ifc-control-bg);
-    border: 1px solid var(--ifc-control-border);
-    border-radius: 999px;
-    color: var(--ifc-text);
-    font-size: 0.75rem;
-    padding: 4px 12px;
-    cursor: pointer;
-}
-
-.ifc-quick-filter-btn:hover {
-    background-color: var(--ifc-control-bg-hover);
-}
-
-.ifc-quick-filter-btn.ifc-Active,
-.ifc-quick-filter-btn.ifc-Active:hover {
-    background-color: var(--ifc-brand);
-    border-color: var(--ifc-brand);
-    color: #ffffff;
-}
-
+/* Armed "Click again to confirm" and the "is not" state have no Xbox button type, so they override it */
 .ifc-quick-filter-btn.ifc-Danger,
 .ifc-quick-filter-btn.ifc-Danger:hover {
-    background-color: #b3261e;
-    border-color: #b3261e;
-    color: #ffffff;
+    background-color: #b3261e !important;
+    border-color: #b3261e !important;
+    color: #ffffff !important;
 }
 
 /* Second click on a three-state quick filter: "is not" (e.g. "Not in a pass") */
 .ifc-quick-filter-btn.ifc-Negated,
 .ifc-quick-filter-btn.ifc-Negated:hover {
-    background-color: transparent;
-    border-color: #b3261e;
-    color: var(--ifc-text);
-}
-
-.ifc-quick-filter-btn:disabled {
-    opacity: 0.4;
-    cursor: default;
-}
-
-.ifc-quick-filter-btn:disabled:hover {
-    background-color: var(--ifc-control-bg);
+    background-color: transparent !important;
+    border-color: #b3261e !important;
+    color: var(--ifc-text) !important;
 }
 
 /* ==================== DEAL END BADGE ==================== */
@@ -564,23 +563,9 @@ p:has(+ .ifc-item-tags) {
 }
 
 .ifc-export-item {
-    background: none;
-    border: none;
-    border-radius: 4px;
-    color: var(--ifc-text);
-    font-size: 0.8125rem;
+    height: var(--gds-button-small-height, 32px);
+    justify-content: flex-start;
     text-align: left;
-    padding: 8px 12px;
-    cursor: pointer;
-}
-
-.ifc-export-item:hover {
-    background-color: var(--ifc-hover-bg);
-}
-
-.ifc-export-item:disabled {
-    opacity: 0.4;
-    cursor: default;
 }
 
 /* ==================== PANEL SECTIONS (SAVED / QUICK FILTERS) ==================== */
@@ -616,31 +601,14 @@ p:has(+ .ifc-item-tags) {
     align-items: stretch;
 }
 
-.ifc-saved-preset .ifc-quick-filter-btn.ifc-Active + .ifc-saved-preset-remove:not(:hover) {
-    background-color: var(--ifc-brand);
-    border-color: var(--ifc-brand);
-    color: #ffffff;
-}
-
 .ifc-saved-preset .ifc-quick-filter-btn {
     border-top-right-radius: 0;
     border-bottom-right-radius: 0;
 }
 
 .ifc-saved-preset-remove {
-    background-color: var(--ifc-control-bg);
-    border: 1px solid var(--ifc-control-border);
-    border-left: none;
-    border-radius: 0 999px 999px 0;
-    color: var(--ifc-text-muted);
-    font-size: 0.75rem;
-    padding: 4px 8px;
-    cursor: pointer;
-}
-
-.ifc-saved-preset-remove:hover {
-    background-color: rgba(179, 38, 30, 0.6);
-    color: #ffffff;
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
 }
 
 /* ==================== TAG CONTAINER ==================== */
@@ -960,58 +928,23 @@ p:has(+ .ifc-item-tags) {
 }
 
 .ifc-sort-toggle,
-.ifc-sort-remove,
-.ifc-sort-add {
-    border-radius: 4px;
-    border: 1px solid #757575;
-    cursor: pointer;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    transition: all 0.15s ease;
-}
-
-.ifc-sort-toggle {
-    width: 36px;
-    height: 36px;
-    padding: 0;
-    background-color: var(--ifc-brand);
-    color: #ffffff;
-    font-size: 1.2rem;
-    font-weight: bold;
-}
-
-    .ifc-sort-toggle:hover {
-        background-color: var(--ifc-brand-hover);
-        transform: scale(1.05);
-    }
-
 .ifc-sort-remove {
     width: 36px;
     height: 36px;
     padding: 0;
-    background-color: #dc3545;
-    color: #ffffff;
-    font-size: 1.5rem;
+    font-size: 1.2rem;
     font-weight: bold;
 }
 
-    .ifc-sort-remove:hover {
-        background-color: #c82333;
-        transform: scale(1.05);
-    }
+.ifc-sort-remove {
+    font-size: 1.5rem;
+}
 
 .ifc-sort-add {
     width: 100%;
-    padding: 8px;
-    background-color: var(--ifc-brand);
-    color: #ffffff;
-    font-size: 0.875rem;
-    font-weight: 600;
+    height: var(--gds-button-small-height, 32px);
     margin-top: 12px;
 }
-
-    .ifc-sort-add:hover {
-        background-color: var(--ifc-brand-hover);
-    }
 
 /* Toolbar buttons on a shared (public) wishlist: the page has no menu buttons whose
    Xbox classes we could copy, so these mirror them - Xbox's secondary icon button
