@@ -14,6 +14,14 @@ for how a version is bumped and published.
 
 ---
 
+## v1.5.26278.8 (Oct 2026) - unpurchasable items keep their highlight after Load details
+
+- Fixed: after Load details, some unpurchasable items lost their red highlight and the "Un-Purchasable" filter
+  match. The tile-price fallback read the first spans in the item's details area, and our own chips there
+  ("94 GB", "Add-ons (3)") hold digits, so the item looked priced (a "10 GB" chip gave a price of 10). Our own
+  elements are now skipped when reading the tile's price (`tilePriceSpans()`). The install size chip (v1.5.26278.3)
+  made it far more common than the Add-ons count alone had.
+
 ## v1.5.26278.7 (Oct 2026) - hearts on the Editions carousel (T-38)
 
 - On a game's store page, the other editions in the "Editions" carousel get the wishlist heart when they are on

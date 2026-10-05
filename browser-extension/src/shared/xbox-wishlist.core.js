@@ -3543,12 +3543,21 @@ window.XboxWishlistCore = {
             return state.entitlements ? !!(state.entitlements.get(String(productId || '').toUpperCase()) || {}).isOwned : null;
         }
 
+        // The tile's own spans in its details area, without ours: chips such as "94 GB" or "Add-ons (3)"
+        // sit in the same area and hold digits, so reading them as a price made an unpurchasable item
+        // look priced (and lose its highlight) once details were loaded
+        function tilePriceSpans(container) {
+            if (!CONFIG.selectors.productPrices) return [];
+            const ours = el => { for (let n = el; n && n !== container; n = n.parentElement) if (/(^|s)ifc-/.test(n.getAttribute('class') || '')) return true; return false; };
+            return Array.from(container.querySelectorAll(CONFIG.selectors.productPrices)).filter(el => !ours(el));
+        }
+
         // A price is shown on the tile when a price element holds a digit (any script) - no parsing
         function domPriceShown(container) {
             const has = el => !!el && /\p{Nd}/u.test(el.textContent || '');
             const q = cls => (cls ? container.querySelector('.' + CSS.escape(cls)) : null);
             if (has(q(resolveClass(PREFIXES.originalPrice))) || has(q(resolveClass(PREFIXES.discountPrice))) || has(q(resolveClass(PREFIXES.boldText)))) return true;
-            return CONFIG.selectors.productPrices ? Array.from(container.querySelectorAll(CONFIG.selectors.productPrices)).slice(0, 2).some(has) : false;
+            return tilePriceSpans(container).slice(0, 2).some(has);
         }
 
         // Fallbacks: what the tile's markup says (text parsing). Also exposed to the harness (state.debug.scrape),
@@ -3560,7 +3569,7 @@ window.XboxWishlistCore = {
             if (dpc) { const el = container.querySelector('.' + CSS.escape(dpc)); if (el) priceDiscount = readPrice(el); }
             if (priceBase === null && priceDiscount === null && btc) { const el = container.querySelector('.' + CSS.escape(btc)); if (el) priceBase = readPrice(el); }
             if (priceBase === null && priceDiscount === null && CONFIG.selectors.productPrices) {
-                const prices = container.querySelectorAll(CONFIG.selectors.productPrices);
+                const prices = tilePriceSpans(container);
                 priceBase = prices[0] ? readPrice(prices[0]) : null;
                 priceDiscount = prices[1] ? readPrice(prices[1]) : null;
             }
