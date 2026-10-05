@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         XBOX Wishlist
 // @namespace    https://github.com/zellreid/xbox-wishlist
-// @version      1.5.26278.1
+// @version      1.5.26278.2
 // @description  Advanced filtering and sorting suite with multi-level sort (up to 3 criteria) - Resilient selectors - Public wishlist support
 // @author       ZellReid
 // @homepage     https://github.com/zellreid/xbox-wishlist
@@ -14,7 +14,7 @@
 // @match        https://www.xbox.com/*/promotions/sales/*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=xbox.com
 // @run-at       document-body
-// @resource     CSSFilter https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/styles.css?ver=1.5.26278.1
+// @resource     CSSFilter https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/styles.css?ver=1.5.26278.2
 // @resource     IMGFilter https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/filter.svg
 // @resource     IMGSort https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/sort.svg
 // @resource     IMGExport https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/export.svg
@@ -166,7 +166,7 @@ window.XboxWishlistCore = {
                 items: null, buttons: null, imageContainer: null,
                 productDetails: null, productLink: null,
                 productPublisher: null, productPrices: null,
-                filterGroups: '.filter-groups'
+                filterGroups: '.ifc-filter-groups'
             },
             ids: {
                 buttonContainer: 'ifc_ButtonContainer',
@@ -2020,13 +2020,13 @@ window.XboxWishlistCore = {
                 if (getElement(`#${CONFIG.ids.filterContainer}`, false)) return;
                 const fc = document.createElement('div');
                 fc.id = CONFIG.ids.filterContainer;
-                fc.classList.add('filter-section', 'ifc-hidden');
+                fc.classList.add('ifc-filter-section', 'ifc-hidden');
                 const fl = document.createElement('div');
-                fl.classList.add('filter-list');
+                fl.classList.add('ifc-filter-list');
                 const headerRow = document.createElement('div');
                 headerRow.className = 'ifc-filter-header-row';
                 const h = document.createElement('h2');
-                h.classList.add('filter-text-heading');
+                h.classList.add('ifc-filter-text-heading');
                 h.textContent = 'Filters';
                 const clearBtn = document.createElement('button');
                 clearBtn.id = CONFIG.ids.clearButton;
@@ -2038,7 +2038,7 @@ window.XboxWishlistCore = {
                 const tc = document.createElement('div');
                 tc.id = CONFIG.ids.tagContainer; tc.className = 'ifc-tag-container ifc-hidden';
                 const fg = document.createElement('ul');
-                fg.classList.add('filter-groups');
+                fg.classList.add('ifc-filter-groups');
                 fl.appendChild(headerRow); fl.appendChild(tc); fl.appendChild(fg); fl.appendChild(buildStoredDataSection()); fc.appendChild(fl);
                 document.body.appendChild(fc);
                 // (the Filter button wires its own click in addFilterButton - see reinitAfterRerender)
@@ -3315,11 +3315,11 @@ window.XboxWishlistCore = {
                 if (getElement(`#${CONFIG.ids.sortContainer}`, false)) return;
                 const sc = document.createElement('div');
                 sc.id = CONFIG.ids.sortContainer;
-                sc.classList.add('filter-section', 'ifc-hidden');
+                sc.classList.add('ifc-filter-section', 'ifc-hidden');
                 const sl = document.createElement('div');
-                sl.classList.add('filter-list');
+                sl.classList.add('ifc-filter-list');
                 const h = document.createElement('h2');
-                h.classList.add('filter-text-heading');
+                h.classList.add('ifc-filter-text-heading');
                 h.textContent = 'Sort';
                 const scc = document.createElement('div');
                 scc.id = 'ifc_sort_criteria_container'; scc.className = 'ifc-sort-criteria-container';

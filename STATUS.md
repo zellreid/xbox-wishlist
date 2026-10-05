@@ -17,6 +17,7 @@ updated: 2026-10-05
 > Never put credentials, keys, connection strings or secrets in this file.
 
 ## Now
+- v1.5.26278.2: panels 320px wide; filter-section / filter-groups / filter-list / filter-text-heading renamed to ifc-*; 46/46 harness PASS.
 - v1.5.26278.1: T-47 done in code - every layout size in styles.css is on the 4px grid (strokes and the checkbox tick left as is); 46/46 harness PASS. Not yet seen live in Edge.
 - T-42: the HAR is gone. The session tool-output file be0f3qu57.txt (holds the same token) is still on disk.
 
@@ -31,7 +32,7 @@ updated: 2026-10-05
 ## Testing
 | ID | Item | Priority | Status | Next action |
 |---|---|---|---|---|
-| T-47 | Visual check of the 4px-grid pass in Edge (chips 20px, refresh / flag 20px, sliders, panels, both themes) | Low | Not started | Reload the extension, open a wishlist, open Filter and Sort, look for cramped or shifted chips and rows |
+| T-47 | Visual check of the 4px-grid pass and the 320px panels in Edge (chips 20px, refresh / flag 20px, sliders, panels, both themes) | Low | Not started | Reload the extension, open a wishlist, open Filter and Sort, look for cramped or shifted chips and rows |
 | T-06 | Live check in Chrome and the Tampermonkey userscript (Edge done) | Low | Not started | Repeat the Edge checks in Chrome and Tampermonkey |
 
 ## TODO
@@ -44,8 +45,8 @@ updated: 2026-10-05
 + 5 more: F-28 to F-30 in docs/01-PRD.md, Ubisoft+ / gift price ideas in docs/08-XBOX-REQUESTS.md section 9, and Firefox/Safari support (planned in AGENTS.md)
 
 ## Recent sessions
+- 2026-10-05: v1.5.26278.2 - panels 320px; unprefixed classes renamed to ifc-*; 46/46 harness PASS
 - 2026-10-05: v1.5.26278.1 - T-47 layout sizes in styles.css on the 4px grid; T-42 HAR confirmed deleted; 46/46 harness PASS
 - 2026-10-05: T-43, T-44, T-49 confirmed live; handover written (docs/HANDOFF-DOCUMENT.md rewritten for v1.5); licensing / selling question answered (MIT today; Microsoft unlikely buyer); no code change
 - 2026-09-30: v1.5.26273.1 - toolbar 64px / panels at 144px on a 4px grid; toolbar no longer full-width or click-blocking; narrow-window panel overflow fixed; 46/46 harness PASS
 - 2026-09-29: v1.5.26272.8 - T-44 age rating filter, Install Size sort (store-page size cached), Handheld optimised filter, developer search, export columns; garrison = Xbox PC app (not cloud); T-45 / New in pass confirmed; 46/46 harness PASS
-- 2026-09-29: v1.5.26272.6 - T-43 leaving / new in pass (chips, filters, export; handles passes with no dates); three-state quick filters via a FLAG_FILTERS table plus discountBelow for On Sale / >=50% Off; T-31 confirmed live; 46/46 harness PASS

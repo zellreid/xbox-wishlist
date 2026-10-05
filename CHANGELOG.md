@@ -14,6 +14,11 @@ for how a version is bumped and published.
 
 ---
 
+## v1.5.26278.2 (Oct 2026) - Filter / Sort panel 320px wide; panel classes prefixed ifc-
+
+- The Filter and Sort panels are 320px wide (were 280px); on windows 768px or narrower they still fill the width.
+- Renamed our unprefixed classes to the `ifc-` standard: `filter-section` -> `ifc-filter-section`, `filter-groups` -> `ifc-filter-groups`, `filter-list` -> `ifc-filter-list`, `filter-text-heading` -> `ifc-filter-text-heading`. No behaviour change.
+
 ## v1.5.26278.1 (Oct 2026) - rest of the injected UI on the 4px grid (T-47)
 
 - Layout sizes in `styles.css` (padding, margins, gaps, widths, heights, corner radii, offsets) that were

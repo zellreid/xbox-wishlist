@@ -77,7 +77,7 @@ body[data-theme="light"] {
    own icon buttons) = 64px tall, starting 72px down. Xbox's menu class adds
    a 22px top margin and full width - both undone here, so the bar is only as
    wide as its content and the filter/sort panels can sit a fixed 8px below it
-   (see .filter-section). Keep them in sync if any of this changes. */
+   (see .ifc-filter-section). Keep them in sync if any of this changes. */
 #ifc_ButtonContainer {
     position: fixed;
     top: 72px;
@@ -136,14 +136,14 @@ body[data-theme="light"] {
     display: none !important;
 }
 
-.filter-section {
+.ifc-filter-section {
     position: fixed;
     /* 8px below #ifc_ButtonContainer (72px top + 64px tall - see its rule
        above); keep in sync if the bar moves or changes height. The panel
        stops 72px above the bottom of the window. 4px grid throughout. */
     top: 144px;
     right: 100px;
-    width: 280px;
+    width: 320px;
     border-radius: 8px;
     padding: 16px;
     z-index: 998;
@@ -155,7 +155,7 @@ body[data-theme="light"] {
     -webkit-backdrop-filter: blur(12px);
 }
 
-ul.filter-groups {
+ul.ifc-filter-groups {
     padding-inline-start: 0px;
     margin-bottom: 0;   /* Xbox's generic ul margin left extra space at the panel's foot */
 }
@@ -893,27 +893,27 @@ p:has(+ .ifc-item-tags) {
 }
 
 /* ==================== SCROLLBAR STYLING ==================== */
-.filter-section::-webkit-scrollbar {
+.ifc-filter-section::-webkit-scrollbar {
     width: 8px;
 }
 
-.filter-section::-webkit-scrollbar-track {
+.ifc-filter-section::-webkit-scrollbar-track {
     background: rgba(117, 117, 117, 0.2);
     border-radius: 4px;
 }
 
-.filter-section::-webkit-scrollbar-thumb {
+.ifc-filter-section::-webkit-scrollbar-thumb {
     background: #107c10;
     border-radius: 4px;
 }
 
-    .filter-section::-webkit-scrollbar-thumb:hover {
+    .ifc-filter-section::-webkit-scrollbar-thumb:hover {
         background: #0e7a0e;
     }
 
 /* ==================== RESPONSIVE ADJUSTMENTS ==================== */
 @media (max-width: 768px) {
-    .filter-section {
+    .ifc-filter-section {
         width: calc(100vw - 40px);
         right: 20px;
         /* 144px top + 24px clear at the bottom (100vh - 120px ran 20px off-screen) */
