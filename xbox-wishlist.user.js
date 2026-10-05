@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         XBOX Wishlist
 // @namespace    https://github.com/zellreid/xbox-wishlist
-// @version      1.5.26278.6
+// @version      1.5.26278.7
 // @description  Advanced filtering and sorting suite with multi-level sort (up to 3 criteria) - Resilient selectors - Public wishlist support
 // @author       ZellReid
 // @homepage     https://github.com/zellreid/xbox-wishlist
@@ -14,7 +14,7 @@
 // @match        https://www.xbox.com/*/promotions/sales/*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=xbox.com
 // @run-at       document-body
-// @resource     CSSFilter https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/styles.css?ver=1.5.26278.6
+// @resource     CSSFilter https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/styles.css?ver=1.5.26278.7
 // @resource     IMGFilter https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/filter.svg
 // @resource     IMGSort https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/sort.svg
 // @resource     IMGExport https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/export.svg
@@ -240,7 +240,9 @@ window.XboxWishlistCore = {
             discountTag: 'Price-module__discountTag___',
             afterPriceTextContainer: 'Price-module__afterPriceTextContainer___',
             appBackground: 'appBackground',   // the store app's wrapper, which carries the dark-theme mark (F-39)
-            productCard: 'ProductCard-module__cardWrapper___',   // a game card on store/browse/deals pages (F-38b/F-35b hearts)
+            productCard: 'ProductCard-module__cardWrapper___',
+            editionCard: 'EditionCard-module__editionCard___',   // an edition on a game's page (T-38)
+            thisEditionBadge: 'EditionCard-module__thisEditionBadge___',   // marks the edition being viewed   // a game card on store/browse/deals pages (F-38b/F-35b hearts)
         };
 
         // ==================== INITIALIZATION ====================
@@ -3906,7 +3908,29 @@ window.XboxWishlistCore = {
             return resolveClass(PREFIXES.productCard);
         }
 
+        // Edition cards (T-38) carry no link; their carousel item names the product in its test id
+        // ("ItemSliderItem-0-editionCard-9MZ2MC7T85T5-0"). The edition being viewed is skipped: Xbox
+        // already shows its own wishlist button for it.
+        function editionCardClass() {
+            if (SELECTOR_CACHE.get(PREFIXES.editionCard) === null) SELECTOR_CACHE.delete(PREFIXES.editionCard);
+            return resolveClass(PREFIXES.editionCard);
+        }
+
+        function heartCards() {
+            const cards = [];
+            const product = productCardClass(), edition = editionCardClass();
+            if (product) cards.push(...document.getElementsByClassName(product));
+            if (edition) cards.push(...document.getElementsByClassName(edition));
+            return cards;
+        }
+
         function cardProductId(card) {
+            const item = card.closest('[data-testid*="-editionCard-"]');
+            if (item) {
+                if (card.querySelector(`[class*="${PREFIXES.thisEditionBadge}"]`)) return null;
+                const e = /-editionCard-([0-9a-z]{12})-/i.exec(item.getAttribute('data-testid') || '');
+                return e ? e[1].toUpperCase() : null;
+            }
             const link = card.querySelector('a[href*="/games/store/"]');
             const m = link && /\/games\/store\/[^/]+\/([0-9a-z]{12})/i.exec(link.getAttribute('href') || '');
             return m ? m[1].toUpperCase() : null;
@@ -3930,8 +3954,7 @@ window.XboxWishlistCore = {
         function updateCardHearts() {
             try {
                 if (isWishlistPage() || contextLost()) return;
-                const cls = productCardClass(); if (!cls) return;
-                const cards = document.getElementsByClassName(cls); if (!cards.length) return;
+                const cards = heartCards(); if (!cards.length) return;
                 if (heartSvgText === null) {
                     getSVG(adapter.getResourceUrl('IMGHeart')).then(t => { heartSvgText = t || ''; updateCardHearts(); });
                     return;

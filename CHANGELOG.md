@@ -14,6 +14,14 @@ for how a version is bumped and published.
 
 ---
 
+## v1.5.26278.7 (Oct 2026) - hearts on the Editions carousel (T-38)
+
+- On a game's store page, the other editions in the "Editions" carousel get the wishlist heart when they are on
+  your wishlist, like the cards on store, browse and deals pages. An edition card has no link, so the product id
+  is read from its carousel item's `data-testid` ("ItemSliderItem-0-editionCard-<ID>-0"); the card is found with
+  `resolveClass()` (`EditionCard-module__editionCard___`). The card marked THIS EDITION (the game you are
+  viewing, which has Xbox's own wishlist button) gets none.
+
 ## v1.5.26278.6 (Oct 2026) - panel buttons use Xbox's own button classes (T-50 phase 2b)
 
 - Clear All, the quick-filter pills (incl. Save, saved filters and Load details), the Sort toggle / remove /

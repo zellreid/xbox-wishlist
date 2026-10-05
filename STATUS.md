@@ -3,7 +3,7 @@ project: Xbox Wishlist
 label: Personal
 phase: Live
 priority: Medium
-next_milestone: Live check T-50 phase 2b; T-06 Chrome / Tampermonkey
+next_milestone: Live check T-38; T-06 Chrome / Tampermonkey
 target_date: none
 hard_deadline: false
 blockers: []
@@ -17,8 +17,8 @@ updated: 2026-10-05
 > Never put credentials, keys, connection strings or secrets in this file.
 
 ## Now
-- v1.5.26278.6: T-50 phase 2b in code - Clear All, quick-filter pills (Save, saved filters, Load details), Sort toggle / remove / add and Export items wear Xbox's own button classes via styleAsXboxButton() (basic ifc-btn-plain look if the classes can't be found); 46/46 harness PASS, dark and light checked in the harness. Not yet seen live.
-- T-51, T-50 phase 2a and T-46 confirmed live. T-48 closed (keep the two-row 64px toolbar).
+- v1.5.26278.7: T-38 in code - the other editions in a game page's Editions carousel get the wishlist heart (id from the carousel item's data-testid; the THIS EDITION card gets none); 46/46 harness PASS, checked on the Final Fantasy Tactics fixture. Not yet seen live.
+- T-50 complete (phase 2b confirmed live).
 
 ## Blocked
 | ID | Item | Priority | Status | Next action |
@@ -29,20 +29,19 @@ updated: 2026-10-05
 ## Testing
 | ID | Item | Priority | Status | Next action |
 |---|---|---|---|---|
-| T-50 | Live check phase 2b: Filter panel (Clear All, pills grey / green when active, armed red, "is not" outline, Save and saved filters), Sort panel (green toggle, grey remove, Add Sort Level), Export menu; both themes | Medium | Not started | Reload the extension, open Filter / Sort / Export, toggle the theme, click through each; say if the 4px pills, grey remove button or 12px pill text should change |
+| T-38 | Live check the edition hearts | Low | Not started | Reload the extension, open a game page that has an Editions carousel (e.g. Final Fantasy Tactics) where another edition is on your wishlist: that card shows the heart top right, the card marked THIS EDITION shows none; click it (opens the wishlist in a new tab) |
 | T-06 | Live check in Chrome and the Tampermonkey userscript (Edge done) | Low | Not started | Repeat the Edge checks in Chrome and Tampermonkey |
 
 ## TODO
 | ID | Item | Priority | Status | Next action |
 |---|---|---|---|---|
-| T-38 | Hearts on store-page edition cards (EditionCard, not ProductCard) | Low | Todo | Add the edition card prefix and its link pattern to updateCardHearts |
 | T-26 | Localise our own UI labels (Owned, Not Owned, quick filters) | Low | Todo | Assume labels follow the page language; keep stored filter values as stable keys |
 
 + 5 more: F-28 to F-30 in docs/01-PRD.md, Ubisoft+ / gift price ideas in docs/08-XBOX-REQUESTS.md section 9, and Firefox/Safari support (planned in AGENTS.md)
 
 ## Recent sessions
+- 2026-10-05: v1.5.26278.7 - T-38 hearts on edition cards (THIS EDITION excluded); 46/46 harness PASS
+- 2026-10-05: T-50 phase 2b confirmed live (T-50 complete); T-38 investigated and explained, not started
 - 2026-10-05: v1.5.26278.6 - T-50 phase 2b (Xbox button classes on panel buttons); T-51, T-50 2a, T-46 confirmed live; 46/46 harness PASS
 - 2026-10-05: v1.5.26278.5 - T-51 heart now Xbox's own icon; T-48 closed (keep 64px toolbar); 46/46 harness PASS
 - 2026-10-05: v1.5.26278.4 - T-50 phase 2a (Xbox --gds-* tokens, --ifc-brand); size chip after the flag; heart question answered; 46/46 harness PASS
-- 2026-10-05: v1.5.26278.3 - T-46 install size chip; T-50 phase 1 audit (gds tokens found); T-48 explained; 46/46 harness PASS
-- 2026-10-05: T-42, T-47 confirmed; T-50 (use Xbox classes over custom styles) added after a feasibility discussion; no code change
