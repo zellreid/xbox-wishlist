@@ -14,6 +14,11 @@ for how a version is bumped and published.
 
 ---
 
+## v1.5.26278.13 (Oct 2026) - the extension can load the language files
+
+- `manifest.json`: `shared/i18n/*.json` added to `web_accessible_resources` (HITL-approved 2026-10-05). No new
+  permission or host permission. Until now only the userscript could load the 42 language files.
+
 ## v1.5.26278.12 (Oct 2026) - every text is localised: 42 language catalogues (T-26)
 
 - All text we show now comes from a catalogue by key (163 keys): the built-in English one (`EN` in the core) and

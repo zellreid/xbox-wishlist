@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Xbox Wishlist Manager",
-  "version": "1.5.26278.12",
+  "version": "1.5.26278.13",
   "description": "Advanced filtering, sorting, and price tracking for Xbox wishlists",
   "author": "ZellReid",
   "homepage_url": "https://github.com/zellreid/xbox-wishlist",
@@ -50,7 +50,7 @@
 
   "web_accessible_resources": [
     {
-      "resources": ["shared/icons/*.svg", "shared/styles.css", "icons/*.png"],
+      "resources": ["shared/icons/*.svg", "shared/i18n/*.json", "shared/styles.css", "icons/*.png"],
       "matches": ["https://www.xbox.com/*"]
     }
   ],

@@ -3,7 +3,7 @@ project: Xbox Wishlist
 label: Personal
 phase: Live
 priority: Medium
-next_milestone: Your OK on the manifest line, then live check of the languages (T-26); T-55 native review; T-06 Chrome / Tampermonkey
+next_milestone: Your decision on RTL (T-57); live check of the languages (T-26); T-55 native review; T-06 Chrome / Tampermonkey
 target_date: none
 hard_deadline: false
 blockers: []
@@ -17,14 +17,14 @@ updated: 2026-10-05
 > Never put credentials, keys, connection strings or secrets in this file.
 
 ## Now
-- v1.5.26278.12: T-26 done in code - every text we show comes from a catalogue (163 keys, built-in English plus 42 language files in shared/i18n/); the page's locale picks the language; stored values and export columns stay English. All 42 languages and all 46 fixtures pass the harness (language file loads, no raw keys). Translations are first-pass, unreviewed by native speakers.
-- The extension cannot load the language files until one manifest line is added (HITL): see the first Blocked row. The userscript has an @resource per language.
-- T-52, T-53, T-54 confirmed live.
+- v1.5.26278.13: the manifest line is in (T-56 done), so the extension can now load the 42 language files; reload it in Edge to try them (T-26 live check).
+- RTL (Arabic, Hebrew) investigated, not changed yet: in Arabic our toolbar sits on top of the page title, so the placement needs your decision (T-57).
+- T-26 code done earlier today: 163 keys, 42 catalogues, harness language checks (all 42 and all 46 fixtures passed).
 
 ## Blocked
 | ID | Item | Priority | Status | Next action |
 |---|---|---|---|---|
-| T-56 | Approve one manifest.json change: add "shared/i18n/*.json" to web_accessible_resources (HITL: manifest change, AGENTS 2.7 #10). No new permission or host permission | High | Blocked | Say yes and I'll make the one-line edit (then Edge can load the language files); the userscript already works |
+| T-57 | Right-to-left languages (Arabic, Hebrew): decide how to handle them | High | Blocked | Your call on the recommendation in the chat reply: mirror the toolbar and panels to the left (recommended), plus logical CSS, LTR sliders, and bidi isolation of numbers and Latin text |
 | T-32 | Save the remaining wishlist mocks: owned-heavy, empty, tiny, partial, shared, signed-out | Medium | Blocked | Capture into mock_examples/_inbox/, run file-mocks.js --prepare |
 | T-28 | Confirm the Serbian Cyrillic locale code (sr-Cyrl-RS assumed) | Low | Blocked | Likely IP-gated; recapture over a Serbian VPN endpoint |
 
@@ -42,8 +42,8 @@ updated: 2026-10-05
 Backlog beyond the tables above (5 more): F-28 to F-30 in docs/01-PRD.md, Ubisoft+ / gift price ideas in docs/08-XBOX-REQUESTS.md section 9, and Firefox/Safari support (planned in AGENTS.md)
 
 ## Recent sessions
+- 2026-10-05: v1.5.26278.13 - manifest line for the language files (HITL-approved); RTL investigated, decision pending (T-57); harness not re-run (manifest-only change)
 - 2026-10-05: v1.5.26278.12 - T-26: all UI text localised (163 keys, 42 language catalogues, tools/i18n/check.js, harness language checks); manifest line awaits approval; T-52/53/54 confirmed live
 - 2026-10-05: v1.5.26278.10 - T-54 (merge on Load details, ownership kept, one price, stability check); data-model doc and diagram; Un-Purchasable stays tile-based (tested)
 - 2026-10-05: v1.5.26278.9 - Load details label shortened; item data audit written up (T-54 proposed); 46/46 harness PASS
 - 2026-10-05: v1.5.26278.8 - fixed unpurchasable items losing their highlight after Load details; T-38 confirmed live; T-26 and the Load details button scoped, awaiting decisions
-- 2026-10-05: v1.5.26278.7 - T-38 hearts on edition cards (THIS EDITION excluded); 46/46 harness PASS
