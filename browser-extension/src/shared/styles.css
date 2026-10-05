@@ -362,7 +362,8 @@ p:has(+ .ifc-item-tags) {
     cursor: help;
 }
 
-.ifc-item-tag-preorder {
+.ifc-item-tag-preorder,
+.ifc-item-tag-size {
     border: 1px solid var(--ifc-chip-border);
     color: var(--ifc-tag-text);
 }

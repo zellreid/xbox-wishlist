@@ -3,7 +3,7 @@
 ## Current Status
 
 **Date:** 5 October 2026
-**Version:** 1.5.26278.2 (extension and userscript share one version)
+**Version:** 1.5.26278.3 (extension and userscript share one version)
 **Status:** Live. Everything built up to 2026-10-05 is confirmed in Edge; the Chrome / Tampermonkey pass (T-06) is still to do.
 **Live state and open work:** `STATUS.md` (repo root) - always read it first. Full history: `CHANGELOG.md`. Feature detail: `docs/04-FEATURE-BREAKDOWN.md`.
 
@@ -101,11 +101,11 @@ See `STATUS.md` for the live list. At this date:
   `docs/08-XBOX-REQUESTS.md`.
 - Waiting on you: remaining wishlist mocks (T-32), 40px toolbar decision (T-48), Serbian Cyrillic locale (T-28).
 - To check: Chrome + Tampermonkey pass (T-06).
-- To do: install size chip (T-46), hearts on edition cards
+- To do: hearts on edition cards
   (T-38), localised labels (T-26); data ideas in `docs/08` section 9.
 - Known limits: install sizes only after "Load details" (the wishlist page has almost none); no owned tick on
   browse cards (needs the sign-in token); "Leaving pass soon" depends on Xbox publishing exit dates.
 
 ---
 
-*Last updated: 5 October 2026 - v1.5.26278.2*
+*Last updated: 5 October 2026 - v1.5.26278.3*

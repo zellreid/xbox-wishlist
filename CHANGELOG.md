@@ -14,6 +14,12 @@ for how a version is bumped and published.
 
 ---
 
+## v1.5.26278.3 (Oct 2026) - install size chip on each item (T-46)
+
+- A quiet chip ("94 GB", "4.5 GB", "800 MB") in the item's tag row, after Smart Delivery and before DLC, shown only
+  when the size is known (the wishlist's own data rarely has it; Load details or the item's refresh button caches it
+  from the store page). Same look as the Pre-order chip; the tooltip says it is the largest size the store lists.
+
 ## v1.5.26278.2 (Oct 2026) - Filter / Sort panel 320px wide; panel classes prefixed ifc-
 
 - The Filter and Sort panels are 320px wide (were 280px); on windows 768px or narrower they still fill the width.

@@ -1189,6 +1189,7 @@ window.XboxWishlistCore = {
                 passJoined: isNewToPass(container) ? passTimes.joined : null,
                 playAnywhere: capKeys.includes('XPA'), optimizedXS: capKeys.includes('ConsoleGen9Optimized'),
                 smartDelivery: capKeys.includes('ConsoleCrossGen'),
+                installSize: parseFloat(container.dataset.ifcInstallSize) > 0 ? parseFloat(container.dataset.ifcInstallSize) : null,
                 addOns: hasAddOns ? { count: addOnsCount, url: addOnsUrl(container.dataset.ifcProductId, container.dataset.ifcUri) } : null
             });
         }
@@ -1225,7 +1226,7 @@ window.XboxWishlistCore = {
         // Spaced by 10 so a new entry can go between two existing ones without renumbering.
         const ITEM_TAG_ORDER = Object.freeze({
             REFRESH: 10, FLAG: 20, ADD_ONS: 30, JUST_FOR_YOU: 40, MY_PASS: 45, PASS_LEAVES: 46, PASS_NEW: 47, PREORDER: 50,
-            OPTIMIZED_XS: 60, PLAY_ANYWHERE: 70, SMART_DELIVERY: 80, DLC: 90, CONSUMABLE: 100
+            OPTIMIZED_XS: 60, PLAY_ANYWHERE: 70, SMART_DELIVERY: 80, INSTALL_SIZE: 85, DLC: 90, CONSUMABLE: 100
         });
 
         function injectItemTags(container, info) {
@@ -1235,7 +1236,7 @@ window.XboxWishlistCore = {
                 // store page gets one; without a product id / URL there's nothing to refresh
                 const canRefresh = !!(info.productId && info.url && info.url !== 'null');
                 const canFlag = !!(info.productId && info.productId !== 'NULL');
-                if (!canRefresh && !canFlag && !info.personal && !info.myPass && !info.passLeaves && !info.passJoined && !info.preorder && !info.playAnywhere && !info.optimizedXS && !info.smartDelivery && !info.kindLabel && !info.addOns) { if (row) row.remove(); return; }
+                if (!canRefresh && !canFlag && !info.personal && !info.myPass && !info.passLeaves && !info.passJoined && !info.preorder && !info.playAnywhere && !info.optimizedXS && !info.smartDelivery && !info.kindLabel && !info.addOns && !info.installSize) { if (row) row.remove(); return; }
                 if (!row) {
                     const pd = CONFIG.selectors.productDetails ? safeQuerySelector(container, CONFIG.selectors.productDetails) : null;
                     if (!pd) return;
@@ -1299,6 +1300,13 @@ window.XboxWishlistCore = {
                 if (info.optimizedXS) chip(ITEM_TAG_ORDER.OPTIMIZED_XS, 'ifc-item-tag-xs', 'X|S', 'Optimized for Xbox Series X|S');
                 if (info.smartDelivery) chip(ITEM_TAG_ORDER.SMART_DELIVERY, 'ifc-item-tag-sd', 'Smart Delivery', 'Smart Delivery');
                 if (info.playAnywhere) chip(ITEM_TAG_ORDER.PLAY_ANYWHERE, 'ifc-item-tag-xpa', 'Play Anywhere', 'Xbox Play Anywhere', 'IMGPlayAnywhere');
+                // T-46: install size once known (the wishlist's own data rarely has it; Load details / the refresh button cache it)
+                if (info.installSize) {
+                    const size = document.createElement('span'); size.className = 'ifc-item-tag ifc-item-tag-size';
+                    size.textContent = formatInstallSize(info.installSize);
+                    size.title = 'Install size (the largest the store lists for this game)';
+                    add(ITEM_TAG_ORDER.INSTALL_SIZE, size);
+                }
                 // F-40: "Add-ons" / "Add-ons (462)" - a link to the store's add-ons list for this game
                 if (info.addOns && info.addOns.url) {
                     const n = info.addOns.count, known = typeof n === 'number';
@@ -2862,6 +2870,13 @@ window.XboxWishlistCore = {
         // almost never has it (0), a game's store page does. Entries saved before T-44 get it at their next read.
         function installSizeEntry(summary) {
             return summary && summary.maxInstallSize > 0 ? { size: summary.maxInstallSize } : {};
+        }
+        // Bytes as the store counts them (decimal): "94 GB", "4.5 GB", "800 MB"
+        function formatInstallSize(bytes) {
+            const gb = bytes / 1e9;
+            if (gb >= 10) return `${Math.round(gb)} GB`;
+            if (gb >= 1) return `${Math.round(gb * 10) / 10} GB`;
+            return `${Math.max(1, Math.round(bytes / 1e6))} MB`;
         }
         function getCachedInstallSize(productId) {
             const entry = productId ? state.capCache[String(productId).toUpperCase()] : null;
