@@ -14,6 +14,22 @@ for how a version is bumped and published.
 
 ---
 
+## v1.5.26278.10 (Oct 2026) - item data made consistent (T-54)
+
+- Load details no longer replaces a game's record with the store page's. It only fills fields the wishlist record
+  lacks or has empty (capabilities, the real install size); the item's refresh button lets the store page's values
+  win but never drops a field (`mergeSummary()`). A store page without an ownership entry no longer deletes the
+  game's entry (that could turn an owned game into a not-owned one).
+- Removed the unused second price pair (`ifcStatePrice`, `ifcStateMsrp`) so `ifcPrice` is the only price.
+- Un-Purchasable stays decided by whether the tile shows a price: checked on 17 wishlist captures, the data has a
+  priced offer for 3-4 items per capture that the tile shows none for (owned, pre-orders), so the data cannot
+  replace it.
+- Harness: a new "details stability" check applies a fake store page to every item and fails if any item's
+  Un-Purchasable / owned / price changes (all 46 fixtures pass, 0 changed). Fixtures must be regenerated
+  (`node tools/mock-harness/prepare-fixture.js mock_examples`) to pick it up.
+- New docs/09-ITEM-DATA-MODEL.md: every item attribute, its source (tile, summary, entitlements, wishlists, store
+  pages, calculated), a relationship diagram and tables.
+
 ## v1.5.26278.9 (Oct 2026) - Load details button says just "Load details"
 
 - The button no longer carries the count ("Load details (312)" wrapped to three lines in its 24px box); the status

@@ -1107,18 +1107,16 @@ window.XboxWishlistCore = {
             return +m[3] < 2100 ? ms : null;
         }
 
-        // Price facts from the product data, by offer. The deal end comes from the biggest
+        // Deal facts from the product data, by offer. The deal end comes from the biggest
         // current discount (earliest end on a tie). The page exposes no deal *start* date.
         function productOfferFacts(p) {
             const offers = (p && p.specificPrices && Array.isArray(p.specificPrices.purchaseable)) ? p.specificPrices.purchaseable : [];
             const now = Date.now();
-            let price = null, msrp = null, deal = null;
+            let deal = null;
             // Deal type (F-34): a personal "Just for you" offer wins over a public sale,
             // which wins over a member price (Game Pass / EA Play ...)
             let personal = null, publicSale = false, member = false;
             offers.forEach(o => {
-                if (typeof o.listPrice === 'number') price = price === null ? o.listPrice : Math.min(price, o.listPrice);
-                if (typeof o.msrp === 'number') msrp = msrp === null ? o.msrp : Math.max(msrp, o.msrp);
                 const ends = o.discountPercentage > 0 ? parseOfferEndUtc(o.endDateUtc) : null;
                 if (ends !== null && ends > now && (!deal || o.discountPercentage > deal.pct || (o.discountPercentage === deal.pct && ends < deal.ends))) {
                     deal = { pct: o.discountPercentage, ends };
@@ -1131,7 +1129,7 @@ window.XboxWishlistCore = {
                 }
             });
             const dealType = personal ? 'personal' : publicSale ? 'sale' : member ? 'member' : null;
-            return { price, msrp, dealEnds: deal ? deal.ends : null, dealType, dealReason: personal ? personal.reason : null };
+            return { dealEnds: deal ? deal.ends : null, dealType, dealReason: personal ? personal.reason : null };
         }
 
         // Copies the product-data fields used by filtering/sorting/export onto the item as
@@ -1172,9 +1170,6 @@ window.XboxWishlistCore = {
             const shownDiscount = parseFloat(container.dataset.ifcPriceDiscountPercent) > 0;
             const dealEnds = shownDiscount ? offer.dealEnds : null;
             setDataAttribute(container, 'ifcDealEnds', dealEnds);
-            // Kept for a future in-place price update / tracker (F-26); not shown yet
-            setDataAttribute(container, 'ifcStatePrice', offer.price);
-            setDataAttribute(container, 'ifcStateMsrp', offer.msrp);
             // F-34: deal type / personal-offer reason (again only for discounts shown), pre-order, platforms
             const dealType = shownDiscount ? offer.dealType : null;
             setDataAttribute(container, 'ifcDealType', dealType);
@@ -1577,7 +1572,7 @@ window.XboxWishlistCore = {
         // lets the harness run "Load details" without the real pause between requests.
         state.debug = { loadProductData, getProductData, fetchPageState, loadDetails, detailsDelayMs: undefined,
             scrape: { prices: scrapePrices, owned: scrapeOwned }, payload: { prices: payloadPrices, owned: payloadOwned },
-            refreshItem, applyStorePage };   // requestLog itself is read straight off state (window.injected.requestLog)
+            refreshItem, applyStorePage, updateScreen };   // requestLog itself is read straight off state (window.injected.requestLog)
 
         // ==================== LIGHT / DARK TOGGLE (F-39) ====================
         // Xbox marks its theme on <body> (data-theme="light|dark" + the dark class), on the
@@ -2949,11 +2944,27 @@ window.XboxWishlistCore = {
         // ours (ownership). The next updateScreen() re-reads every fact from them, and a price that moved is
         // recorded again, so the price-change badge shows it. The tile's own price text is Xbox's markup and stays
         // as it was until the page reloads.
-        function applyStorePage(id, pageState) {
+        // T-54: a store page's summary has every field the wishlist's has plus more (capabilities, a real
+        // install size, age-rating descriptors), but it is a different page and its values can differ, so it
+        // never replaces the record the list was built from. 'supplement' (Load details) only fills what the
+        // wishlist record lacks or has empty; 'refresh' (the item's ↻ button) lets the store page's values win.
+        // Either way no field is lost. Returns the store page's own summary (capabilities, size come from it).
+        function mergeSummary(old, fresh, mode) {
+            if (!old) return fresh;
+            const empty = v => v === undefined || v === null || v === 0 || v === '' || (Array.isArray(v) && !v.length)
+                || (typeof v === 'object' && !Array.isArray(v) && !Object.keys(v).length);
+            const merged = { ...old };
+            Object.keys(fresh).forEach(k => { if (mode === 'refresh' || !(k in merged) || empty(merged[k])) merged[k] = fresh[k]; });
+            return merged;
+        }
+
+        function applyStorePage(id, pageState, mode = 'supplement') {
             const summary = productSummariesFrom(pageState).get(id);
-            if (summary) state.productData.set(id, summary);
+            if (summary) state.productData.set(id, mergeSummary(state.productData.get(id), summary, mode));
+            // Ownership: a store page that has an entry for the game updates it; one that has none leaves it
+            // alone (it used to delete the entry, which turned an owned game into a not-owned one)
             const ent = entitlementsFrom(pageState);
-            if (ent && state.entitlements) { if (ent.has(id)) state.entitlements.set(id, ent.get(id)); else state.entitlements.delete(id); }
+            if (ent && state.entitlements && ent.has(id)) state.entitlements.set(id, ent.get(id));
             state.priceRecorded.delete(id);
             return summary;
         }
@@ -3017,7 +3028,7 @@ window.XboxWishlistCore = {
             status[id] = { busy: true };
             updateScreen();
             try {
-                const summary = applyStorePage(id, await fetchPageState(url));
+                const summary = applyStorePage(id, await fetchPageState(url), 'refresh');
                 if (!summary) throw new Error('no data on its store page');
                 const caps = {};
                 if (summary.capabilities && typeof summary.capabilities === 'object') {

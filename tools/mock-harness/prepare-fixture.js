@@ -327,6 +327,26 @@ function buildHarnessBlock(outDir, meta) {
             if (miss.length > 5) failures.push('... and ' + (miss.length - 5) + ' more');
         }
 
+        // T-54, details stability: loading a store page's details (Load details) for every item must not change
+        // what the list was built from - whether an item can be bought (red), owned, its price. A store page is
+        // faked here with just the fields it adds (install size, capabilities, an add-ons count).
+        if (!STATE_EDIT.nostate && state.debug && state.debug.applyStorePage && state.debug.updateScreen && document.querySelector('[data-ifc-product-id]')) {
+            const snap = () => new Map(Array.from(document.querySelectorAll('[data-ifc-product-id]')).map(c => [c.dataset.ifcId, c.dataset.ifcUnpurchasable + '/' + c.dataset.ifcOwned + '/' + c.dataset.ifcPrice]));
+            const before = snap();
+            document.querySelectorAll('[data-ifc-product-id]').forEach(c => {
+                const id = (c.dataset.ifcProductId || '').toUpperCase();
+                if (!id || id === 'NULL') return;
+                state.debug.applyStorePage(id, { core2: { products: { productSummaries: { [id]: { productId: id, maxInstallSize: 5e9, capabilities: { PC: 'PC' } } } } } });
+                state.capCache[id] = { caps: { PC: 'PC' }, at: Date.now(), size: 5e9, addOns: 3 };
+            });
+            state.debug.updateScreen();
+            const after = snap();
+            let changed = 0;
+            before.forEach((v, k) => { if (after.get(k) !== v) changed++; });
+            lines.push('details stability: ' + before.size + ' items, ' + changed + ' changed');
+            if (changed) failures.push(changed + ' items changed after loading details');
+        }
+
         // Per-market storage: with ?locale=xx-YY the price history must be saved under that market
         lines.push('address seen by the core: ' + location.pathname);
         const wanted = new URLSearchParams(location.search).get('locale');
