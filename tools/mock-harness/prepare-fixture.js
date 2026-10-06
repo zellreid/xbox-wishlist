@@ -423,6 +423,30 @@ function buildHarnessBlock(outDir, meta) {
             problems.forEach(p => failures.push('tabs: ' + p));
         } else if (!STATE_EDIT.nostate) failures.push('tabs: the filter panel has no tab strip');
 
+        // T-63: one accordion open at a time (opening another closes the open one, clicking the open one closes it),
+        // and the Load details bar sits in Stored data, outside every accordion and tab
+        if (tabPanel) {
+            const heads = Array.from(tabPanel.querySelectorAll('.ifc-accordion-header')), opened = () => heads.filter(h => h.getAttribute('aria-expanded') === 'true');
+            const probs = [];
+            if (heads.length < 2) probs.push('expected accordions, found ' + heads.length);
+            else {
+                heads.forEach(h => { if (h.getAttribute('aria-expanded') === 'true') h.click(); });
+                heads[0].click();
+                if (opened().length !== 1) probs.push('opening one did not leave exactly one open');
+                heads[1].click();
+                if (opened().length !== 1 || opened()[0] !== heads[1]) probs.push('opening a second did not close the first');
+                if (heads[0].closest('.ifc-accordion-group').querySelector('.ifc-accordion-content:not(.ifc-hidden)')) probs.push('the first accordion content stayed visible');
+                heads[1].click();
+                if (opened().length !== 0) probs.push('clicking the open one did not close it');
+            }
+            const stored = tabPanel.querySelector('.ifc-stored-data'), loadBtn = document.getElementById('ifc_btn_LoadDetails'), loadStatus = document.getElementById('ifc_details_status');
+            if (!stored || !loadBtn || !stored.contains(loadBtn) || !stored.contains(loadStatus)) probs.push('Load details and its status are not in Stored data');
+            else if (loadBtn.closest('.ifc-accordion-group')) probs.push('Load details is still inside an accordion');
+            else if (!(loadBtn.compareDocumentPosition(stored.querySelector('.ifc-quick-filters')) & Node.DOCUMENT_POSITION_FOLLOWING)) probs.push('Load details is not above the Clear / Reset buttons');
+            lines.push('accordions: one at a time, Load details in Stored data' + (probs.length ? '' : ' (ok)'));
+            probs.forEach(p => failures.push('accordions: ' + p));
+        }
+
         // Per-market storage: with ?locale=xx-YY the price history must be saved under that market
         lines.push('address seen by the core: ' + location.pathname);
         const wanted = new URLSearchParams(location.search).get('locale');

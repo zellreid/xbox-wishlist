@@ -2251,7 +2251,15 @@ window.XboxWishlistCore = {
             };
             make(tr('stored.clearCache'), false, tr('stored.clearCache.tip'));
             make(tr('stored.reset'), true, tr('stored.reset.tip'));
-            box.appendChild(heading); box.appendChild(row);
+            // T-63: "Load details" and how much is loaded (renderDetailsStatus) sit here with the other stored-data
+            // actions, above the Clear / Reset buttons - the data it fetches is what gets stored and cleared below
+            const bar = document.createElement('div'); bar.className = 'ifc-details-bar';
+            const status = document.createElement('div'); status.id = CONFIG.ids.detailsStatus; status.className = 'ifc-details-status';
+            status.setAttribute('aria-live', 'polite');
+            const loadBtn = document.createElement('button'); loadBtn.type = 'button'; loadBtn.id = CONFIG.ids.detailsButton; loadBtn.className = 'ifc-quick-filter-btn'; styleAsXboxButton(loadBtn, 'secondary');
+            loadBtn.addEventListener('click', () => { if (state.details.running) state.details.cancel = true; else loadDetails(); });
+            bar.append(status, loadBtn);
+            box.appendChild(heading); box.appendChild(bar); box.appendChild(row);
             return box;
         }
 
@@ -2395,6 +2403,21 @@ window.XboxWishlistCore = {
             } catch (ex) { console.error('Failed to add filter container:', ex); }
         }
 
+        // Opens or closes one accordion group: its header state, its content and the chevron icon.
+        // FIX: the chevron SVG is loaded straight into the group's chevron container instead of updateSVGIcon, which
+        // looks for #ifc_img_... prefixed IDs that don't match
+        function setAccordionState(group, open) {
+            const header = group.querySelector('.ifc-accordion-header'), content = group.querySelector('.ifc-accordion-content'), chevron = group.querySelector('.ifc-accordion-chevron');
+            if (!header || !content) return;
+            header.setAttribute('aria-expanded', String(open));
+            content.classList.toggle('ifc-hidden', !open);
+            // One icon load after another per chevron, so fast clicks cannot land out of order and leave the wrong icon
+            if (chevron) {
+                const url = adapter.getResourceUrl(open ? 'IMGCollapse' : 'IMGExpand'), key = `accordion_${group.id.replace('ifc_group_', '')}`;
+                chevron._ifcIcon = (chevron._ifcIcon || Promise.resolve()).then(() => loadSVGIntoContainer(chevron, url, key)).catch(() => {});
+            }
+        }
+
         function createFilterBlock(id = null, text = '', collapsible = true) {
             const groupContainer = document.createElement('li');
             if (id) groupContainer.id = `ifc_group_${id}`;
@@ -2424,14 +2447,16 @@ window.XboxWishlistCore = {
             contentPanel.className = 'ifc-accordion-content ifc-hidden';
             if (id) contentPanel.id = `ifc_group_content_${id}`;
 
-            // FIX: Load SVG directly into chevronContainer (closure ref) instead of
-            // updateSVGIcon which looks for #ifc_img_... prefixed IDs that don't match
-            headerButton.addEventListener('click', async () => {
-                const isExpanded = headerButton.getAttribute('aria-expanded') === 'true';
-                headerButton.setAttribute('aria-expanded', (!isExpanded).toString());
-                contentPanel.classList.toggle('ifc-hidden', isExpanded);
-                const resourceKey = isExpanded ? 'IMGExpand' : 'IMGCollapse';
-                await loadSVGIntoContainer(chevronContainer, adapter.getResourceUrl(resourceKey), `accordion_${id}`);
+            // T-63: one accordion open at a time - opening one closes whichever other is open (on any tab);
+            // clicking the open one closes it
+            headerButton.addEventListener('click', () => {
+                const open = headerButton.getAttribute('aria-expanded') !== 'true';
+                if (open) {
+                    document.querySelectorAll('.ifc-accordion-group').forEach(g => {
+                        if (g !== groupContainer && g.querySelector('.ifc-accordion-header[aria-expanded="true"]')) setAccordionState(g, false);
+                    });
+                }
+                setAccordionState(groupContainer, open);
             });
 
             groupContainer.appendChild(headerButton); groupContainer.appendChild(contentPanel);
@@ -3584,12 +3609,6 @@ window.XboxWishlistCore = {
                 const fb = createFilterBlock(gn, tr('section.capabilities'), true);
                 const cc = fb.querySelector('.ifc-accordion-content');
                 if (cc) {
-                    const bar = document.createElement('div'); bar.className = 'ifc-details-bar';
-                    const status = document.createElement('div'); status.id = CONFIG.ids.detailsStatus; status.className = 'ifc-details-status';
-                    status.setAttribute('aria-live', 'polite');
-                    const btn = document.createElement('button'); btn.type = 'button'; btn.id = CONFIG.ids.detailsButton; btn.className = 'ifc-quick-filter-btn'; styleAsXboxButton(btn, 'secondary');
-                    btn.addEventListener('click', () => { if (state.details.running) state.details.cancel = true; else loadDetails(); });
-                    bar.append(status, btn); cc.appendChild(bar);
                     cc.appendChild(createListSearch(CONFIG.ids.capabilitiesSelect, 'ifc_input_capability_search', tr('noun.capabilities')));
                     const list = document.createElement('div');
                     list.id = CONFIG.ids.capabilitiesSelect;

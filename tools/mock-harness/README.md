@@ -136,6 +136,8 @@ empty store, so the sanity checks always see a clean slate.
 
 **Filter panel tabs (T-62):** every wishlist run also reports "tabs:" - search and the tag row sit above the tab strip (outside it), there are four tabs (quick / game / store / price), each shows only its own sections, and next / previous loop round (last to first, first to last). The ar-sa fixture runs it right to left.
 
+**Accordions and Load details (T-63):** every wishlist run also reports "accordions:" - only one accordion is open at a time (opening a second closes the first, clicking the open one closes it) and the Load details button and its status sit in Stored data, above the Clear / Reset buttons, outside every accordion.
+
 **Testing the minified build (T-60):** run `npm run build`, then add `?dist` to any harness page URL (e.g. `...harness.html?dist`, or `?dist&locale=de-DE`). The core, content script, stylesheet and language files then load from `dist/extension/` instead of `browser-extension/src/`; the same checks run.
 
 **Testing another market:** add `?locale=xx-YY` (e.g. `?locale=en-US`, or `?realpath` for the capture's own

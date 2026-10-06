@@ -504,7 +504,7 @@ p:has(+ .ifc-item-tags) {
     font-weight: 600;
 }
 
-/* "Load details" bar at the top of the Capabilities section */
+/* "Load details" bar at the top of the Stored data section (T-63) */
 .ifc-details-bar {
     display: flex;
     align-items: center;
