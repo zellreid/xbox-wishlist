@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         XBOX Wishlist
 // @namespace    https://github.com/zellreid/xbox-wishlist
-// @version      1.5.26278.14
+// @version      1.5.26279.1
 // @description  Advanced filtering and sorting suite with multi-level sort (up to 3 criteria) - Resilient selectors - Public wishlist support
 // @author       ZellReid
 // @homepage     https://github.com/zellreid/xbox-wishlist
@@ -14,7 +14,7 @@
 // @match        https://www.xbox.com/*/promotions/sales/*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=xbox.com
 // @run-at       document-body
-// @resource     CSSFilter https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/styles.css?ver=1.5.26278.14
+// @resource     CSSFilter https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/styles.css?ver=1.5.26279.1
 // @resource     IMGFilter https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/filter.svg
 // @resource     IMGSort https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/sort.svg
 // @resource     IMGExport https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/export.svg
@@ -171,8 +171,11 @@ window.XboxWishlistCore = {
             // Product summaries by upper-case product id (F-33) - see loadProductData(); not persisted
             // productDataFromWishlist: false when it was read on another page type (F-38/F-35) - the wishlist then fetches its own
             productData: new Map(), productDataLoadedAt: null, productDataFromWishlist: false,
-            // Product-page capabilities by upper-case product id: { caps: { key: label }, at: ms } (F-36)
-            capCache: {},
+            // T-58: the item master records by upper-case product id: { caps: [key, ...], at: ms, addOns, size } (F-36).
+            // Locale-neutral - capability keys only; the label for a key per locale is in capLabels
+            // ({ 'en-za': { XPA: 'Xbox Play Anywhere' }, '?': labels of unknown language }). Both are kept in IndexedDB
+            // (see CACHE DATABASE); capSaved = what was last written, so only changed records are written again
+            capCache: {}, capLabels: {}, capSaved: new Map(), capLabelsSaved: {}, cacheDb: null,
             // Per product id: { isOwned, isSatisfyingEntitlement, satisfyingProductId, endDate, ... } from the page data;
             // null when the page has no entitlements section (ownership is then read from the tiles)
             entitlements: null,
@@ -247,8 +250,10 @@ window.XboxWishlistCore = {
                 discountSlider: 'ifc_slider_discount'
             },
             classes: { button: [], svgIcon: [], activeButton: null },
-            // capsKey: per-product capability cache (F-36), kept apart from the filter state
+            // capsKey: the pre-T-58 per-product capability blob (F-36), read once to migrate and then removed
             // changedKey: when a wishlist add/remove was last seen in any tab (T-34/T-35) - see watchPageRequests()
+            // cacheDb: the IndexedDB database of item master records and capability labels (T-58)
+            cacheDb: { name: 'ifc_xbox_wishlist_cache', version: 1, items: 'items', labels: 'labels' },
             storage: { key: 'ifc_xbox_wishlist', capsKey: 'ifc_xbox_wishlist_caps', flagsKey: 'ifc_xbox_wishlist_flags', pricesKey: 'ifc_xbox_wishlist_prices', changedKey: 'ifc_xbox_wishlist_changed' }
         };
 
@@ -938,7 +943,7 @@ window.XboxWishlistCore = {
             });
             state.filters.capabilities.selected.forEach(cap => {
                 const count = state.filters.capabilities.list.get(cap) || 0;
-                tags.push({ type: 'capability', value: cap, label: `${cap} (${count})` });
+                tags.push({ type: 'capability', value: cap, label: `${capLabel(cap)} (${count})` });
             });
             state.filters.types.selected.forEach(ty => {
                 const count = state.filters.types.list.get(ty) || 0;
@@ -1495,9 +1500,9 @@ window.XboxWishlistCore = {
                 ? p.availableOn.map(code => PLATFORM_LABELS[code] || code) : []));
             // F-36: capabilities come from the product-page cache ("Load details"), not this page
             const cached = getCachedCapabilities(container.dataset.ifcProductId);
-            const capKeys = cached ? Object.keys(cached) : [];
-            // Collapse whitespace - some store names have double spaces ("Online multiplayer  (2-4)")
-            setDataAttribute(container, 'ifcCapabilities', JSON.stringify(cached ? Object.values(cached).map(v => String(v).replace(/\s+/g, ' ').trim()) : []));
+            const capKeys = cached || [];
+            // T-58: the keys, not their text - the filter compares keys, so it works in any language
+            setDataAttribute(container, 'ifcCapabilities', JSON.stringify(capKeys));
             setDataAttribute(container, 'ifcDetailsLoaded', !!cached);
             // Item type from the product kind: games, DLC / add-ons, in-game consumables
             const type = p ? (PRODUCT_KIND_LABELS[p.productKind] || p.productKind || null) : null;
@@ -1887,7 +1892,7 @@ window.XboxWishlistCore = {
         // lets the harness run "Load details" without the real pause between requests.
         state.debug = { loadProductData, getProductData, fetchPageState, loadDetails, detailsDelayMs: undefined,
             scrape: { prices: scrapePrices, owned: scrapeOwned }, payload: { prices: payloadPrices, owned: payloadOwned },
-            refreshItem, applyStorePage, updateScreen,
+            refreshItem, applyStorePage, updateScreen, recordCapabilities, saveCapabilityCache, loadCapabilityCache, capLabel,
             language: () => ({ code: I18N.code, locale: I18N.locale, expected: catalogueFor(I18N.locale) || 'en' }) };   // requestLog itself is read straight off state (window.injected.requestLog)
 
         // ==================== LIGHT / DARK TOGGLE (F-39) ====================
@@ -2219,7 +2224,7 @@ window.XboxWishlistCore = {
                 dealType: text(c.dataset.ifcDealType) || null, dealReason: text(c.dataset.ifcDealReason) || null,
                 preorder: c.dataset.ifcPreorder === 'true', platforms: getItemJsonList(c, 'ifcPlatforms'),
                 // F-36: empty unless "Load details" has fetched this item's product page
-                capabilities: getItemJsonList(c, 'ifcCapabilities'),
+                capabilities: getItemJsonList(c, 'ifcCapabilities').map(capLabel),
                 type: text(c.dataset.ifcType) || null,   // Game | DLC | Consumable
                 // F-40: count is null until "Load details" / the per-item refresh has read it
                 hasAddOns: c.dataset.ifcHasAddOns === 'true', addOnsCount: num(c.dataset.ifcAddOnsCount),
@@ -2286,6 +2291,7 @@ window.XboxWishlistCore = {
                     if (k.startsWith(CONFIG.storage.pricesKey) || (everything && k.startsWith(CONFIG.storage.key))) wipe.add(k);
                 });
                 wipe.forEach(k => (adapter.storage.remove ? adapter.storage.remove(k) : adapter.storage.save(k, null)));
+                if (state.cacheDb) await dbClearAll(state.cacheDb);   // T-58: the item records and capability labels
             } catch (ex) { console.error('Failed to clear stored data:', ex); }
             setTimeout(() => location.reload(), 250);   // lets the storage writes finish first
         }
@@ -2911,7 +2917,7 @@ window.XboxWishlistCore = {
             const term = (state.ui.listSearch[listId] || '').trim().toLowerCase();
             container.querySelectorAll('.ifc-checkbox-item').forEach(label => {
                 const cb = label.querySelector('input[type="checkbox"]');
-                const matches = term === '' || (cb && cb.value.toLowerCase().includes(term));
+                const matches = term === '' || (cb && (cb.dataset.search || cb.value).toLowerCase().includes(term));   // dataset.search: the shown text where the value is a key (T-58)
                 label.classList.toggle('ifc-hidden', !matches);
             });
         }
@@ -3176,29 +3182,157 @@ window.XboxWishlistCore = {
         // answer so we ease off when Xbox is struggling, and eased back after normal answers
         const DETAILS_DELAY_MS = 1000, DETAILS_MAX_DELAY_MS = 8000, DETAILS_SLOW_MS = 3000, DETAILS_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
-        function loadCapabilityCache() {
+        // ==================== CACHE DATABASE (T-58) ====================
+        // The item cache lives in IndexedDB, not in one JSON blob: records are read and written one at a time, and
+        // there is no 10 MB chrome.storage quota to hit. Two stores: `items` (master record per product id, locale
+        // neutral) and `labels` (one record per locale: { capabilityKey: label }). The store page answers in the
+        // language it is asked in, so what is kept per product is the key ('XPA'); the text for a key is looked up
+        // per locale when it is shown. The code reads the in-memory copy (state.capCache / state.capLabels) and
+        // writes changes back through saveCapabilityCache(). Where IndexedDB is unavailable (some private modes) the
+        // cache lasts for the page only.
+        function openCacheDb() {
             return new Promise(resolve => {
                 try {
-                    adapter.storage.load(CONFIG.storage.capsKey, (saved) => {
-                        try {
-                            const parsed = saved ? JSON.parse(saved) : null;
-                            if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) state.capCache = parsed;
-                        } catch (ex) { console.error('Failed to read capability cache:', ex); }
-                        resolve();
-                    });
-                } catch (ex) { console.error('Failed to load capability cache:', ex); resolve(); }
+                    if (typeof indexedDB === 'undefined') { resolve(null); return; }
+                    const c = CONFIG.cacheDb, req = indexedDB.open(c.name, c.version);
+                    req.onupgradeneeded = () => {
+                        const db = req.result;
+                        [c.items, c.labels].forEach(s => { if (!db.objectStoreNames.contains(s)) db.createObjectStore(s); });
+                    };
+                    req.onsuccess = () => resolve(req.result);
+                    req.onerror = req.onblocked = () => resolve(null);
+                } catch (ex) { resolve(null); }
             });
         }
-        function saveCapabilityCache() {
-            if (state.resetting) return;
-            try { adapter.storage.save(CONFIG.storage.capsKey, JSON.stringify(state.capCache)); }
-            catch (ex) { console.error('Failed to save capability cache:', ex); }
+        // Every record of a store as a Map(key -> value)
+        function dbReadAll(db, store) {
+            return new Promise(resolve => {
+                const out = new Map();
+                try {
+                    const req = db.transaction(store, 'readonly').objectStore(store).openCursor();
+                    req.onsuccess = () => { const cur = req.result; if (cur) { out.set(String(cur.key), cur.value); cur.continue(); } else resolve(out); };
+                    req.onerror = () => resolve(out);
+                } catch (ex) { resolve(out); }
+            });
         }
-        // { key: label } for a product, or null if never loaded. Expired entries still show
+        // Writes [{ store, key, value }] in one transaction (a missing value deletes); resolves true when it committed
+        function dbWrite(db, ops) {
+            return new Promise(resolve => {
+                try {
+                    const stores = Array.from(new Set(ops.map(o => o.store))), tx = db.transaction(stores, 'readwrite');
+                    ops.forEach(o => { const s = tx.objectStore(o.store); if (o.value === undefined) s.delete(o.key); else s.put(o.value, o.key); });
+                    tx.oncomplete = () => resolve(true);
+                    tx.onerror = tx.onabort = () => resolve(false);
+                } catch (ex) { resolve(false); }
+            });
+        }
+        function dbClearAll(db) {
+            return new Promise(resolve => {
+                try {
+                    const names = [CONFIG.cacheDb.items, CONFIG.cacheDb.labels], tx = db.transaction(names, 'readwrite');
+                    names.forEach(n => tx.objectStore(n).clear());
+                    tx.oncomplete = tx.onerror = tx.onabort = () => resolve();
+                } catch (ex) { resolve(); }
+            });
+        }
+
+        async function loadCapabilityCache() {
+            try {
+                state.cacheDb = await openCacheDb();
+                if (state.cacheDb) {
+                    const items = await dbReadAll(state.cacheDb, CONFIG.cacheDb.items), labels = await dbReadAll(state.cacheDb, CONFIG.cacheDb.labels);
+                    items.forEach((v, id) => { if (v && typeof v === 'object' && Array.isArray(v.caps)) { state.capCache[id] = v; state.capSaved.set(id, JSON.stringify(v)); } });
+                    labels.forEach((v, loc) => { if (v && typeof v === 'object') { state.capLabels[loc] = v; state.capLabelsSaved[loc] = JSON.stringify(v); } });
+                } else console.warn('[XBOX Wishlist] IndexedDB is unavailable: details are kept for this page only');
+                await migrateLegacyCapabilityBlob();
+                migrateCapabilitySelections();
+            } catch (ex) { console.error('Failed to load capability cache:', ex); }
+        }
+        // Before T-58 the details were one chrome.storage blob { id: { caps: { key: label }, at, addOns, size } }.
+        // The labels' language was not recorded, so they go under '?' (the last-resort labels) and the next fetch
+        // in the page's language supplies the right ones. Removed once the records are in the database.
+        function migrateLegacyCapabilityBlob() {
+            return new Promise(resolve => {
+                try {
+                    adapter.storage.load(CONFIG.storage.capsKey, async (saved) => {
+                        try {
+                            const parsed = saved ? JSON.parse(saved) : null;
+                            if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+                                const legacy = state.capLabels['?'] || (state.capLabels['?'] = {});
+                                Object.entries(parsed).forEach(([id, e]) => {
+                                    if (!e || typeof e !== 'object' || state.capCache[id]) return;
+                                    const caps = e.caps && typeof e.caps === 'object' ? e.caps : {};
+                                    Object.entries(caps).forEach(([k, v]) => { if (typeof v === 'string' && !legacy[k]) legacy[k] = v.replace(/\s+/g, ' ').trim(); });
+                                    state.capCache[id] = { ...e, caps: Array.isArray(caps) ? caps : Object.keys(caps) };
+                                });
+                                if (state.cacheDb && await saveCapabilityCache()) {
+                                    if (adapter.storage.remove) adapter.storage.remove(CONFIG.storage.capsKey); else adapter.storage.save(CONFIG.storage.capsKey, null);
+                                }
+                            }
+                        } catch (ex) { console.error('Failed to migrate the capability cache:', ex); }
+                        resolve();
+                    });
+                } catch (ex) { console.error('Failed to read the old capability cache:', ex); resolve(); }
+            });
+        }
+        // Writes what changed since the last write: records and locales that differ from capSaved. Resolves true
+        // when nothing was left to write or the write committed.
+        async function saveCapabilityCache() {
+            if (state.resetting || !state.cacheDb) return false;
+            try {
+                const ops = [], items = new Map(), labels = {};
+                Object.entries(state.capCache).forEach(([id, v]) => {
+                    const json = JSON.stringify(v);
+                    if (state.capSaved.get(id) !== json) { ops.push({ store: CONFIG.cacheDb.items, key: id, value: v }); items.set(id, json); }
+                });
+                Object.entries(state.capLabels).forEach(([loc, v]) => {
+                    const json = JSON.stringify(v);
+                    if (state.capLabelsSaved[loc] !== json) { ops.push({ store: CONFIG.cacheDb.labels, key: loc, value: v }); labels[loc] = json; }
+                });
+                if (!ops.length) return true;
+                if (!(await dbWrite(state.cacheDb, ops))) return false;
+                items.forEach((json, id) => state.capSaved.set(id, json));
+                Object.assign(state.capLabelsSaved, labels);
+                return true;
+            } catch (ex) { console.error('Failed to save capability cache:', ex); return false; }
+        }
+        // The text for a capability key in the page's language: this locale's label, else another region of the
+        // same language, else a label of unknown language (the pre-T-58 cache), else any, else the key itself
+        function capLabel(key) {
+            const loc = (pageLocale() || '?').toLowerCase(), lang = loc.split('-')[0], all = state.capLabels;
+            if (all[loc] && all[loc][key]) return all[loc][key];
+            const pick = test => { const l = Object.keys(all).find(x => test(x) && all[x][key]); return l ? all[l][key] : null; };
+            return pick(x => x.split('-')[0] === lang) || pick(x => x === '?') || pick(() => true) || key;
+        }
+        // Saved selections (the filter and the saved filters) held label texts before T-58; they now hold keys.
+        // A label from any cached language maps back to its key; one that matches nothing stays as it was.
+        function migrateCapabilitySelections() {
+            const byLabel = new Map();
+            Object.values(state.capLabels).forEach(m => Object.entries(m).forEach(([k, label]) => { if (!byLabel.has(label)) byLabel.set(label, k); }));
+            const known = new Set(Object.values(state.capCache).flatMap(e => e.caps));
+            const fix = list => list.map(v => (known.has(v) ? v : byLabel.get(v) || v));
+            const f = state.filters.capabilities;
+            f.selected = fix(f.selected);
+            state.savedPresets.forEach(p => { p.filters.capabilities = fix(p.filters.capabilities); });
+        }
+        // The capability keys of a product, or null if never loaded. Expired entries still show
         // (capabilities rarely change) until "Load details" refreshes them.
         function getCachedCapabilities(productId) {
             const entry = productId ? state.capCache[String(productId).toUpperCase()] : null;
-            return entry && entry.caps && typeof entry.caps === 'object' ? entry.caps : null;
+            return entry && Array.isArray(entry.caps) ? entry.caps : null;
+        }
+        // Keeps a store page's capabilities as the product's master record: the keys on the record, their text
+        // (whitespace collapsed - some store names have double spaces) in the label table of the page's locale
+        function recordCapabilities(id, summary) {
+            const loc = (pageLocale() || '?').toLowerCase(), labels = state.capLabels[loc] || (state.capLabels[loc] = {}), caps = [];
+            if (summary && summary.capabilities && typeof summary.capabilities === 'object') {
+                Object.entries(summary.capabilities).forEach(([k, v]) => {
+                    if (typeof v !== 'string' || !v.trim()) return;
+                    caps.push(k); labels[k] = v.replace(/\s+/g, ' ').trim();
+                });
+            }
+            // Stored even when empty, so a game with no capabilities isn't re-fetched every time
+            state.capCache[id] = { caps, at: Date.now(), ...installSizeEntry(summary) };
         }
         function isCapabilityFresh(productId) {
             const entry = state.capCache[String(productId).toUpperCase()];
@@ -3304,13 +3438,7 @@ window.XboxWishlistCore = {
                     // Only what's missing: the store page (capabilities) and/or the add-ons page (count)
                     const needCaps = !isCapabilityFresh(id);
                     if (needCaps) {
-                        const summary = applyStorePage(id, await fetchPageState(url));
-                        const caps = {};
-                        if (summary && summary.capabilities && typeof summary.capabilities === 'object') {
-                            Object.entries(summary.capabilities).forEach(([k, v]) => { if (typeof v === 'string' && v.trim()) caps[k] = v.trim(); });
-                        }
-                        // Stored even when empty, so a game with no capabilities isn't re-fetched every time
-                        state.capCache[id] = { caps, at: Date.now(), ...installSizeEntry(summary) };
+                        recordCapabilities(id, applyStorePage(id, await fetchPageState(url)));
                     }
                     if (needsAddOnsCount(id) && (needCaps || getCachedAddOnsCount(id) === null)) {
                         if (needCaps) await new Promise(r => setTimeout(r, gap));   // same pause between the two pages
@@ -3347,11 +3475,7 @@ window.XboxWishlistCore = {
             try {
                 const summary = applyStorePage(id, await fetchPageState(url), 'refresh');
                 if (!summary) throw new Error('no data on its store page');
-                const caps = {};
-                if (summary.capabilities && typeof summary.capabilities === 'object') {
-                    Object.entries(summary.capabilities).forEach(([k, v]) => { if (typeof v === 'string' && v.trim()) caps[k] = v.trim(); });
-                }
-                state.capCache[id] = { caps, at: Date.now(), ...installSizeEntry(summary) };
+                recordCapabilities(id, summary);
                 // F-40: and the add-ons count for a game that has add-ons
                 if (summary.hasAddOns === true) state.capCache[id].addOns = await fetchAddOnsCount(id, url);
                 saveCapabilityCache();
@@ -3385,7 +3509,7 @@ window.XboxWishlistCore = {
             Array.from(document.getElementsByClassName(CONFIG.selectors.items)).forEach(c => {
                 getItemJsonList(c, 'ifcCapabilities').forEach(k => { if (k) caps.set(k, (caps.get(k) || 0) + 1); });
             });
-            state.filters.capabilities.list = new Map(Array.from(caps.entries()).sort((a, b) => a[0].localeCompare(b[0])));
+            state.filters.capabilities.list = new Map(Array.from(caps.entries()).sort((a, b) => capLabel(a[0]).localeCompare(capLabel(b[0]))));
             return state.filters.capabilities.list;
         }
 
@@ -3425,9 +3549,9 @@ window.XboxWishlistCore = {
                 const label = document.createElement('label'); label.className = 'ifc-checkbox-item';
                 const cb = document.createElement('input');
                 cb.type = 'checkbox'; cb.value = name; cb.checked = state.filters.capabilities.selected.includes(name);
-                cb.className = 'ifc-checkbox';
+                cb.className = 'ifc-checkbox'; cb.dataset.search = capLabel(name);
                 cb.addEventListener('change', () => { state.filters.capabilities.selected = getCheckboxValues(CONFIG.ids.capabilitiesSelect); updateScreen(); });
-                const span = document.createElement('span'); span.className = 'ifc-checkbox-label'; span.textContent = `${name} (${count})`;
+                const span = document.createElement('span'); span.className = 'ifc-checkbox-label'; span.textContent = `${capLabel(name)} (${count})`;
                 label.appendChild(cb); label.appendChild(span); container.appendChild(label);
             });
             applyListSearch(CONFIG.ids.capabilitiesSelect);

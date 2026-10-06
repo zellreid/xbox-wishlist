@@ -265,7 +265,7 @@ longer declares `"background"` or `action.default_popup`.
 | Target Browsers | Microsoft Edge, Google Chrome (co-primary) | Latest stable |
 | Future Browsers | Firefox, Safari (planned — requires MV2 shim or manifest adapter) | — |
 | Styling | CSS (injected via content script) | — |
-| Storage | `chrome.storage.local` (canonical) | — |
+| Storage | `chrome.storage.local` (canonical: filters, settings, price history); IndexedDB `ifc_xbox_wishlist_cache` for the item cache (HITL-approved 2026-10-06, T-58) | — |
 | Messaging | `chrome.runtime.sendMessage` / `chrome.tabs.sendMessage` | — |
 | Build Tool | None currently — raw JS loaded directly by browser | Vite or esbuild planned |
 | Package Manager | None currently — to be introduced with build step | npm planned |
@@ -369,7 +369,8 @@ XboxWishlistCore → DOM (xbox.com wishlist page)
 - **CSP compliance.** No inline event handlers. All events via `addEventListener`.
   No `eval()`, no `new Function()`. All injected scripts must be declared in
   `web_accessible_resources`.
-- **Storage discipline.** All reads/writes via `chrome.storage.local`. Wrap in
+- **Storage discipline.** Settings and filters via `chrome.storage.local`; the item
+  cache (master records, capability labels) via IndexedDB (T-58). Wrap in
   try/catch — storage calls can fail silently in private mode.
 - **Error handling.** All `initialize()` and DOM manipulation paths wrapped in
   try/catch with `console.error` logging. Never let an uncaught exception in the

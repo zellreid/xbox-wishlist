@@ -141,6 +141,14 @@ function buildHarnessBlock(outDir, meta) {
         }
     };
 
+    // T-58: the item cache is IndexedDB, which outlives the page, so it starts empty like the store above (unless ?persist)
+    function resetCacheDb() {
+        if (PERSIST_MODE) return Promise.resolve();
+        return new Promise(resolve => {
+            try { const q = indexedDB.deleteDatabase('ifc_xbox_wishlist_cache'); q.onsuccess = q.onerror = q.onblocked = () => resolve(); } catch (e) { resolve(); }
+        });
+    }
+
     function loadScript(src) {
         return new Promise((resolve, reject) => {
             const s = document.createElement('script');
@@ -199,6 +207,7 @@ function buildHarnessBlock(outDir, meta) {
         window.addEventListener('error', e => errors.push(e.message));
         const lines = ['page type: ' + META.type, 'capture: ' + cleanCapture(), 'address seen by the core: ' + location.pathname];
         try {
+            await resetCacheDb();
             await loadScript(abs('${coreUrl}'));
             await loadScript(abs('${contentUrl}'));
             await new Promise(r => setTimeout(r, 1500));   // let the core's timers run once or twice
@@ -235,6 +244,7 @@ function buildHarnessBlock(outDir, meta) {
         const failures = [];
         const captureCleanup = cleanCapture() + simulatePublic();
         try {
+            await resetCacheDb();
             await loadScript(abs('${coreUrl}'));
             await loadScript(abs('${contentUrl}'));
             await waitFor(() => window.injected && window.injected.ui.complete, 8000);
@@ -337,7 +347,7 @@ function buildHarnessBlock(outDir, meta) {
                 const id = (c.dataset.ifcProductId || '').toUpperCase();
                 if (!id || id === 'NULL') return;
                 state.debug.applyStorePage(id, { core2: { products: { productSummaries: { [id]: { productId: id, maxInstallSize: 5e9, capabilities: { PC: 'PC' } } } } } });
-                state.capCache[id] = { caps: { PC: 'PC' }, at: Date.now(), size: 5e9, addOns: 3 };
+                state.capCache[id] = { caps: ['PC'], at: Date.now(), size: 5e9, addOns: 3 };
             });
             state.debug.updateScreen();
             const after = snap();
