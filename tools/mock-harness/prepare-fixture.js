@@ -389,10 +389,24 @@ function buildHarnessBlock(outDir, meta) {
         const wanted = new URLSearchParams(location.search).get('locale');
         if (wanted) {
             const region = wanted.split('-').pop().toUpperCase();
-            try {
-                await waitFor(() => Object.keys(memoryStore).some(k => k.endsWith('_prices_' + region)), 4000);
-                lines.push('price history saved under market ' + region + ' (?locale=' + wanted + ')');
-            } catch (ex) { failures.push('no price history saved under market ' + region + '; stored keys: ' + Object.keys(memoryStore).join(', ')); }
+            // T-59: price history is in the cache database, one record per '<market>|<product id>'
+            const priceKeys = () => new Promise(resolve => {
+                try {
+                    const o = indexedDB.open('ifc_xbox_wishlist_cache');
+                    o.onerror = () => resolve([]);
+                    o.onsuccess = () => {
+                        const db = o.result;
+                        if (!db.objectStoreNames.contains('prices')) { db.close(); resolve([]); return; }
+                        const q = db.transaction('prices').objectStore('prices').getAllKeys();
+                        q.onsuccess = () => { db.close(); resolve(q.result.map(String)); };
+                        q.onerror = () => { db.close(); resolve([]); };
+                    };
+                } catch (e) { resolve([]); }
+            });
+            let keys = [];
+            for (let i = 0; i < 40 && !keys.some(k => k.startsWith(region + '|')); i++) { keys = await priceKeys(); if (!keys.some(k => k.startsWith(region + '|'))) await new Promise(r => setTimeout(r, 100)); }
+            if (keys.some(k => k.startsWith(region + '|'))) lines.push('price history saved under market ' + region + ' (?locale=' + wanted + ')');
+            else failures.push('no price history saved under market ' + region + '; price keys: ' + keys.slice(0, 5).join(', '));
         }
 
         report(failures.length === 0, failures.length ? failures : lines);

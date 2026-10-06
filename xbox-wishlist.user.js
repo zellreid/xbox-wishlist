@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         XBOX Wishlist
 // @namespace    https://github.com/zellreid/xbox-wishlist
-// @version      1.5.26279.1
+// @version      1.5.26279.2
 // @description  Advanced filtering and sorting suite with multi-level sort (up to 3 criteria) - Resilient selectors - Public wishlist support
 // @author       ZellReid
 // @homepage     https://github.com/zellreid/xbox-wishlist
@@ -14,7 +14,7 @@
 // @match        https://www.xbox.com/*/promotions/sales/*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=xbox.com
 // @run-at       document-body
-// @resource     CSSFilter https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/styles.css?ver=1.5.26279.1
+// @resource     CSSFilter https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/styles.css?ver=1.5.26279.2
 // @resource     IMGFilter https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/filter.svg
 // @resource     IMGSort https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/sort.svg
 // @resource     IMGExport https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/export.svg
@@ -175,7 +175,7 @@ window.XboxWishlistCore = {
             // Locale-neutral - capability keys only; the label for a key per locale is in capLabels
             // ({ 'en-za': { XPA: 'Xbox Play Anywhere' }, '?': labels of unknown language }). Both are kept in IndexedDB
             // (see CACHE DATABASE); capSaved = what was last written, so only changed records are written again
-            capCache: {}, capLabels: {}, capSaved: new Map(), capLabelsSaved: {}, cacheDb: null,
+            capCache: {}, capLabels: {}, capSaved: new Map(), capLabelsSaved: {}, cacheDb: null, cacheDbOpened: false,
             // Per product id: { isOwned, isSatisfyingEntitlement, satisfyingProductId, endDate, ... } from the page data;
             // null when the page has no entitlements section (ownership is then read from the tiles)
             entitlements: null,
@@ -193,8 +193,9 @@ window.XboxWishlistCore = {
             // F-25: flagged (starred) product ids, upper case - saved under CONFIG.storage.flagsKey
             flags: new Set(),
             // F-26/F-27: price seen per product id - { p, at, first, was, wasAt, changed, deal, h } (see recordPrice);
-            // saved under CONFIG.storage.pricesKey + '_' + market (see pricesStorageKey). priceRecorded = ids already recorded this page load
-            priceHistory: {}, priceRecorded: new Set(), priceDirty: false,
+            // kept in the cache database (T-59) under '<market>|<product id>'; priceSaved = what was last written (id -> JSON).
+            // priceRecorded = ids already recorded this page load
+            priceHistory: {}, priceSaved: new Map(), priceRecorded: new Set(), priceDirty: false,
             // The page's currency: code (ZAR, USD...) and locale come from the embedded page state (noteMarketFromState);
             // symbol/suffix are scraped from the price text (readPrice) and only used until the code is known
             currency: { symbol: 'R', suffix: false, code: null, locale: null, formatter: null },
@@ -252,8 +253,8 @@ window.XboxWishlistCore = {
             classes: { button: [], svgIcon: [], activeButton: null },
             // capsKey: the pre-T-58 per-product capability blob (F-36), read once to migrate and then removed
             // changedKey: when a wishlist add/remove was last seen in any tab (T-34/T-35) - see watchPageRequests()
-            // cacheDb: the IndexedDB database of item master records and capability labels (T-58)
-            cacheDb: { name: 'ifc_xbox_wishlist_cache', version: 1, items: 'items', labels: 'labels' },
+            // cacheDb: the IndexedDB database of item master records, capability labels (T-58) and price history (T-59)
+            cacheDb: { name: 'ifc_xbox_wishlist_cache', version: 2, items: 'items', labels: 'labels', prices: 'prices' },
             storage: { key: 'ifc_xbox_wishlist', capsKey: 'ifc_xbox_wishlist_caps', flagsKey: 'ifc_xbox_wishlist_flags', pricesKey: 'ifc_xbox_wishlist_prices', changedKey: 'ifc_xbox_wishlist_changed' }
         };
 
@@ -1756,37 +1757,54 @@ window.XboxWishlistCore = {
             return e;
         }
 
-        // Prices differ per market (currency and deals), so each market has its own saved history
+        // Prices differ per market (currency and deals), so each market has its own saved history: one record per
+        // product and market in the cache database (T-59), key '<market>|<product id>'. Before T-59 each market was
+        // one chrome.storage blob under pricesStorageKey(), read once to migrate and then removed.
         function pricesStorageKey() { return `${CONFIG.storage.pricesKey}_${getMarket()}`; }
+        const priceDbKey = id => `${getMarket()}|${id}`;
 
-        function loadPriceHistory() {
-            return new Promise(resolve => {
-                try {
-                    const read = (saved) => {
-                        try {
-                            const parsed = saved ? JSON.parse(saved) : null;
-                            if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
-                                const cutoff = Date.now() - PRICE_HISTORY_KEEP_MS;
-                                Object.entries(parsed).forEach(([id, e]) => {
-                                    if (e && typeof e.p === 'number' && typeof e.at === 'number' && e.at >= cutoff) state.priceHistory[id] = prunePricePoints(e);
-                                });
-                            }
-                        } catch (ex) { console.error('Failed to read price history:', ex); }
-                        resolve();
-                    };
-                    adapter.storage.load(pricesStorageKey(), (saved) => {
-                        // Before per-market keys, everything was saved under one key, all in South African rand
-                        if (!saved && getMarket() === 'ZA') adapter.storage.load(CONFIG.storage.pricesKey, read);
-                        else read(saved);
-                    });
-                } catch (ex) { console.error('Failed to load price history:', ex); resolve(); }
-            });
+        async function loadPriceHistory() {
+            try {
+                const db = await getCacheDb(), market = getMarket(), cutoff = Date.now() - PRICE_HISTORY_KEEP_MS;
+                const take = (id, e) => { if (e && typeof e.p === 'number' && typeof e.at === 'number' && e.at >= cutoff) state.priceHistory[id] = prunePricePoints(e); };
+                const rows = db ? await dbReadAll(db, CONFIG.cacheDb.prices, IDBKeyRange.bound(market + '|', market + '|\uffff')) : new Map();
+                rows.forEach((e, key) => { const id = key.slice(market.length + 1); state.priceSaved.set(id, JSON.stringify(e)); take(id, e); });
+                if (!rows.size) await migrateLegacyPrices(take);
+                if (state.priceDirty || Object.keys(state.priceHistory).length !== rows.size) await savePriceHistory();   // also drops what aged out
+            } catch (ex) { console.error('Failed to load price history:', ex); }
         }
-        function savePriceHistory() {
+        // The pre-T-59 blob of this market (before per-market keys: one blob, all in South African rand), removed once
+        // its records are in the database
+        function migrateLegacyPrices(take) {
+            const blob = key => new Promise(resolve => { try { adapter.storage.load(key, resolve); } catch (ex) { resolve(null); } });
+            return (async () => {
+                try {
+                    const keys = [pricesStorageKey(), ...(getMarket() === 'ZA' ? [CONFIG.storage.pricesKey] : [])];
+                    for (const key of keys) {
+                        const saved = await blob(key), parsed = saved ? JSON.parse(saved) : null;
+                        if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) continue;
+                        Object.entries(parsed).forEach(([id, e]) => { if (!(id in state.priceHistory)) take(id, e); });
+                        if (await savePriceHistory()) { if (adapter.storage.remove) adapter.storage.remove(key); else adapter.storage.save(key, null); }
+                    }
+                } catch (ex) { console.error('Failed to migrate the price history:', ex); }
+            })();
+        }
+        // Writes what changed since the last write (and removes what is no longer kept) in one transaction
+        async function savePriceHistory() {
             state.priceDirty = false;
-            if (state.resetting) return;
-            try { adapter.storage.save(pricesStorageKey(), JSON.stringify(state.priceHistory)); }
-            catch (ex) { console.error('Failed to save price history:', ex); }
+            if (state.resetting || !state.cacheDb) return false;
+            try {
+                const ops = [], written = new Map(), store = CONFIG.cacheDb.prices;
+                Object.entries(state.priceHistory).forEach(([id, e]) => {
+                    const json = JSON.stringify(e);
+                    if (state.priceSaved.get(id) !== json) { ops.push({ store, key: priceDbKey(id), value: e }); written.set(id, json); }
+                });
+                state.priceSaved.forEach((json, id) => { if (!(id in state.priceHistory)) { ops.push({ store, key: priceDbKey(id) }); written.set(id, null); } });
+                if (!ops.length) return true;
+                if (!(await dbWrite(state.cacheDb, ops))) { state.priceDirty = true; return false; }
+                written.forEach((json, id) => { if (json === null) state.priceSaved.delete(id); else state.priceSaved.set(id, json); });
+                return true;
+            } catch (ex) { console.error('Failed to save price history:', ex); state.priceDirty = true; return false; }
         }
 
         // Once per product per page load: compare with the price seen last time and note a sale's
@@ -1892,7 +1910,7 @@ window.XboxWishlistCore = {
         // lets the harness run "Load details" without the real pause between requests.
         state.debug = { loadProductData, getProductData, fetchPageState, loadDetails, detailsDelayMs: undefined,
             scrape: { prices: scrapePrices, owned: scrapeOwned }, payload: { prices: payloadPrices, owned: payloadOwned },
-            refreshItem, applyStorePage, updateScreen, recordCapabilities, saveCapabilityCache, loadCapabilityCache, capLabel,
+            refreshItem, applyStorePage, updateScreen, recordCapabilities, saveCapabilityCache, loadCapabilityCache, capLabel, loadPriceHistory, savePriceHistory,
             language: () => ({ code: I18N.code, locale: I18N.locale, expected: catalogueFor(I18N.locale) || 'en' }) };   // requestLog itself is read straight off state (window.injected.requestLog)
 
         // ==================== LIGHT / DARK TOGGLE (F-39) ====================
@@ -2291,7 +2309,7 @@ window.XboxWishlistCore = {
                     if (k.startsWith(CONFIG.storage.pricesKey) || (everything && k.startsWith(CONFIG.storage.key))) wipe.add(k);
                 });
                 wipe.forEach(k => (adapter.storage.remove ? adapter.storage.remove(k) : adapter.storage.save(k, null)));
-                if (state.cacheDb) await dbClearAll(state.cacheDb);   // T-58: the item records and capability labels
+                if (state.cacheDb) await dbClearAll(state.cacheDb);   // T-58/T-59: item records, capability labels and price history
             } catch (ex) { console.error('Failed to clear stored data:', ex); }
             setTimeout(() => location.reload(), 250);   // lets the storage writes finish first
         }
@@ -3197,19 +3215,24 @@ window.XboxWishlistCore = {
                     const c = CONFIG.cacheDb, req = indexedDB.open(c.name, c.version);
                     req.onupgradeneeded = () => {
                         const db = req.result;
-                        [c.items, c.labels].forEach(s => { if (!db.objectStoreNames.contains(s)) db.createObjectStore(s); });
+                        [c.items, c.labels, c.prices].forEach(s => { if (!db.objectStoreNames.contains(s)) db.createObjectStore(s); });
                     };
                     req.onsuccess = () => resolve(req.result);
                     req.onerror = req.onblocked = () => resolve(null);
                 } catch (ex) { resolve(null); }
             });
         }
-        // Every record of a store as a Map(key -> value)
-        function dbReadAll(db, store) {
+        // The open database, or null where IndexedDB is unavailable - opened once, whoever asks first
+        async function getCacheDb() {
+            if (!state.cacheDbOpened) { state.cacheDbOpened = true; state.cacheDb = await openCacheDb(); }
+            return state.cacheDb;
+        }
+        // Every record of a store (or of a key range) as a Map(key -> value)
+        function dbReadAll(db, store, range) {
             return new Promise(resolve => {
                 const out = new Map();
                 try {
-                    const req = db.transaction(store, 'readonly').objectStore(store).openCursor();
+                    const req = db.transaction(store, 'readonly').objectStore(store).openCursor(range);
                     req.onsuccess = () => { const cur = req.result; if (cur) { out.set(String(cur.key), cur.value); cur.continue(); } else resolve(out); };
                     req.onerror = () => resolve(out);
                 } catch (ex) { resolve(out); }
@@ -3229,7 +3252,7 @@ window.XboxWishlistCore = {
         function dbClearAll(db) {
             return new Promise(resolve => {
                 try {
-                    const names = [CONFIG.cacheDb.items, CONFIG.cacheDb.labels], tx = db.transaction(names, 'readwrite');
+                    const names = [CONFIG.cacheDb.items, CONFIG.cacheDb.labels, CONFIG.cacheDb.prices], tx = db.transaction(names, 'readwrite');
                     names.forEach(n => tx.objectStore(n).clear());
                     tx.oncomplete = tx.onerror = tx.onabort = () => resolve();
                 } catch (ex) { resolve(); }
@@ -3238,8 +3261,7 @@ window.XboxWishlistCore = {
 
         async function loadCapabilityCache() {
             try {
-                state.cacheDb = await openCacheDb();
-                if (state.cacheDb) {
+                if (await getCacheDb()) {
                     const items = await dbReadAll(state.cacheDb, CONFIG.cacheDb.items), labels = await dbReadAll(state.cacheDb, CONFIG.cacheDb.labels);
                     items.forEach((v, id) => { if (v && typeof v === 'object' && Array.isArray(v.caps)) { state.capCache[id] = v; state.capSaved.set(id, JSON.stringify(v)); } });
                     labels.forEach((v, loc) => { if (v && typeof v === 'object') { state.capLabels[loc] = v; state.capLabelsSaved[loc] = JSON.stringify(v); } });
@@ -3298,11 +3320,20 @@ window.XboxWishlistCore = {
         }
         // The text for a capability key in the page's language: this locale's label, else another region of the
         // same language, else a label of unknown language (the pre-T-58 cache), else any, else the key itself
-        function capLabel(key) {
+        // The page language's own text for a key (this locale, else another region of the language), or null
+        function capLabelHere(key) {
             const loc = (pageLocale() || '?').toLowerCase(), lang = loc.split('-')[0], all = state.capLabels;
             if (all[loc] && all[loc][key]) return all[loc][key];
-            const pick = test => { const l = Object.keys(all).find(x => test(x) && all[x][key]); return l ? all[l][key] : null; };
-            return pick(x => x.split('-')[0] === lang) || pick(x => x === '?') || pick(() => true) || key;
+            const l = Object.keys(all).find(x => x !== '?' && x.split('-')[0] === lang && all[x][key]);
+            return l ? all[l][key] : null;
+        }
+        // ...else English, else a label of unknown language, else any, else the key. Another language only shows until
+        // the product is next loaded (isCapabilityFresh): its Load details refetch brings the page language's text
+        function capLabel(key) {
+            const here = capLabelHere(key);
+            if (here) return here;
+            const all = state.capLabels, pick = test => { const l = Object.keys(all).find(x => test(x) && all[x][key]); return l ? all[l][key] : null; };
+            return pick(x => x.split('-')[0] === 'en') || pick(x => x === '?') || pick(() => true) || key;
         }
         // Saved selections (the filter and the saved filters) held label texts before T-58; they now hold keys.
         // A label from any cached language maps back to its key; one that matches nothing stays as it was.
@@ -3336,7 +3367,8 @@ window.XboxWishlistCore = {
         }
         function isCapabilityFresh(productId) {
             const entry = state.capCache[String(productId).toUpperCase()];
-            return !!(entry && typeof entry.at === 'number' && Date.now() - entry.at < DETAILS_TTL_MS);
+            // Also needs the page language's text for each capability; a record fetched in another language is loaded again
+            return !!(entry && typeof entry.at === 'number' && Date.now() - entry.at < DETAILS_TTL_MS && Array.isArray(entry.caps) && entry.caps.every(capLabelHere));
         }
         // F-40: a game's add-ons count lives in the same cache entry ({ caps, at, addOns })
         function getCachedAddOnsCount(productId) {
