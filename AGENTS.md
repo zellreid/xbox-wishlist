@@ -267,8 +267,8 @@ longer declares `"background"` or `action.default_popup`.
 | Styling | CSS (injected via content script) | — |
 | Storage | `chrome.storage.local` (canonical: filters, settings, price history); IndexedDB `ifc_xbox_wishlist_cache` for the item cache (HITL-approved 2026-10-06, T-58) | — |
 | Messaging | `chrome.runtime.sendMessage` / `chrome.tabs.sendMessage` | — |
-| Build Tool | None currently — raw JS loaded directly by browser | Vite or esbuild planned |
-| Package Manager | None currently — to be introduced with build step | npm planned |
+| Build Tool | esbuild (dev dependency only, HITL-approved 2026-10-06, T-60): `npm run build` minifies the extension into `dist/extension/`; the source in `browser-extension/src/` is still plain JS and loads directly | — |
+| Package Manager | npm - `package.json` holds the build tooling only; the extension and userscript have no runtime dependencies | — |
 | Testing | None currently | — |
 | CI/CD | None currently | — |
 
@@ -523,27 +523,28 @@ Awaiting your approval to proceed.
 
 | Environment | Method | Target | Notes |
 |-------------|--------|--------|-------|
-| Development | Manual sideload | Chrome/Edge `chrome://extensions` → Load unpacked → `browser-extension/src/` | Developer mode must be enabled |
-| Distribution | Chrome Web Store / Edge Add-ons | Published extension | Requires zip of `browser-extension/src/` contents |
-| Legacy | Greasy Fork / direct `.user.js` install | Tampermonkey / Greasemonkey | `xbox-wishlist.user.js` at repo root — maintained in parallel |
+| Development | Manual sideload | Chrome/Edge `chrome://extensions` → Load unpacked → `browser-extension/src/` (readable) or `dist/extension/` (minified, after `npm run build`) | Developer mode must be enabled |
+| Distribution | Chrome Web Store / Edge Add-ons | Published extension | Requires zip of `dist/extension/` contents (minified build) |
+| Legacy | Greasy Fork / direct `.user.js` install | Tampermonkey / Greasemonkey | `xbox-wishlist.user.js` at repo root — maintained in parallel; stays readable (not minified) for Greasy Fork. A minified release build is a future item (T-61) |
 
-**Build commands (current — no build step):**
+**Build commands:**
 ```bash
-# No build step exists yet. Load unpacked directly:
-# Chrome: chrome://extensions → Load unpacked → select browser-extension/src/
-# Edge:   edge://extensions  → Load unpacked → select browser-extension/src/
+npm install                 # once: installs esbuild (dev dependency)
+npm run build               # minified extension -> dist/extension/ (git-ignored)
+node tools/userscript/build.js   # readable userscript (see tools/userscript/README.md)
 
-# Package for store submission (manual):
-# Zip contents of browser-extension/src/ (not the src/ folder itself — its contents)
+# Load unpacked: chrome://extensions or edge://extensions -> Load unpacked -> dist/extension/
+# Package for store submission (manual): zip the contents of dist/extension/ (not the folder itself)
+# Test the minified build in the mock harness: add ?dist to a harness page URL
 ```
 
 **Deployment notes:**
 - Do not alter `manifest.json` without HITL approval (Trigger #10).
 - `web_accessible_resources` must list any new SVG/PNG/CSS files added to
   `browser-extension/src/` — unlisted resources will be blocked by the browser.
-- A build step (Vite or esbuild) is planned. When introduced, the load path
-  will change from `browser-extension/src/` to a `dist/` output directory.
-  This requires HITL approval (Trigger #11) before implementation.
+- The build step (esbuild, `tools/build.js`) minifies each file on its own and copies the rest;
+  it does not bundle, so `manifest.json` (copied unminified) lists the same files as in `src/`.
+  Run `npm run build` after every version bump and before loading or zipping `dist/`.
 - Firefox support is planned but requires a separate manifest or shim.
   There is no service worker in this project currently (`background.js`
   was removed) - if one is ever reintroduced, note that MV3 service

@@ -8,3 +8,7 @@
 # Generated icon catalogue (tools/icons/catalogue.js build) - built from the
 # local mocks above and contains Xbox's full icon set; rebuild any time
 /tools/icons/out/
+
+# Build tooling (T-60): npm packages and the minified extension build (npm run build)
+/node_modules/
+/dist/

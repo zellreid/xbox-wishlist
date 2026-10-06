@@ -116,6 +116,10 @@ function buildHarnessBlock(outDir, meta) {
     // Cleared when the tab closes; falls back to memory if sessionStorage throws.
     // Every load starts from an empty store (so the sanity checks below see a clean
     // slate) unless the URL has ?persist, which keeps the previous load's data.
+    // T-60: ?dist runs the minified build (npm run build) instead of browser-extension/src/
+    const DIST = new URLSearchParams(location.search).has('dist');
+    const srcUrl = (u) => DIST ? u.replace('browser-extension/src/', 'dist/extension/') : u;
+    if (DIST) document.querySelectorAll('link[rel=stylesheet]').forEach(l => { const h = l.getAttribute('href') || ''; if (h.includes('browser-extension/src/')) l.setAttribute('href', srcUrl(h)); });
     const STORE_KEY = 'ifc_harness_store';
     const PERSIST_MODE = new URLSearchParams(location.search).has('persist');
     let memoryStore = {};
@@ -125,7 +129,7 @@ function buildHarnessBlock(outDir, meta) {
         runtime: {
             id: 'harness-extension',   // content.js treats a missing id as "extension reloaded"; delete it to simulate that
             getManifest: () => ({ version: 'harness-test' }),
-            getURL: (p) => abs('${toUrlPath(path.relative(outDir, path.join(REPO_ROOT, 'browser-extension', 'src')))}/' + p)
+            getURL: (p) => abs(srcUrl('${toUrlPath(path.relative(outDir, path.join(REPO_ROOT, 'browser-extension', 'src')))}/') + p)
         },
         storage: {
             local: {
@@ -208,8 +212,8 @@ function buildHarnessBlock(outDir, meta) {
         const lines = ['page type: ' + META.type, 'capture: ' + cleanCapture(), 'address seen by the core: ' + location.pathname];
         try {
             await resetCacheDb();
-            await loadScript(abs('${coreUrl}'));
-            await loadScript(abs('${contentUrl}'));
+            await loadScript(abs(srcUrl('${coreUrl}')));
+            await loadScript(abs(srcUrl('${contentUrl}')));
             await new Promise(r => setTimeout(r, 1500));   // let the core's timers run once or twice
         } catch (ex) { report(false, ['Boot failed: ' + ex.message]); return; }
         let st = null;
@@ -245,8 +249,8 @@ function buildHarnessBlock(outDir, meta) {
         const captureCleanup = cleanCapture() + simulatePublic();
         try {
             await resetCacheDb();
-            await loadScript(abs('${coreUrl}'));
-            await loadScript(abs('${contentUrl}'));
+            await loadScript(abs(srcUrl('${coreUrl}')));
+            await loadScript(abs(srcUrl('${contentUrl}')));
             await waitFor(() => window.injected && window.injected.ui.complete, 8000);
         } catch (ex) {
             report(false, ['Boot failed: ' + ex.message]);

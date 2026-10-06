@@ -1,0 +1,12 @@
+{
+  "name": "xbox-wishlist",
+  "private": true,
+  "description": "Build tooling only - the extension and the userscript are plain JavaScript with no runtime dependencies",
+  "scripts": {
+    "build": "node tools/build.js",
+    "build:userscript": "node tools/userscript/build.js"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2"
+  }
+}

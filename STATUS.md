@@ -3,7 +3,7 @@ project: Xbox Wishlist
 label: Personal
 priority: Medium
 phase: Live
-next_milestone: T-58 and T-59 live check of the cache; live check of the languages and right-to-left in Edge (T-26, T-57); T-55 native review; T-06 Chrome / Tampermonkey
+next_milestone: T-60, T-58 and T-59 live check in Edge; T-55 native review; T-06 Chrome / Tampermonkey
 target_date: none
 hard_deadline: false
 blockers: []
@@ -17,6 +17,8 @@ updated: 2026-10-06
 > Never put credentials, keys, connection strings or secrets in this file.
 
 ## Now
+- T-60 built (no extension code change, so no version bump): esbuild added as a dev dependency (package.json, exact 0.28.2); `npm run build` writes the minified extension to dist/extension/ (git-ignored): core 292 KB to 123 KB, whole extension 742 KB to 522 KB. Harness `?dist` runs the minified build: en-ZA, de-DE, ar-SA and en-US market checks PASS. The Greasy Fork userscript stays readable.
+- T-57 (right-to-left) and T-26 (languages) confirmed live by the owner on 2026-10-06.
 - v1.5.26279.2: T-59 built: price history moved into the same IndexedDB (one record per product and market, key <market>|<product id>); a market's old chrome.storage blob migrates once and is removed; changed records only are written. Also fixes a T-58 flaw seen live: a product cached in Arabic showed Arabic capability text on en-ZA; text now falls back to English first, and Load details treats a record without the page language's text as stale so it refetches. Harness: all 15 desktop wishlist fixtures PASS, plus en-US and de-DE market checks and a migration test (blob to rows, old entry dropped).
 - v1.5.26279.1: T-58 built: the details cache (capabilities, add-ons count, install size) moved from one chrome.storage blob to IndexedDB. The master record per product holds capability keys only; labels live in a per-locale table, so a fetch in any language or region fills the same record. Filters and saved filters now hold keys (old label selections migrate). Harness: 15 of 17 wishlist fixtures PASS at desktop width (the 2 phone-width variants were not run), plus a cross-locale and legacy-migration check. Prices are still per-market blobs (T-59).
 - v1.5.26278.14: right-to-left pages (T-57) built: toolbar, panels, Export menu, hearts and discount dot mirror to the inline end (left in Arabic / Hebrew); logical CSS; sliders stay left to right; bidi isolation of filled-in values; new harness "direction" check. 46/46 fixtures and Hebrew (`?locale=he-IL`) pass.
@@ -30,22 +32,22 @@ updated: 2026-10-06
 ## Testing
 | ID | Item | Priority | Status | Next action |
 |---|---|---|---|---|
+| T-60 | Load the minified build in Edge: run npm run build, then Load unpacked from dist/extension/ (replace your src/ entry) | Medium | Not started | Open the wishlist, filter, Load details, switch language; same behaviour as before and no console errors; then use it as the build you install |
 | T-59 | Price history in IndexedDB live | High | Not started | Reload the extension in Edge; open the wishlist: price-change badges and sale-start info should still show (your old per-market history migrates once); switch xbox.com to another region and back: each region keeps its own history; Clear cached data empties it |
 | T-58 | Locale-neutral details cache live: Load details in /en-ZA/, then switch xbox.com to /de-DE/ (a game cached in Arabic should now show English text on en-ZA, and Load details should refetch it) | High | Not started | Reload the extension in Edge; run Load details; switch language; the Capabilities filter should relabel in German with the same counts and keep its ticks; Clear cached data should empty it |
-| T-57 | Right-to-left layout live: open a wishlist at /ar-SA/wishlist and /he-IL/wishlist | Medium | Not started | Reload the extension; the toolbar and panels should be on the left, clear of the page title and the item names; open Filter, Sort and Export; drag the price slider (green fill follows the thumbs); a size chip reads like "6 GB" |
-| T-26 | Live check the languages: open a wishlist at /de-DE/wishlist, /ja-JP/, /ar-SA/, check the toolbar, Filter / Sort panels, chips, tooltips and Export menu are translated and nothing looks cut off; also a store page for the hearts | Medium | Not started | Reload the extension, switch xbox.com to each language; long languages (de, fi, ru) may need wider buttons |
 | T-06 | Live check in Chrome and the Tampermonkey userscript (Edge done) | Low | Not started | Repeat the Edge checks in Chrome and Tampermonkey (the userscript's IndexedDB lives in the xbox.com origin) |
 
 ## TODO
 | ID | Item | Priority | Status | Next action |
 |---|---|---|---|---|
+| T-61 | Minified userscript release (future): a second, minified .user.js for GitHub releases or direct install; the Greasy Fork file stays readable | Low | Todo | Add a minify step in tools/userscript/ that keeps the ==UserScript== header, writes a separate file (e.g. dist/xbox-wishlist.min.user.js), and test it in Tampermonkey |
 | T-55 | Native review of the translations (all 42 are first-pass; most worth checking: ar, he, ja, ko, zh-Hans, zh-Hant, th, ka, mt, is, sq, mk) | Medium | Todo | Hand each file to a native speaker (shared/i18n/<code>.json, 163 short texts, check.js shows coverage); fix in place, keep placeholders like {n} |
 
 Backlog beyond the tables above (5 more): F-28 to F-30 in docs/01-PRD.md, Ubisoft+ / gift price ideas in docs/08-XBOX-REQUESTS.md section 9, and Firefox/Safari support (planned in AGENTS.md)
 
 ## Recent sessions
+- 2026-10-06: T-60 - esbuild dev dependency, tools/build.js (npm run build -> dist/extension, 742 to 522 KB), harness ?dist (4 checks PASS on the minified build), AGENTS.md deployment docs; T-61 minified userscript recorded for later
+- 2026-10-06: T-57 and T-26 confirmed live; minified builds assessed (T-60, awaiting decision); no code changes
 - 2026-10-06: v1.5.26279.2 - T-59: price history in IndexedDB (per product and market, legacy blobs migrated); T-58 label fallback and refetch fix from live screenshots; 15 desktop fixtures PASS plus market and migration checks
 - 2026-10-06: v1.5.26279.1 - T-58: details cache in IndexedDB (capability keys + per-locale labels, selections by key, legacy blob migrated); 15 of 17 fixtures PASS plus a cross-locale check; prices still on blobs (T-59)
 - 2026-10-06: cache investigation (labels were cached in the fetch language); IndexedDB chosen over SQLite
-- 2026-10-05: v1.5.26278.14 - T-57: right-to-left support (mirrored toolbar and panels, logical CSS, LTR sliders, bidi isolation, harness direction check); 46/46 plus Hebrew pass
-- 2026-10-05: v1.5.26278.13 - manifest line for the language files (HITL-approved); RTL investigated; harness not re-run (manifest-only change)
