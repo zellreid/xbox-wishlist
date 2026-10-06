@@ -155,5 +155,10 @@
     "details.limited": "Xbox está limitando las solicitudes: detenido; inténtalo de nuevo más tarde.",
     "details.stopped": "Detenido tras {done} de {total}.",
     "details.loaded": "Cargados {ok} de {total}.",
-    "details.loadedFailed": "Cargados {ok} de {total}, {failed} con error."
+    "details.loadedFailed": "Cargados {ok} de {total}, {failed} con error.",
+    "tabs.quick": "Rápidos",
+    "tabs.store": "Tienda",
+    "tabs.prev": "Pestaña anterior",
+    "tabs.next": "Pestaña siguiente",
+    "tabs.label": "Secciones de filtros"
 }

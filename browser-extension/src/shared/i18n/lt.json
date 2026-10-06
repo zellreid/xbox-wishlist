@@ -155,5 +155,10 @@
     "details.limited": "„Xbox“ riboja užklausas - sustabdyta; bandykite vėliau.",
     "details.stopped": "Sustabdyta po {done} iš {total}.",
     "details.loaded": "Įkelta {ok} iš {total}.",
-    "details.loadedFailed": "Įkelta {ok} iš {total}, nepavyko: {failed}."
+    "details.loadedFailed": "Įkelta {ok} iš {total}, nepavyko: {failed}.",
+    "tabs.quick": "Sparty",
+    "tabs.store": "Parduotuvė",
+    "tabs.prev": "Ankstesnis skirtukas",
+    "tabs.next": "Kitas skirtukas",
+    "tabs.label": "Filtrų skiltys"
 }

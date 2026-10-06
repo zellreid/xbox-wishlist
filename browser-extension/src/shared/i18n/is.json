@@ -155,5 +155,10 @@
     "details.limited": "Xbox takmarkar beiðnir - stöðvað; reyndu aftur síðar.",
     "details.stopped": "Stöðvað eftir {done} af {total}.",
     "details.loaded": "Hlaðið {ok} af {total}.",
-    "details.loadedFailed": "Hlaðið {ok} af {total}, {failed} mistókust."
+    "details.loadedFailed": "Hlaðið {ok} af {total}, {failed} mistókust.",
+    "tabs.quick": "Fljótlegt",
+    "tabs.store": "Verslun",
+    "tabs.prev": "Fyrri flipi",
+    "tabs.next": "Næsti flipi",
+    "tabs.label": "Síuhlutar"
 }

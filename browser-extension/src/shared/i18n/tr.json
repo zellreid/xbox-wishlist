@@ -155,5 +155,10 @@
     "details.limited": "Xbox istekleri sınırlıyor - durduruldu; daha sonra tekrar deneyin.",
     "details.stopped": "{total} içinden {done} sonrasında durduruldu.",
     "details.loaded": "{total} içinden {ok} yüklendi.",
-    "details.loadedFailed": "{total} içinden {ok} yüklendi, {failed} başarısız."
+    "details.loadedFailed": "{total} içinden {ok} yüklendi, {failed} başarısız.",
+    "tabs.quick": "Hızlı",
+    "tabs.store": "Mağaza",
+    "tabs.prev": "Önceki sekme",
+    "tabs.next": "Sonraki sekme",
+    "tabs.label": "Filtre bölümleri"
 }

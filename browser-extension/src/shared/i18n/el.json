@@ -155,5 +155,10 @@
     "details.limited": "Το Xbox περιορίζει τα αιτήματα - διακόπηκε· δοκιμάστε ξανά αργότερα.",
     "details.stopped": "Διακόπηκε μετά από {done} από {total}.",
     "details.loaded": "Φορτώθηκαν {ok} από {total}.",
-    "details.loadedFailed": "Φορτώθηκαν {ok} από {total}, απέτυχαν {failed}."
+    "details.loadedFailed": "Φορτώθηκαν {ok} από {total}, απέτυχαν {failed}.",
+    "tabs.quick": "Γρήγορα",
+    "tabs.store": "Κατάστημα",
+    "tabs.prev": "Προηγούμενη καρτέλα",
+    "tabs.next": "Επόμενη καρτέλα",
+    "tabs.label": "Ενότητες φίλτρων"
 }

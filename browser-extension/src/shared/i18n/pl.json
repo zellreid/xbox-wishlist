@@ -155,5 +155,10 @@
     "details.limited": "Xbox ogranicza liczbę żądań - zatrzymano; spróbuj ponownie później.",
     "details.stopped": "Zatrzymano po {done} z {total}.",
     "details.loaded": "Załadowano {ok} z {total}.",
-    "details.loadedFailed": "Załadowano {ok} z {total}, nie udało się: {failed}."
+    "details.loadedFailed": "Załadowano {ok} z {total}, nie udało się: {failed}.",
+    "tabs.quick": "Szybkie",
+    "tabs.store": "Sklep",
+    "tabs.prev": "Poprzednia karta",
+    "tabs.next": "Następna karta",
+    "tabs.label": "Sekcje filtrów"
 }

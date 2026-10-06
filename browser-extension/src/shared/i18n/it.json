@@ -155,5 +155,10 @@
     "details.limited": "Xbox sta limitando le richieste - interrotto; riprova più tardi.",
     "details.stopped": "Interrotto dopo {done} su {total}.",
     "details.loaded": "Caricati {ok} su {total}.",
-    "details.loadedFailed": "Caricati {ok} su {total}, {failed} non riusciti."
+    "details.loadedFailed": "Caricati {ok} su {total}, {failed} non riusciti.",
+    "tabs.quick": "Rapidi",
+    "tabs.store": "Store",
+    "tabs.prev": "Scheda precedente",
+    "tabs.next": "Scheda successiva",
+    "tabs.label": "Sezioni dei filtri"
 }

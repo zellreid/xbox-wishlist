@@ -155,5 +155,10 @@
     "details.limited": "Xbox がリクエストを制限しているため停止しました。後でもう一度お試しください。",
     "details.stopped": "{total} 件中 {done} 件で停止しました。",
     "details.loaded": "{total} 件中 {ok} 件を読み込みました。",
-    "details.loadedFailed": "{total} 件中 {ok} 件を読み込みました ({failed} 件失敗)。"
+    "details.loadedFailed": "{total} 件中 {ok} 件を読み込みました ({failed} 件失敗)。",
+    "tabs.quick": "クイック",
+    "tabs.store": "ストア",
+    "tabs.prev": "前のタブ",
+    "tabs.next": "次のタブ",
+    "tabs.label": "フィルターのセクション"
 }

@@ -155,5 +155,10 @@
     "details.limited": "Xbox begrenzt die Anfragen - angehalten; versuche es später erneut.",
     "details.stopped": "Nach {done} von {total} angehalten.",
     "details.loaded": "{ok} von {total} geladen.",
-    "details.loadedFailed": "{ok} von {total} geladen, {failed} fehlgeschlagen."
+    "details.loadedFailed": "{ok} von {total} geladen, {failed} fehlgeschlagen.",
+    "tabs.quick": "Schnell",
+    "tabs.store": "Store",
+    "tabs.prev": "Vorheriger Tab",
+    "tabs.next": "Nächster Tab",
+    "tabs.label": "Filterbereiche"
 }

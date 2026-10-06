@@ -388,6 +388,41 @@ function buildHarnessBlock(outDir, meta) {
             if (track && getComputedStyle(track).direction !== 'ltr') failures.push('price slider is not left to right');
         }
 
+        // T-62, filter panel tabs: search and tags sit above the strip (outside it), four tabs, each shows only its own
+        // sections, and next / previous loop round (last -> first, first -> last)
+        const tabBar = document.getElementById('ifc_tab_bar'), tabPanel = document.getElementById('injectedFilterControls');
+        if (tabBar && tabPanel) {
+            const tabIds = Array.from(tabBar.querySelectorAll('[role=tab]')).map(b => b.id.replace('ifc_tab_', ''));
+            const [prev, next] = tabBar.querySelectorAll('.ifc-tab-arrow'), open = () => tabPanel.dataset.ifcTab;
+            const wrongShown = () => Array.from(tabPanel.querySelectorAll('[data-ifc-tab]')).filter(e => getComputedStyle(e).display !== 'none' && e.dataset.ifcTab !== open()).length;
+            const shownCount = () => Array.from(tabPanel.querySelectorAll('[data-ifc-tab]')).filter(e => getComputedStyle(e).display !== 'none').length;
+            const search = tabPanel.querySelector('.ifc-search-wrapper'), tags = document.getElementById('ifc_tag_container');
+            const before = (a, b) => !!(a && b && (a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING));
+            const problems = [];
+            if (tabIds.length !== 4) problems.push('expected 4 tabs, found ' + tabIds.length);
+            if (!(before(search, tags) && before(tags, tabBar))) problems.push('search, tags, tab strip are not in that order');
+            if (tabBar.contains(search) || tabBar.contains(tags)) problems.push('search or tags are inside the tab strip');
+            const seen = [];
+            for (let i = 0; i < tabIds.length; i++) {
+                next.click(); seen.push(open());
+                if (wrongShown()) problems.push('tab ' + open() + ' shows sections of another tab');
+                if (open() !== 'price' && !shownCount()) problems.push('tab ' + open() + ' shows nothing');
+            }
+            if (seen.length !== 4 || seen[3] !== seen[seen.length - 1] || new Set(seen).size !== 4) problems.push('next did not visit four tabs: ' + seen.join(','));
+            const start = open();
+            prev.click();
+            const back = open(); next.click();
+            if (open() !== start) problems.push('next after previous did not return to ' + start);
+            const lastTab = tabIds[tabIds.length - 1];
+            while (open() !== tabIds[0]) next.click();
+            prev.click();
+            if (open() !== lastTab) problems.push('previous from the first tab did not wrap to ' + lastTab);
+            next.click();
+            if (open() !== tabIds[0]) problems.push('next from the last tab did not wrap to ' + tabIds[0]);
+            lines.push('tabs: ' + tabIds.join(' / ') + ', loops both ways' + (problems.length ? '' : ' (ok)'));
+            problems.forEach(p => failures.push('tabs: ' + p));
+        } else if (!STATE_EDIT.nostate) failures.push('tabs: the filter panel has no tab strip');
+
         // Per-market storage: with ?locale=xx-YY the price history must be saved under that market
         lines.push('address seen by the core: ' + location.pathname);
         const wanted = new URLSearchParams(location.search).get('locale');

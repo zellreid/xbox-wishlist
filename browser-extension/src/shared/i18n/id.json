@@ -155,5 +155,10 @@
     "details.limited": "Xbox membatasi permintaan - dihentikan; coba lagi nanti.",
     "details.stopped": "Dihentikan setelah {done} dari {total}.",
     "details.loaded": "Termuat {ok} dari {total}.",
-    "details.loadedFailed": "Termuat {ok} dari {total}, {failed} gagal."
+    "details.loadedFailed": "Termuat {ok} dari {total}, {failed} gagal.",
+    "tabs.quick": "Cepat",
+    "tabs.store": "Toko",
+    "tabs.prev": "Tab sebelumnya",
+    "tabs.next": "Tab berikutnya",
+    "tabs.label": "Bagian filter"
 }

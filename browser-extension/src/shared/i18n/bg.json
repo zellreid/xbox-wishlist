@@ -157,5 +157,10 @@
     "details.limited": "Xbox ограничава заявките - спряно; опитайте отново по-късно.",
     "details.stopped": "Спряно след {done} от {total}.",
     "details.loaded": "Заредени {ok} от {total}.",
-    "details.loadedFailed": "Заредени {ok} от {total}, неуспешни: {failed}."
+    "details.loadedFailed": "Заредени {ok} от {total}, неуспешни: {failed}.",
+    "tabs.quick": "Бързи",
+    "tabs.store": "Магазин",
+    "tabs.prev": "Предишен раздел",
+    "tabs.next": "Следващ раздел",
+    "tabs.label": "Раздели на филтрите"
 }

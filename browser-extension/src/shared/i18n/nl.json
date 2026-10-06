@@ -155,5 +155,10 @@
     "details.limited": "Xbox beperkt verzoeken - gestopt; probeer het later opnieuw.",
     "details.stopped": "Gestopt na {done} van {total}.",
     "details.loaded": "{ok} van {total} geladen.",
-    "details.loadedFailed": "{ok} van {total} geladen, {failed} mislukt."
+    "details.loadedFailed": "{ok} van {total} geladen, {failed} mislukt.",
+    "tabs.quick": "Snel",
+    "tabs.store": "Store",
+    "tabs.prev": "Vorig tabblad",
+    "tabs.next": "Volgend tabblad",
+    "tabs.label": "Filtersecties"
 }

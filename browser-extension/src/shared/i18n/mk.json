@@ -157,5 +157,10 @@
     "details.limited": "Xbox ги ограничува барањата - запрено; обидете се повторно подоцна.",
     "details.stopped": "Запрено по {done} од {total}.",
     "details.loaded": "Вчитани {ok} од {total}.",
-    "details.loadedFailed": "Вчитани {ok} од {total}, неуспешни: {failed}."
+    "details.loadedFailed": "Вчитани {ok} од {total}, неуспешни: {failed}.",
+    "tabs.quick": "Брзо",
+    "tabs.store": "Продавница",
+    "tabs.prev": "Претходен јазиче",
+    "tabs.next": "Следен јазиче",
+    "tabs.label": "Делови на филтрите"
 }

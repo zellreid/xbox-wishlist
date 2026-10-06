@@ -157,5 +157,10 @@
     "details.limited": "Xbox limite les requêtes - arrêté ; réessayez plus tard.",
     "details.stopped": "Arrêté après {done} sur {total}.",
     "details.loaded": "{ok} chargés sur {total}.",
-    "details.loadedFailed": "{ok} chargés sur {total}, {failed} en échec."
+    "details.loadedFailed": "{ok} chargés sur {total}, {failed} en échec.",
+    "tabs.quick": "Rapide",
+    "tabs.store": "Boutique",
+    "tabs.prev": "Onglet précédent",
+    "tabs.next": "Onglet suivant",
+    "tabs.label": "Sections de filtres"
 }

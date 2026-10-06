@@ -155,5 +155,10 @@
     "details.limited": "يقوم Xbox بتحديد الطلبات - تم الإيقاف؛ حاول مرة أخرى لاحقاً.",
     "details.stopped": "تم الإيقاف بعد {done} من {total}.",
     "details.loaded": "تم تحميل {ok} من {total}.",
-    "details.loadedFailed": "تم تحميل {ok} من {total}، وفشل {failed}."
+    "details.loadedFailed": "تم تحميل {ok} من {total}، وفشل {failed}.",
+    "tabs.quick": "سريع",
+    "tabs.store": "المتجر",
+    "tabs.prev": "التبويب السابق",
+    "tabs.next": "التبويب التالي",
+    "tabs.label": "أقسام التصفية"
 }

@@ -155,5 +155,10 @@
     "details.limited": "Xbox begränsar förfrågningar - stoppad; försök igen senare.",
     "details.stopped": "Stoppad efter {done} av {total}.",
     "details.loaded": "Läste in {ok} av {total}.",
-    "details.loadedFailed": "Läste in {ok} av {total}, {failed} misslyckades."
+    "details.loadedFailed": "Läste in {ok} av {total}, {failed} misslyckades.",
+    "tabs.quick": "Snabbt",
+    "tabs.store": "Butik",
+    "tabs.prev": "Föregående flik",
+    "tabs.next": "Nästa flik",
+    "tabs.label": "Filteravsnitt"
 }

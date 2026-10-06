@@ -155,5 +155,10 @@
     "details.limited": "Xbox מגביל בקשות - נעצר; נסה שוב מאוחר יותר.",
     "details.stopped": "נעצר לאחר {done} מתוך {total}.",
     "details.loaded": "נטענו {ok} מתוך {total}.",
-    "details.loadedFailed": "נטענו {ok} מתוך {total}, {failed} נכשלו."
+    "details.loadedFailed": "נטענו {ok} מתוך {total}, {failed} נכשלו.",
+    "tabs.quick": "מהיר",
+    "tabs.store": "חנות",
+    "tabs.prev": "הכרטיסייה הקודמת",
+    "tabs.next": "הכרטיסייה הבאה",
+    "tabs.label": "קטעי מסננים"
 }

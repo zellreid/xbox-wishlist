@@ -155,5 +155,10 @@
     "details.limited": "Xbox ზღუდავს მოთხოვნებს - შეჩერდა; სცადეთ მოგვიანებით.",
     "details.stopped": "შეჩერდა {done} {total}-დან.",
     "details.loaded": "ჩაიტვირთა {ok} {total}-დან.",
-    "details.loadedFailed": "ჩაიტვირთა {ok} {total}-დან, ვერ მოხერხდა {failed}."
+    "details.loadedFailed": "ჩაიტვირთა {ok} {total}-დან, ვერ მოხერხდა {failed}.",
+    "tabs.quick": "სწრაფი",
+    "tabs.store": "მაღაზია",
+    "tabs.prev": "წინა ჩანართი",
+    "tabs.next": "შემდეგი ჩანართი",
+    "tabs.label": "ფილტრების განყოფილებები"
 }

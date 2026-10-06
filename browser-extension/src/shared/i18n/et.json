@@ -155,5 +155,10 @@
     "details.limited": "Xbox piirab päringuid - peatatud; proovige hiljem uuesti.",
     "details.stopped": "Peatatud pärast {done} {total}-st.",
     "details.loaded": "Laaditud {ok} {total}-st.",
-    "details.loadedFailed": "Laaditud {ok} {total}-st, ebaõnnestus {failed}."
+    "details.loadedFailed": "Laaditud {ok} {total}-st, ebaõnnestus {failed}.",
+    "tabs.quick": "Kiired",
+    "tabs.store": "Pood",
+    "tabs.prev": "Eelmine vaheleht",
+    "tabs.next": "Järgmine vaheleht",
+    "tabs.label": "Filtrite jaotised"
 }

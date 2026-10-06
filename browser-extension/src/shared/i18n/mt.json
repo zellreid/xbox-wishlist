@@ -155,5 +155,10 @@
     "details.limited": "Xbox qed jillimita t-talbiet - twaqqaf; erġa' pprova aktar tard.",
     "details.stopped": "Twaqqaf wara {done} minn {total}.",
     "details.loaded": "Tgħabbew {ok} minn {total}.",
-    "details.loadedFailed": "Tgħabbew {ok} minn {total}, falliet {failed}."
+    "details.loadedFailed": "Tgħabbew {ok} minn {total}, falliet {failed}.",
+    "tabs.quick": "Mgħaġġel",
+    "tabs.store": "Maħżen",
+    "tabs.prev": "Tab preċedenti",
+    "tabs.next": "Tab li jmiss",
+    "tabs.label": "Taqsimiet tal-filtri"
 }

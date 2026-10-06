@@ -155,5 +155,10 @@
     "details.limited": "Xbox begrenser forespørsler - stoppet; prøv igjen senere.",
     "details.stopped": "Stoppet etter {done} av {total}.",
     "details.loaded": "Lastet inn {ok} av {total}.",
-    "details.loadedFailed": "Lastet inn {ok} av {total}, {failed} mislyktes."
+    "details.loadedFailed": "Lastet inn {ok} av {total}, {failed} mislyktes.",
+    "tabs.quick": "Hurtig",
+    "tabs.store": "Butikk",
+    "tabs.prev": "Forrige fane",
+    "tabs.next": "Neste fane",
+    "tabs.label": "Filterdeler"
 }

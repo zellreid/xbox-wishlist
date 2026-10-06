@@ -155,5 +155,10 @@
     "details.limited": "Xbox가 요청을 제한하고 있어 중지되었습니다. 나중에 다시 시도하세요.",
     "details.stopped": "{total}개 중 {done}개 후 중지되었습니다.",
     "details.loaded": "{total}개 중 {ok}개를 로드했습니다.",
-    "details.loadedFailed": "{total}개 중 {ok}개를 로드했습니다. {failed}개 실패."
+    "details.loadedFailed": "{total}개 중 {ok}개를 로드했습니다. {failed}개 실패.",
+    "tabs.quick": "빠른 필터",
+    "tabs.store": "스토어",
+    "tabs.prev": "이전 탭",
+    "tabs.next": "다음 탭",
+    "tabs.label": "필터 섹션"
 }

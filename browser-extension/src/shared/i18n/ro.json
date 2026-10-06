@@ -155,5 +155,10 @@
     "details.limited": "Xbox limitează cererile - oprit; încearcă din nou mai târziu.",
     "details.stopped": "Oprit după {done} din {total}.",
     "details.loaded": "Încărcate {ok} din {total}.",
-    "details.loadedFailed": "Încărcate {ok} din {total}, {failed} eșuate."
+    "details.loadedFailed": "Încărcate {ok} din {total}, {failed} eșuate.",
+    "tabs.quick": "Rapide",
+    "tabs.store": "Magazin",
+    "tabs.prev": "Fila anterioară",
+    "tabs.next": "Fila următoare",
+    "tabs.label": "Secțiuni de filtre"
 }

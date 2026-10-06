@@ -134,6 +134,8 @@ empty store, so the sanity checks always see a clean slate.
 
 **Direction (T-57):** every wishlist run also reports "direction:" - the toolbar must sit on the inline-end side (right in a left-to-right page, left in a right-to-left one) and the price sliders must stay left to right. The `ar-sa` fixture is right to left; `?locale=he-IL` on it runs Hebrew.
 
+**Filter panel tabs (T-62):** every wishlist run also reports "tabs:" - search and the tag row sit above the tab strip (outside it), there are four tabs (quick / game / store / price), each shows only its own sections, and next / previous loop round (last to first, first to last). The ar-sa fixture runs it right to left.
+
 **Testing the minified build (T-60):** run `npm run build`, then add `?dist` to any harness page URL (e.g. `...harness.html?dist`, or `?dist&locale=de-DE`). The core, content script, stylesheet and language files then load from `dist/extension/` instead of `browser-extension/src/`; the same checks run.
 
 **Testing another market:** add `?locale=xx-YY` (e.g. `?locale=en-US`, or `?realpath` for the capture's own

@@ -155,5 +155,10 @@
     "details.limited": "Xbox ierobežo pieprasījumus - apturēts; mēģiniet vēlāk vēlreiz.",
     "details.stopped": "Apturēts pēc {done} no {total}.",
     "details.loaded": "Ielādēti {ok} no {total}.",
-    "details.loadedFailed": "Ielādēti {ok} no {total}, neizdevās: {failed}."
+    "details.loadedFailed": "Ielādēti {ok} no {total}, neizdevās: {failed}.",
+    "tabs.quick": "Ātrie",
+    "tabs.store": "Veikals",
+    "tabs.prev": "Iepriekšējā cilne",
+    "tabs.next": "Nākamā cilne",
+    "tabs.label": "Filtru sadaļas"
 }

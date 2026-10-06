@@ -157,5 +157,10 @@
     "details.limited": "Xbox ограничивает число запросов - остановлено; повторите попытку позже.",
     "details.stopped": "Остановлено после {done} из {total}.",
     "details.loaded": "Загружено {ok} из {total}.",
-    "details.loadedFailed": "Загружено {ok} из {total}, не удалось: {failed}."
+    "details.loadedFailed": "Загружено {ok} из {total}, не удалось: {failed}.",
+    "tabs.quick": "Быстрые",
+    "tabs.store": "Магазин",
+    "tabs.prev": "Предыдущая вкладка",
+    "tabs.next": "Следующая вкладка",
+    "tabs.label": "Разделы фильтров"
 }

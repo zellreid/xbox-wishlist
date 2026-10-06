@@ -157,5 +157,10 @@
     "details.limited": "Xbox обмежує кількість запитів - зупинено; повторіть спробу пізніше.",
     "details.stopped": "Зупинено після {done} із {total}.",
     "details.loaded": "Завантажено {ok} із {total}.",
-    "details.loadedFailed": "Завантажено {ok} із {total}, не вдалося: {failed}."
+    "details.loadedFailed": "Завантажено {ok} із {total}, не вдалося: {failed}.",
+    "tabs.quick": "Швидкі",
+    "tabs.store": "Магазин",
+    "tabs.prev": "Попередня вкладка",
+    "tabs.next": "Наступна вкладка",
+    "tabs.label": "Розділи фільтрів"
 }

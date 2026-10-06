@@ -155,5 +155,10 @@
     "details.limited": "Xbox po kufizon kërkesat - u ndal; provo përsëri më vonë.",
     "details.stopped": "U ndal pas {done} nga {total}.",
     "details.loaded": "U ngarkuan {ok} nga {total}.",
-    "details.loadedFailed": "U ngarkuan {ok} nga {total}, dështuan {failed}."
+    "details.loadedFailed": "U ngarkuan {ok} nga {total}, dështuan {failed}.",
+    "tabs.quick": "Të shpejta",
+    "tabs.store": "Dyqani",
+    "tabs.prev": "Skeda e mëparshme",
+    "tabs.next": "Skeda tjetër",
+    "tabs.label": "Seksionet e filtrave"
 }

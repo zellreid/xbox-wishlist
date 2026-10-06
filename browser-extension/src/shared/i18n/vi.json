@@ -155,5 +155,10 @@
     "details.limited": "Xbox đang giới hạn yêu cầu - đã dừng; hãy thử lại sau.",
     "details.stopped": "Đã dừng sau {done} trên {total}.",
     "details.loaded": "Đã tải {ok} trên {total}.",
-    "details.loadedFailed": "Đã tải {ok} trên {total}, {failed} không thành công."
+    "details.loadedFailed": "Đã tải {ok} trên {total}, {failed} không thành công.",
+    "tabs.quick": "Nhanh",
+    "tabs.store": "Cửa hàng",
+    "tabs.prev": "Tab trước",
+    "tabs.next": "Tab tiếp theo",
+    "tabs.label": "Các phần bộ lọc"
 }

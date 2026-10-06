@@ -155,5 +155,10 @@
     "details.limited": "O Xbox está limitando as solicitações - parado; tente de novo mais tarde.",
     "details.stopped": "Parado após {done} de {total}.",
     "details.loaded": "{ok} de {total} carregados.",
-    "details.loadedFailed": "{ok} de {total} carregados, {failed} com falha."
+    "details.loadedFailed": "{ok} de {total} carregados, {failed} com falha.",
+    "tabs.quick": "Rápidos",
+    "tabs.store": "Loja",
+    "tabs.prev": "Guia anterior",
+    "tabs.next": "Próxima guia",
+    "tabs.label": "Seções de filtros"
 }

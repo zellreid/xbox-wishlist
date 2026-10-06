@@ -155,5 +155,10 @@
     "details.limited": "Xbox จำกัดจำนวนคำขอ - หยุดแล้ว โปรดลองอีกครั้งภายหลัง",
     "details.stopped": "หยุดหลังจาก {done} จาก {total}",
     "details.loaded": "โหลดแล้ว {ok} จาก {total}",
-    "details.loadedFailed": "โหลดแล้ว {ok} จาก {total} ล้มเหลว {failed}"
+    "details.loadedFailed": "โหลดแล้ว {ok} จาก {total} ล้มเหลว {failed}",
+    "tabs.quick": "ด่วน",
+    "tabs.store": "ร้านค้า",
+    "tabs.prev": "แท็บก่อนหน้า",
+    "tabs.next": "แท็บถัดไป",
+    "tabs.label": "ส่วนของตัวกรอง"
 }

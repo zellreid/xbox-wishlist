@@ -155,5 +155,10 @@
     "details.limited": "Xbox begrænser anmodninger - stoppet; prøv igen senere.",
     "details.stopped": "Stoppet efter {done} af {total}.",
     "details.loaded": "Indlæste {ok} af {total}.",
-    "details.loadedFailed": "Indlæste {ok} af {total}, {failed} mislykkedes."
+    "details.loadedFailed": "Indlæste {ok} af {total}, {failed} mislykkedes.",
+    "tabs.quick": "Hurtig",
+    "tabs.store": "Butik",
+    "tabs.prev": "Forrige fane",
+    "tabs.next": "Næste fane",
+    "tabs.label": "Filtersektioner"
 }

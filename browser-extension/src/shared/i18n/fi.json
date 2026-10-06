@@ -155,5 +155,10 @@
     "details.limited": "Xbox rajoittaa pyyntöjä - pysäytetty; yritä myöhemmin uudelleen.",
     "details.stopped": "Pysäytetty {done} / {total} jälkeen.",
     "details.loaded": "Ladattu {ok} / {total}.",
-    "details.loadedFailed": "Ladattu {ok} / {total}, {failed} epäonnistui."
+    "details.loadedFailed": "Ladattu {ok} / {total}, {failed} epäonnistui.",
+    "tabs.quick": "Pikasuodattimet",
+    "tabs.store": "Kauppa",
+    "tabs.prev": "Edellinen välilehti",
+    "tabs.next": "Seuraava välilehti",
+    "tabs.label": "Suodattimien osiot"
 }

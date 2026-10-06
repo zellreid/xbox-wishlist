@@ -155,5 +155,10 @@
     "details.limited": "Xbox 正在限制请求 - 已停止; 请稍后重试。",
     "details.stopped": "在 {total} 个中的 {done} 个之后停止。",
     "details.loaded": "已加载 {total} 个中的 {ok} 个。",
-    "details.loadedFailed": "已加载 {total} 个中的 {ok} 个,{failed} 个失败。"
+    "details.loadedFailed": "已加载 {total} 个中的 {ok} 个,{failed} 个失败。",
+    "tabs.quick": "快捷",
+    "tabs.store": "商店",
+    "tabs.prev": "上一个选项卡",
+    "tabs.next": "下一个选项卡",
+    "tabs.label": "筛选分区"
 }

@@ -155,5 +155,10 @@
     "details.limited": "Xbox obmedzuje požiadavky - zastavené; skúste to znova neskôr.",
     "details.stopped": "Zastavené po {done} z {total}.",
     "details.loaded": "Načítané {ok} z {total}.",
-    "details.loadedFailed": "Načítané {ok} z {total}, neúspešných: {failed}."
+    "details.loadedFailed": "Načítané {ok} z {total}, neúspešných: {failed}.",
+    "tabs.quick": "Rýchle",
+    "tabs.store": "Obchod",
+    "tabs.prev": "Predchádzajúca karta",
+    "tabs.next": "Ďalšia karta",
+    "tabs.label": "Sekcie filtrov"
 }

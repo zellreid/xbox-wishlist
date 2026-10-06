@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         XBOX Wishlist
 // @namespace    https://github.com/zellreid/xbox-wishlist
-// @version      1.5.26279.2
+// @version      1.5.26279.3
 // @description  Advanced filtering and sorting suite with multi-level sort (up to 3 criteria) - Resilient selectors - Public wishlist support
 // @author       ZellReid
 // @homepage     https://github.com/zellreid/xbox-wishlist
@@ -14,7 +14,7 @@
 // @match        https://www.xbox.com/*/promotions/sales/*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=xbox.com
 // @run-at       document-body
-// @resource     CSSFilter https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/styles.css?ver=1.5.26279.2
+// @resource     CSSFilter https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/styles.css?ver=1.5.26279.3
 // @resource     IMGFilter https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/filter.svg
 // @resource     IMGSort https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/sort.svg
 // @resource     IMGExport https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/export.svg
@@ -115,7 +115,8 @@ window.XboxWishlistCore = {
                 floatButtons: false, lblFilter: false, btnFilter: false, btnSort: false, btnExport: false, btnTheme: false, btnRefresh: false,
                 divFilter: false, divSort: false, divFilterShow: false, divSortShow: false,
                 tagContainer: false, complete: false, lowestItemId: null, contextLost: false,
-                listSearch: {}   // typeahead text per checkbox list id (Publishers, Genres)
+                listSearch: {},   // typeahead text per checkbox list id (Publishers, Genres)
+                panelTab: 'quick'   // T-62: the Filters panel's open tab (see PANEL_TABS); remembered with the filters
             },
             filters: {
                 totalCount: 0, filteredCount: 0, activeTags: [],
@@ -232,6 +233,7 @@ window.XboxWishlistCore = {
                 publisherSearch: 'ifc_input_publisher_search',
                 genreSearch: 'ifc_input_genre_search',
                 quickFilters: 'ifc_quick_filters',
+                tabBar: 'ifc_tab_bar',
                 savedPresets: 'ifc_saved_presets',
                 savedPresetsList: 'ifc_saved_presets_list',
                 savedPresetName: 'ifc_input_preset_name',
@@ -333,6 +335,11 @@ window.XboxWishlistCore = {
             'filters.clearAll': 'Clear All',
             'filters.search': 'Search wishlist...',
             'filters.quick': 'Quick filters',
+            'tabs.quick': 'Quick',
+            'tabs.store': 'Store',
+            'tabs.prev': 'Previous tab',
+            'tabs.next': 'Next tab',
+            'tabs.label': 'Filter sections',
             'filters.saved': 'Saved filters',
             'filters.name': 'Name these filters...',
             'filters.nameLabel': 'Name for saved filters',
@@ -818,6 +825,7 @@ window.XboxWishlistCore = {
                     ages: { selected: state.filters.ages.selected },
                     sort: { criteria: state.sort.criteria },
                     presets: state.savedPresets,
+                    panelTab: state.ui.panelTab,
                     theme: state.theme
                 };
                 adapter.storage.save(CONFIG.storage.key, JSON.stringify(saveData));
@@ -859,6 +867,7 @@ window.XboxWishlistCore = {
                                 state.filters.platforms.selected = parsed.platforms.selected.filter(p => typeof p === 'string');
                             }
                             if (parsed.theme === 'light' || parsed.theme === 'dark') state.theme = parsed.theme;
+                            if (PANEL_TABS.includes(parsed.panelTab)) state.ui.panelTab = parsed.panelTab;
                             if (parsed.capabilities && Array.isArray(parsed.capabilities.selected)) {
                                 state.filters.capabilities.selected = parsed.capabilities.selected.filter(c => typeof c === 'string');
                             }
@@ -2337,6 +2346,110 @@ window.XboxWishlistCore = {
             return box;
         }
 
+        // ==================== FILTER PANEL TABS (T-62) ====================
+        // Header, search and the active-filter tags stay on top of the Filters panel; under them a strip of four tabs
+        // picks what the rest of the panel shows. A tab's contents are marked data-ifc-tab (createFilterBlock, the
+        // Quick and Saved sections) and styles.css hides those that are not the open tab, so the filter code is
+        // unchanged. The strip loops: next from the last tab opens the first, previous from the first opens the last.
+        // Arrow buttons, Left / Right (mirrored in right-to-left pages), Home / End and a swipe all move it.
+        const PANEL_TABS = ['quick', 'game', 'store', 'price'];
+        const PANEL_TAB_OF_GROUP = { Genres: 'game', Platforms: 'game', Types: 'game', AgeRating: 'game', Capabilities: 'game',
+            Owned: 'store', Publishers: 'store', Subscriptions: 'store', PriceRange: 'price', DiscountRange: 'price' };
+        const panelTabLabel = tab => (tab === 'game' ? tr('type.Game') : tab === 'price' ? tr('sort.ifcPrice') : tr('tabs.' + tab));
+
+        function buildPanelTabs() {
+            const bar = document.createElement('div');
+            bar.id = CONFIG.ids.tabBar; bar.className = 'ifc-tab-bar';
+            const arrow = (dir) => {
+                const b = document.createElement('button');
+                b.type = 'button'; b.className = 'ifc-tab-arrow';
+                const label = tr(dir < 0 ? 'tabs.prev' : 'tabs.next');
+                b.title = label; b.setAttribute('aria-label', label);
+                const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                svg.setAttribute('viewBox', '0 0 24 24'); svg.setAttribute('width', '16'); svg.setAttribute('height', '16'); svg.setAttribute('aria-hidden', 'true');
+                const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                path.setAttribute('d', dir < 0 ? 'M15 5l-7 7 7 7' : 'M9 5l7 7-7 7');   // points left / right; styles.css mirrors both in right-to-left
+                path.setAttribute('fill', 'none'); path.setAttribute('stroke', 'currentColor'); path.setAttribute('stroke-width', '2'); path.setAttribute('stroke-linecap', 'round'); path.setAttribute('stroke-linejoin', 'round');
+                svg.appendChild(path); b.appendChild(svg);
+                b.addEventListener('click', () => stepPanelTab(dir));
+                return b;
+            };
+            const list = document.createElement('div');
+            list.className = 'ifc-tab-list'; list.setAttribute('role', 'tablist'); list.setAttribute('aria-label', tr('tabs.label'));
+            PANEL_TABS.forEach(tab => {
+                const b = document.createElement('button');
+                b.type = 'button'; b.className = 'ifc-tab'; b.id = `ifc_tab_${tab}`;
+                b.setAttribute('role', 'tab'); b.title = panelTabLabel(tab);
+                const text = document.createElement('span'); text.className = 'ifc-tab-text'; text.textContent = panelTabLabel(tab);
+                const badge = document.createElement('span'); badge.className = 'ifc-tab-badge ifc-hidden';
+                b.appendChild(text); b.appendChild(badge);
+                b.addEventListener('click', () => selectPanelTab(tab));
+                list.appendChild(b);
+            });
+            list.addEventListener('keydown', (e) => {
+                const rtl = getComputedStyle(list).direction === 'rtl';
+                const step = e.key === 'ArrowRight' ? (rtl ? -1 : 1) : e.key === 'ArrowLeft' ? (rtl ? 1 : -1) : 0;
+                if (step) stepPanelTab(step, { focus: true });
+                else if (e.key === 'Home') selectPanelTab(PANEL_TABS[0], { focus: true });
+                else if (e.key === 'End') selectPanelTab(PANEL_TABS[PANEL_TABS.length - 1], { focus: true });
+                else return;
+                e.preventDefault();
+            });
+            bar.appendChild(arrow(-1)); bar.appendChild(list); bar.appendChild(arrow(1));
+            return bar;
+        }
+        function selectPanelTab(tab, { focus = false, save = true } = {}) {
+            if (!PANEL_TABS.includes(tab)) return;
+            state.ui.panelTab = tab;
+            const fc = getElement(`#${CONFIG.ids.filterContainer}`, false);
+            if (fc) fc.dataset.ifcTab = tab;
+            PANEL_TABS.forEach(t => {
+                const b = document.getElementById(`ifc_tab_${t}`);
+                if (!b) return;
+                const on = t === tab;
+                b.classList.toggle('ifc-tab-active', on); b.setAttribute('aria-selected', String(on)); b.tabIndex = on ? 0 : -1;
+                if (on && focus) b.focus();
+            });
+            if (save) saveFilterState();
+        }
+        // Wraps around: from the last tab +1 is the first, from the first -1 is the last
+        function stepPanelTab(dir, opts) {
+            const i = PANEL_TABS.indexOf(state.ui.panelTab);
+            selectPanelTab(PANEL_TABS[(i + dir + PANEL_TABS.length) % PANEL_TABS.length], opts);
+        }
+        // Swipe across the panel (touch): a clear horizontal move steps one tab, towards the inline end moving forward
+        // like a page turn. Starts on a slider or field are left alone - they drag sideways themselves.
+        let swipe = null;
+        function onPanelSwipeStart(e) {
+            swipe = e.pointerType === 'touch' && !e.target.closest('input, textarea, [class*="slider"]') ? { x: e.clientX, y: e.clientY } : null;
+        }
+        function onPanelSwipeEnd(e) {
+            const s = swipe; swipe = null;
+            if (!s || e.pointerType !== 'touch') return;
+            const dx = e.clientX - s.x, dy = e.clientY - s.y;
+            if (Math.abs(dx) < 48 || Math.abs(dx) < 2 * Math.abs(dy)) return;
+            const rtl = getComputedStyle(e.currentTarget).direction === 'rtl';
+            stepPanelTab((dx < 0) !== rtl ? 1 : -1);
+        }
+        // Each tab's count of filters set in it (the strip shows it so a filter on another tab is never forgotten)
+        function updateTabBadges() {
+            try {
+                const f = state.filters, n = a => a.selected.length;
+                const counts = {
+                    quick: getQuickFilterPresets().filter(p => p.isActive() || (p.isNegated && p.isNegated())).length,
+                    game: n(f.genres) + n(f.platforms) + n(f.types) + n(f.ages) + n(f.capabilities),
+                    store: n(f.owned) + n(f.publishers) + n(f.subscriptions),
+                    price: (f.priceRange.enabled ? 1 : 0) + (f.discountRange.enabled ? 1 : 0)
+                };
+                PANEL_TABS.forEach(t => {
+                    const badge = document.querySelector(`#ifc_tab_${t} .ifc-tab-badge`);
+                    if (!badge) return;
+                    badge.textContent = counts[t] ? String(counts[t]) : '';
+                    badge.classList.toggle('ifc-hidden', !counts[t]);
+                });
+            } catch (ex) { console.error('Failed to update tab badges:', ex); }
+        }
+
         function addFilterContainer() {
             if (state.ui.divFilter) return;
             try {
@@ -2363,8 +2476,11 @@ window.XboxWishlistCore = {
                 tc.id = CONFIG.ids.tagContainer; tc.className = 'ifc-tag-container ifc-hidden';
                 const fg = document.createElement('ul');
                 fg.classList.add('ifc-filter-groups');
-                fl.appendChild(headerRow); fl.appendChild(tc); fl.appendChild(fg); fl.appendChild(buildStoredDataSection()); fc.appendChild(fl);
+                // T-62: the header, search and tags stay above; the tab strip and what each tab shows follow
+                fl.appendChild(headerRow); fl.appendChild(tc); fl.appendChild(buildPanelTabs()); fl.appendChild(fg); fl.appendChild(buildStoredDataSection()); fc.appendChild(fl);
+                fc.addEventListener('pointerdown', onPanelSwipeStart); fc.addEventListener('pointerup', onPanelSwipeEnd);
                 document.body.appendChild(fc);
+                selectPanelTab(state.ui.panelTab, { save: false });
                 // (the Filter button wires its own click in addFilterButton - see reinitAfterRerender)
                 state.ui.divFilter = true; state.ui.tagContainer = true;
             } catch (ex) { console.error('Failed to add filter container:', ex); }
@@ -2374,6 +2490,7 @@ window.XboxWishlistCore = {
             const groupContainer = document.createElement('li');
             if (id) groupContainer.id = `ifc_group_${id}`;
             groupContainer.className = 'ifc-accordion-group';
+            if (PANEL_TAB_OF_GROUP[id]) groupContainer.dataset.ifcTab = PANEL_TAB_OF_GROUP[id];   // T-62: which tab shows it
 
             if (!collapsible) {
                 const cc = document.createElement('div'); cc.className = 'ifc-filter-block-static';
@@ -2469,7 +2586,9 @@ window.XboxWishlistCore = {
                 const heading = document.createElement('div');
                 heading.className = 'ifc-section-heading'; heading.textContent = tr('filters.quick');
                 section.append(heading, row);
-                tc.parentNode.insertBefore(section, tc);
+                section.dataset.ifcTab = 'quick';
+                const bar = getElement(`#${CONFIG.ids.tabBar}`, false);   // T-62: the Quick tab's contents sit right under the tab strip
+                if (bar) bar.insertAdjacentElement('afterend', section); else tc.parentNode.insertBefore(section, tc);
                 updateQuickFilterStates();
             } catch (ex) { console.error('Failed to add quick filters:', ex); }
         }
@@ -2724,11 +2843,12 @@ window.XboxWishlistCore = {
             if (!state.ui.divFilter) return;
             try {
                 if (getElement(`#${CONFIG.ids.savedPresets}`, false)) return;
-                // Straight after the search box, above the quick filters
-                const search = getElement(`#${CONFIG.ids.searchInput}`, false), sw = search && search.parentNode;
-                if (!sw || !sw.parentNode) return;
+                // T-62: straight after the tab strip (first in the Quick tab), above the quick filters
+                const bar = getElement(`#${CONFIG.ids.tabBar}`, false);
+                if (!bar) return;
                 const box = document.createElement('div');
                 box.id = CONFIG.ids.savedPresets; box.className = 'ifc-saved-presets ifc-panel-section';
+                box.dataset.ifcTab = 'quick';
                 const heading = document.createElement('div');
                 heading.className = 'ifc-section-heading'; heading.textContent = tr('filters.saved');
                 const list = document.createElement('div');
@@ -2746,7 +2866,7 @@ window.XboxWishlistCore = {
                 saveBtn.addEventListener('click', saveCurrentAsPreset);
                 row.appendChild(input); row.appendChild(saveBtn);
                 box.appendChild(heading); box.appendChild(list); box.appendChild(row);
-                sw.insertAdjacentElement('afterend', box);
+                bar.insertAdjacentElement('afterend', box);
                 renderSavedPresets();
             } catch (ex) { console.error('Failed to add saved filters:', ex); }
         }
@@ -4256,7 +4376,7 @@ window.XboxWishlistCore = {
             state.ui.lowestItemId = nextId + 1;
             Array.from(containers).forEach(c => setContainerData(c, c.dataset.ifcId));
             if (state.priceDirty) savePriceHistory();
-            updateOwnedCounts(); collectPublishers(); updatePublishersCheckboxes(); updateSubscriptionsCheckboxes(); updateGenresCheckboxes(); updatePlatformsCheckboxes(); updateTypesCheckboxes(); updateAgesCheckboxes(); updateCapabilitiesCheckboxes(); updatePriceSlider(); updateDiscountSlider();
+            updateOwnedCounts(); collectPublishers(); updatePublishersCheckboxes(); updateSubscriptionsCheckboxes(); updateGenresCheckboxes(); updatePlatformsCheckboxes(); updateTypesCheckboxes(); updateAgesCheckboxes(); updateCapabilitiesCheckboxes(); updatePriceSlider(); updateDiscountSlider(); updateTabBadges();
             Array.from(containers).forEach(c => {
                 try {
                     if (shouldShowContainer(c)) {

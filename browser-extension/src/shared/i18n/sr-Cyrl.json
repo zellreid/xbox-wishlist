@@ -157,5 +157,10 @@
     "details.limited": "Xbox ограничава захтеве - заустављено; покушајте поново касније.",
     "details.stopped": "Заустављено након {done} од {total}.",
     "details.loaded": "Учитано {ok} од {total}.",
-    "details.loadedFailed": "Учитано {ok} од {total}, неуспешно: {failed}."
+    "details.loadedFailed": "Учитано {ok} од {total}, неуспешно: {failed}.",
+    "tabs.quick": "Брзо",
+    "tabs.store": "Продавница",
+    "tabs.prev": "Претходна картица",
+    "tabs.next": "Следећа картица",
+    "tabs.label": "Одељци филтера"
 }

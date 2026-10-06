@@ -155,5 +155,10 @@
     "details.limited": "Az Xbox korlátozza a kéréseket - leállítva; próbálja újra később.",
     "details.stopped": "Leállítva {done} / {total} után.",
     "details.loaded": "Betöltve {ok} / {total}.",
-    "details.loadedFailed": "Betöltve {ok} / {total}, sikertelen: {failed}."
+    "details.loadedFailed": "Betöltve {ok} / {total}, sikertelen: {failed}.",
+    "tabs.quick": "Gyors",
+    "tabs.store": "Áruház",
+    "tabs.prev": "Előző lap",
+    "tabs.next": "Következő lap",
+    "tabs.label": "Szűrőszakaszok"
 }

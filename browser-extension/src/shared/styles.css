@@ -618,6 +618,114 @@ p:has(+ .ifc-item-tags) {
     border-bottom-left-radius: 0;
 }
 
+/* ==================== FILTER PANEL TABS (T-62) ==================== */
+/* Header, search and tags stay on top; the strip (arrows at each end, four tabs between) picks what is shown
+   below it. Anything marked data-ifc-tab that is not the open tab is hidden. 4px grid. */
+.ifc-tab-bar {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 12px;
+    margin-bottom: 8px;
+}
+
+.ifc-tab-list {
+    display: flex;
+    flex: 1;
+    min-width: 0;
+    gap: 4px;
+}
+
+.ifc-tab,
+.ifc-tab-arrow {
+    height: 32px;
+    box-sizing: border-box;
+    border: 1px solid var(--ifc-control-border);
+    border-radius: 8px;
+    background-color: var(--ifc-control-bg);
+    color: var(--ifc-text);
+    font-size: 0.75rem;
+    cursor: pointer;
+}
+
+.ifc-tab {
+    position: relative;
+    flex: 1 1 0;
+    min-width: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 0 4px;
+}
+
+.ifc-tab-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ifc-tab-arrow {
+    flex: none;
+    width: 24px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+}
+
+/* The arrows point left / right in the markup; mirrored when the page reads right to left */
+[dir="rtl"] .ifc-tab-arrow svg {
+    transform: scaleX(-1);
+}
+
+.ifc-tab:hover,
+.ifc-tab-arrow:hover {
+    background-color: var(--ifc-control-bg-hover);
+}
+
+.ifc-tab-active,
+.ifc-tab-active:hover {
+    background-color: var(--ifc-brand);
+    border-color: var(--ifc-brand);
+    color: #ffffff;
+}
+
+.ifc-tab:focus-visible,
+.ifc-tab-arrow:focus-visible {
+    outline: 2px solid var(--ifc-brand);
+    outline-offset: 2px;
+}
+
+/* Count of filters set in a tab, over the tab's corner so the label keeps its full width */
+.ifc-tab-badge {
+    position: absolute;
+    top: -4px;
+    inset-inline-end: -4px;
+    min-width: 16px;
+    height: 16px;
+    box-sizing: border-box;
+    padding: 0 4px;
+    border-radius: 8px;
+    background-color: var(--ifc-brand);
+    color: #ffffff;
+    font-size: 0.625rem;
+    line-height: 16px;
+    text-align: center;
+}
+
+.ifc-tab-active .ifc-tab-badge {
+    background-color: #ffffff;
+    color: var(--ifc-brand);
+}
+
+.ifc-filter-section[data-ifc-tab="quick"] [data-ifc-tab]:not([data-ifc-tab="quick"]),
+.ifc-filter-section[data-ifc-tab="game"] [data-ifc-tab]:not([data-ifc-tab="game"]),
+.ifc-filter-section[data-ifc-tab="store"] [data-ifc-tab]:not([data-ifc-tab="store"]),
+.ifc-filter-section[data-ifc-tab="price"] [data-ifc-tab]:not([data-ifc-tab="price"]) {
+    display: none !important;
+}
+
 /* ==================== TAG CONTAINER ==================== */
 .ifc-tag-container {
     display: flex;

@@ -155,5 +155,10 @@
     "details.limited": "Xbox omejuje zahteve - ustavljeno; poskusite znova pozneje.",
     "details.stopped": "Ustavljeno po {done} od {total}.",
     "details.loaded": "Naloženo {ok} od {total}.",
-    "details.loadedFailed": "Naloženo {ok} od {total}, neuspešno: {failed}."
+    "details.loadedFailed": "Naloženo {ok} od {total}, neuspešno: {failed}.",
+    "tabs.quick": "Hitro",
+    "tabs.store": "Trgovina",
+    "tabs.prev": "Prejšnji zavihek",
+    "tabs.next": "Naslednji zavihek",
+    "tabs.label": "Razdelki filtrov"
 }
