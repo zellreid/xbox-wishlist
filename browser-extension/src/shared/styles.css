@@ -591,6 +591,13 @@ p:has(+ .ifc-item-tags) {
     margin-bottom: 8px;
 }
 
+/* First in the Quick tab, right under the tab strip: no divider above it */
+.ifc-saved-presets {
+    margin-top: 0;
+    padding-top: 0;
+    border-top: none;
+}
+
 .ifc-saved-presets-row {
     display: flex;
     gap: 8px;
@@ -733,8 +740,9 @@ p:has(+ .ifc-item-tags) {
     gap: 8px;
     padding: 12px 0;
     margin-top: 12px;
-    /* The divider above; the first filter group's top border closes the row below */
+    /* A divider above and below the tags */
     border-top: 1px solid rgba(117, 117, 117, 0.3);
+    border-bottom: 1px solid rgba(117, 117, 117, 0.3);
 }
 
 .ifc-filter-tag {
@@ -1138,12 +1146,14 @@ p:has(+ .ifc-item-tags) {
     border-bottom: 1px solid rgba(117, 117, 117, 0.3);
 }
 
-    .ifc-accordion-group:first-child {
-        border-top: 1px solid rgba(117, 117, 117, 0.3);
-    }
-
     /* Nothing follows the last group (Discount Range) now Saved filters sit at the top */
     .ifc-accordion-group:last-child {
+        border-bottom: none;
+    }
+
+    /* T-62: the last accordion of the Game and Store tabs has no divider under it (Stored data has its own above) */
+    #ifc_group_Capabilities,
+    #ifc_group_Subscriptions {
         border-bottom: none;
     }
 
