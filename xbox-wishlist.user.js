@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         XBOX Wishlist
 // @namespace    https://github.com/zellreid/xbox-wishlist
-// @version      1.5.26279.5
+// @version      1.5.26280.1
 // @description  Advanced filtering and sorting suite with multi-level sort (up to 3 criteria) - Resilient selectors - Public wishlist support
 // @author       ZellReid
 // @homepage     https://github.com/zellreid/xbox-wishlist
@@ -14,7 +14,7 @@
 // @match        https://www.xbox.com/*/promotions/sales/*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=xbox.com
 // @run-at       document-body
-// @resource     CSSFilter https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/styles.css?ver=1.5.26279.5
+// @resource     CSSFilter https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/styles.css?ver=1.5.26280.1
 // @resource     IMGFilter https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/filter.svg
 // @resource     IMGSort https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/sort.svg
 // @resource     IMGExport https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/export.svg
@@ -2126,10 +2126,12 @@ window.XboxWishlistCore = {
         }
         async function loadThemeSheets(theme) {
             const forTheme = new RegExp(`body\\[data-theme=["']?${theme}["']?\\]`);
-            const chunkName = /\/(\d+)\.([0-9a-f]{8,})\.chunk\.css(?:[?#].*)?$/;
+            // Xbox's sheets are named <id-or-name>.<hash>.css, with or without ".chunk"; any of
+            // them locates the stylesheet map by its hash (the page may hold no numbered chunk)
+            const chunkName = /\/([\w-]+)\.([0-9a-f]{8,})(?:\.chunk)?\.css(?:[?#].*)?$/;
             const loaded = Array.from(document.querySelectorAll('link[rel="stylesheet"][href]'))
                 .map(l => ({ href: l.href, m: l.href.match(chunkName) })).filter(x => x.m);
-            if (!loaded.length) throw new Error('no numbered stylesheet chunks on the page');
+            if (!loaded.length) throw new Error('no hashed stylesheets on the page');
             const base = loaded[0].href.slice(0, loaded[0].href.lastIndexOf('/') + 1);
             // Xbox's own scripts from the same host (live they sit in a different folder from the
             // stylesheets, e.g. static/js vs static/css); the likely home of the stylesheet map
@@ -2142,12 +2144,13 @@ window.XboxWishlistCore = {
                 const text = await (await fetch(src)).text();
                 for (const { m } of loaded) {
                     // The stylesheet map: a flat {id:"hash",...} holding a sheet we know is loaded
-                    const at = text.indexOf(`${m[1]}:"${m[2]}"`); if (at < 0) continue;
+                    const at = text.indexOf(`:"${m[2]}"`); if (at < 0) continue;
                     const hashes = new Map(Array.from(text.slice(text.lastIndexOf('{', at), text.indexOf('}', at)).matchAll(/(\d+):"([0-9a-f]{8,})"/g), x => [x[1], x[2]]));
-                    // The theme loader: chunk requests like .e(1950) ... .e(5398) next to each other
-                    const call = text.indexOf(`.e(${m[1]})`); if (call < 0) continue;
-                    const ids = [...new Set(Array.from(text.slice(Math.max(0, call - 800), call + 800).matchAll(/\.e\((\d+)\)/g), x => x[1]))]
-                        .filter(id => id !== m[1] && hashes.has(id));
+                    if (hashes.size < 4) continue;
+                    // The theme loader requests the theme chunks like .e(1950) ... .e(5398); every
+                    // requested chunk in the map is a candidate (the map is small, and each
+                    // candidate is verified as a theme-only sheet before use)
+                    const ids = [...new Set(Array.from(text.matchAll(/\.e\((\d+)\)/g), x => x[1]))].filter(id => hashes.has(id));
                     for (const id of ids) {
                         const href = `${base}${id}.${hashes.get(id)}.chunk.css`;
                         if (document.querySelector(`link[href="${CSS.escape(href)}"]`)) continue;
