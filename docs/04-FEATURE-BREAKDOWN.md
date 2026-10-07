@@ -640,6 +640,75 @@ from `passMetadataByPassProductId`).
 
 ---
 
+## Remaining Backlog (epics and tasks, 2026-10-07)
+
+> Single list of everything not yet done, with IDs. STATUS.md shows the top of this list at the end of every session. IDs continue from T-64; the older T-xx and F-xx entries in this file are finished work.
+> "Waits on" means the task cannot start until the user decides something (listed as Blocked in STATUS.md).
+
+### E1 - Deals and browse pages (finishes F-35 step 2 and 4)
+
+| ID | Task | Priority | Status | Waits on |
+|---|---|---|---|---|
+| T-66 | Decide what else those pages get beyond deal-end dates (candidates: rating chip, "In a pass" quick filter, export, filters) | Medium | Blocked | Your choice |
+| T-67 | Browse / deals / add-ons cards: resolve the card class prefixes and read each card's product id and price data from the page state (no UI yet) | Medium | Todo | - |
+| T-68 | Deal-end chip on browse / deals cards (from `specificPrices`, same chip as on the wishlist) | Medium | Todo | T-67 |
+| T-69 | "Load more" awareness: pick up cards that arrive as the user scrolls (`EncodedCT` paging) with a MutationObserver | Medium | Todo | T-67 |
+| T-70 | Harness: fixtures and checks for the new chips (deals, games, add-ons) | Medium | Todo | T-68 |
+
+### E2 - Data we already have on the page (docs/08 section 9)
+
+| ID | Task | Priority | Status | Waits on |
+|---|---|---|---|---|
+| T-71 | Ubisoft+ included: chip and quick filter from `hasUbisoftCrossEntitlementProduct` | Low | Todo | - |
+| T-72 | Edition name (`skuSummaries[].skuTitle`) in the item list and export | Low | Todo | - |
+| T-73 | Giftable price / "can gift" flag from `specificPrices.giftable` (data attribute, export column, quick filter) | Low | Todo | - |
+
+### E3 - F-28 Deal alerts
+
+| ID | Task | Priority | Status | Waits on |
+|---|---|---|---|---|
+| T-74 | Decide the mechanism: the extension needs a new manifest permission (HITL trigger 2 and 10), the userscript can use `GM_notification`; or an in-page banner with no permission | Low | Blocked | Your choice |
+| T-75 | Threshold setting (default 10%) in the Stored data / Price area, saved in `chrome.storage.local` | Low | Blocked | T-74 |
+| T-76 | On load, compare each flagged game's price with its history and collect drops at or above the threshold | Low | Blocked | T-74 |
+| T-77 | Show the alert through a new adapter method (extension and userscript), with a stub in the harness | Low | Blocked | T-74 |
+
+### E4 - F-29 Comparison mode
+
+| ID | Task | Priority | Status | Waits on |
+|---|---|---|---|---|
+| T-78 | Decide the design: side-by-side panel or modal, and which fields to compare | Low | Blocked | Your choice |
+| T-79 | Select control on each card (2 to 3 games, disabled when full) | Low | Blocked | T-78 |
+| T-80 | Compare panel built from the item data attributes (price, discount, rating, size, capabilities, pass) | Low | Blocked | T-78 |
+| T-81 | Clear / export the comparison and add a harness check | Low | Blocked | T-80 |
+
+### E5 - F-30 Wishlist statistics (assumption: figures follow the current filters)
+
+| ID | Task | Priority | Status | Waits on |
+|---|---|---|---|---|
+| T-82 | Statistics function: total value, number and share on sale, average discount, owned count, cheapest / dearest | Low | Todo | - |
+| T-83 | Statistics panel (a small toolbar button and panel using the existing panel styles; text keys in all 42 languages) | Low | Todo | T-82 |
+| T-84 | Harness check for the statistics against the fixture's known totals | Low | Todo | T-82 |
+
+### E6 - More browsers
+
+| ID | Task | Priority | Status | Waits on |
+|---|---|---|---|---|
+| T-85 | Firefox spike: manifest variant (MV3 background not needed; check the `"world": "MAIN"` request watcher and `chrome.*` vs `browser.*`) and a build target in `tools/build.js` | Low | Todo | - |
+| T-86 | Safari: convert with Apple's web-extension converter (needs a Mac and Xcode) | Low | Todo | A Mac |
+
+### E7 - Housekeeping
+
+| ID | Task | Priority | Status | Waits on |
+|---|---|---|---|---|
+| T-87 | Write up T-54 to T-64 in this file and in the PRD's done table; point the PRD "Planned" rows at the tasks above | Medium | Todo | - |
+| T-65 | Live-confirm the entries marked "needs a live check" in this file: F-25, F-26, T-19, T-20, T-23, T-24, F-39 | Medium | Testing | You (live check) |
+
+### Carried over
+
+T-06 (Chrome and Tampermonkey live check), T-28 (Serbian Cyrillic code), T-32 (remaining mocks), T-55 (native translation review), T-61 (minified userscript) keep their IDs and are described in STATUS.md.
+
+---
+
 ## Open Issues
 
 ---

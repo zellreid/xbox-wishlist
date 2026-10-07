@@ -3,7 +3,7 @@ project: Xbox Wishlist
 label: Personal
 priority: Medium
 phase: Live
-next_milestone: T-55 native review; T-06 Chrome / Tampermonkey
+next_milestone: T-65 live check; T-67 to T-70 browse / deals chips; T-55 native review
 target_date: none
 hard_deadline: false
 blockers: []
@@ -32,24 +32,41 @@ updated: 2026-10-07
 | ID | Item | Priority | Status | Next action |
 |---|---|---|---|---|
 | T-32 | Save the remaining wishlist mocks: owned-heavy, empty, tiny, partial, shared, signed-out | Medium | Blocked | Capture into mock_examples/_inbox/, run file-mocks.js --prepare |
+| T-66 | Decide what browse / deals pages get beyond deal-end dates (rating chip, In a pass, export, filters) | Medium | Blocked | Pick from the candidates in docs/04 epic E1 |
 | T-28 | Confirm the Serbian Cyrillic locale code (sr-Cyrl-RS assumed) | Low | Blocked | Likely IP-gated; recapture over a Serbian VPN endpoint |
+| T-74 | Deal alerts: choose the mechanism (new manifest permission, GM_notification, or in-page banner) | Low | Blocked | Decide; a permission needs HITL approval |
+| T-78 | Comparison mode: choose side-by-side panel or modal, and the fields | Low | Blocked | Decide the design |
+| T-75 | Alert threshold setting (default 10%) | Low | Blocked | After T-74 |
+| T-76 | Detect price drops on flagged games | Low | Blocked | After T-74 |
+| T-77 | Show the alert via an adapter method | Low | Blocked | After T-74 |
+| T-79 | Select control on each card (2 to 3 games) | Low | Blocked | After T-78 |
+| T-80 | Compare panel | Low | Blocked | After T-78 |
++ 1 more in docs/04-FEATURE-BREAKDOWN.md (T-81)
 
 ## Testing
 | ID | Item | Priority | Status | Next action |
 |---|---|---|---|---|
-| T-06 | Live check in Chrome and the Tampermonkey userscript (Edge done) | Low | Not started | Repeat the Edge checks in Chrome and Tampermonkey (the userscript's IndexedDB lives in the xbox.com origin) |
+| T-65 | Live-confirm older "needs a live check" entries: F-25, F-26, T-19, T-20, T-23, T-24, F-39 | Medium | Not started | Open the wishlist in Edge: star a game and filter Flagged; price badges; light mode looks right; Load details works; chip order; panel dividers; theme toggle |
+| T-06 | Live check in Chrome and the Tampermonkey userscript (Edge done) | Low | Not started | Repeat the Edge checks in Chrome and Tampermonkey |
 
 ## TODO
 | ID | Item | Priority | Status | Next action |
 |---|---|---|---|---|
-| T-61 | Minified userscript release (future): a second, minified .user.js for GitHub releases or direct install; the Greasy Fork file stays readable | Low | Todo | Add a minify step in tools/userscript/ that keeps the ==UserScript== header, writes a separate file (e.g. dist/xbox-wishlist.min.user.js), and test it in Tampermonkey |
-| T-55 | Native review of the translations (all 42 are first-pass; most worth checking: ar, he, ja, ko, zh-Hans, zh-Hant, th, ka, mt, is, sq, mk) | Medium | Todo | Hand each file to a native speaker (shared/i18n/<code>.json, 163 short texts, check.js shows coverage); fix in place, keep placeholders like {n} |
-
-Backlog beyond the tables above (5 more): F-28 to F-30 in docs/01-PRD.md, Ubisoft+ / gift price ideas in docs/08-XBOX-REQUESTS.md section 9, and Firefox/Safari support (planned in AGENTS.md)
+| T-55 | Native review of the 42 translations (all first-pass) | Medium | Todo | Hand each shared/i18n/<code>.json to a native speaker; keep placeholders like {n} |
+| T-67 | Browse / deals cards: read product id and price data from the page state (no UI yet) | Medium | Todo | Resolve card prefixes through resolveClass; test on the deals, games and add-ons fixtures |
+| T-68 | Deal-end chip on browse / deals cards | Medium | Todo | After T-67 |
+| T-69 | Pick up cards that arrive on "load more" scrolling | Medium | Todo | After T-67; MutationObserver on the card list |
+| T-70 | Harness checks for the browse / deals chips | Medium | Todo | After T-68 |
+| T-87 | Write up T-54 to T-64 in docs/04 and the PRD done table | Medium | Todo | Add the entries; keep the remaining-backlog section in step |
+| T-61 | Minified userscript release (separate .min.user.js; Greasy Fork file stays readable) | Low | Todo | Add a minify step in tools/userscript/, test in Tampermonkey |
+| T-71 | Ubisoft+ included chip and quick filter | Low | Todo | Read hasUbisoftCrossEntitlementProduct |
+| T-72 | Edition name in the list and export | Low | Todo | Read skuSummaries[].skuTitle |
+| T-73 | Giftable price / can-gift flag | Low | Todo | Read specificPrices.giftable |
++ 5 more in docs/04-FEATURE-BREAKDOWN.md (T-82 to T-84 statistics, T-85 Firefox spike, T-86 Safari)
 
 ## Recent sessions
+- 2026-10-07: backlog broken into epics E1 to E7 with IDs T-65 to T-87 (docs/04); PRD planned rows point at them; no code changes
 - 2026-10-07: T-64, T-59 and T-62 confirmed live by the owner; no code changes
 - 2026-10-07: v1.5.26280.1 - T-64: theme-sheet finder no longer needs a numbered ".chunk.css" anchor; verified against live xbox.com; harness toolbar check fails with and without the change
 - 2026-10-06: v1.5.26279.5 - T-63: one accordion open at a time; Load details moved into Stored data; chevron icon race fixed; harness accordions check; 6 fixtures + he-IL + minified build PASS
 - 2026-10-06: v1.5.26279.4 - Filters panel divider clean-up (CSS only); computed-style check per tab, 4 fixtures + minified build PASS
-- 2026-10-06: v1.5.26279.3 - T-62: Filters panel tabs (looping, badges, remembered, RTL, swipe); 5 keys x 42 languages; harness tabs check; 15 fixtures + he-IL + minified build PASS

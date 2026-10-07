@@ -99,9 +99,9 @@ The Xbox wishlist page (`xbox.com/*/wishlist`) provides no native filtering, sor
 
 | ID | Feature | Priority | Notes |
 |----|---------|----------|-------|
-| F-28 | Deal alerts / notifications | 🟢 Future | Browser notification when a flagged item drops in price |
-| F-29 | Comparison mode | 🟢 Future | Select 2–3 games and compare side-by-side |
-| F-30 | Wishlist statistics dashboard | 🟢 Future | Analytics panel: total value, % on sale, avg discount, etc. |
+| F-28 | Deal alerts / notifications | 🟢 Future | Browser notification when a flagged item drops in price (tasks T-74 to T-77) |
+| F-29 | Comparison mode | 🟢 Future | Select 2–3 games and compare side-by-side (tasks T-78 to T-81) |
+| F-30 | Wishlist statistics dashboard | 🟢 Future | Analytics panel: total value, % on sale, avg discount, etc. (tasks T-82 to T-84) |
 
 ---
 
