@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         XBOX Wishlist
 // @namespace    https://github.com/zellreid/xbox-wishlist
-// @version      1.5.26280.2
+// @version      1.5.26280.3
 // @description  Advanced filtering and sorting suite with multi-level sort (up to 3 criteria) - Resilient selectors - Public wishlist support
 // @author       ZellReid
 // @homepage     https://github.com/zellreid/xbox-wishlist
@@ -14,7 +14,7 @@
 // @match        https://www.xbox.com/*/promotions/sales/*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=xbox.com
 // @run-at       document-body
-// @resource     CSSFilter https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/styles.css?ver=1.5.26280.2
+// @resource     CSSFilter https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/styles.css?ver=1.5.26280.3
 // @resource     IMGFilter https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/filter.svg
 // @resource     IMGSort https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/sort.svg
 // @resource     IMGExport https://raw.githubusercontent.com/zellreid/xbox-wishlist/main/browser-extension/src/shared/icons/export.svg
@@ -604,7 +604,14 @@ window.XboxWishlistCore = {
         // the wishlist's - fetched once when the tab reaches the wishlist (a failed fetch leaves the
         // other page's data, and the tiles fill the gaps as they would without page data)
         let wishlistDataLoad = null;
+        // Several triggers call onDOMReady and two can wake from the data wait together; one builds the UI
+        let uiBuilding = false;
         async function onDOMReady() {
+            if (state.ui.complete || uiBuilding) return;
+            uiBuilding = true;
+            try { await buildWishlistUI(); } finally { uiBuilding = false; }
+        }
+        async function buildWishlistUI() {
             if (state.ui.complete) return;
             // The wishlist UI is only built on wishlist pages (F-38/F-35: the core also runs on
             // product, browse and deals pages, but only watches there for now)
@@ -796,15 +803,19 @@ window.XboxWishlistCore = {
             return resourceArray.some(r => r.src === url || r.href === url);
         }
         async function getSVG(src) {
-            if (state.svgCache.has(src)) return state.svgCache.get(src);
-            try {
-                const response = await fetch(src);
-                // Don't cache an error page as the icon - a later call can retry
+            // The request itself is cached, so a heart on every card asking at once shares one fetch
+            if (state.svgCache.has(src)) return state.svgCache.get(src).catch(() => null);
+            const request = fetch(src).then(response => {
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                const text = await response.text();
-                state.svgCache.set(src, text);
-                return text;
-            } catch (ex) { console.error(`Failed to fetch SVG from ${src}:`, ex); return null; }
+                return response.text();
+            });
+            state.svgCache.set(src, request);
+            try { return await request; }
+            catch (ex) {
+                // Don't keep a failure as the icon - a later call can retry
+                if (state.svgCache.get(src) === request) { state.svgCache.delete(src); console.error(`Failed to fetch SVG from ${src}:`, ex); }
+                return null;
+            }
         }
 
         // ==================== STATE PERSISTENCE ====================

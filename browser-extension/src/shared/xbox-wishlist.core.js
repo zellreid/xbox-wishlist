@@ -513,7 +513,14 @@ window.XboxWishlistCore = {
         // the wishlist's - fetched once when the tab reaches the wishlist (a failed fetch leaves the
         // other page's data, and the tiles fill the gaps as they would without page data)
         let wishlistDataLoad = null;
+        // Several triggers call onDOMReady and two can wake from the data wait together; one builds the UI
+        let uiBuilding = false;
         async function onDOMReady() {
+            if (state.ui.complete || uiBuilding) return;
+            uiBuilding = true;
+            try { await buildWishlistUI(); } finally { uiBuilding = false; }
+        }
+        async function buildWishlistUI() {
             if (state.ui.complete) return;
             // The wishlist UI is only built on wishlist pages (F-38/F-35: the core also runs on
             // product, browse and deals pages, but only watches there for now)
@@ -705,15 +712,19 @@ window.XboxWishlistCore = {
             return resourceArray.some(r => r.src === url || r.href === url);
         }
         async function getSVG(src) {
-            if (state.svgCache.has(src)) return state.svgCache.get(src);
-            try {
-                const response = await fetch(src);
-                // Don't cache an error page as the icon - a later call can retry
+            // The request itself is cached, so a heart on every card asking at once shares one fetch
+            if (state.svgCache.has(src)) return state.svgCache.get(src).catch(() => null);
+            const request = fetch(src).then(response => {
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                const text = await response.text();
-                state.svgCache.set(src, text);
-                return text;
-            } catch (ex) { console.error(`Failed to fetch SVG from ${src}:`, ex); return null; }
+                return response.text();
+            });
+            state.svgCache.set(src, request);
+            try { return await request; }
+            catch (ex) {
+                // Don't keep a failure as the icon - a later call can retry
+                if (state.svgCache.get(src) === request) { state.svgCache.delete(src); console.error(`Failed to fetch SVG from ${src}:`, ex); }
+                return null;
+            }
         }
 
         // ==================== STATE PERSISTENCE ====================
