@@ -17,6 +17,7 @@ updated: 2026-10-07
 > Never put credentials, keys, connection strings or secrets in this file.
 
 ## Now
+- v1.5.26280.2: T-88 built: the theme-sheet finder remembers the Xbox stylesheet that worked, per theme, under a new chrome.storage.local key (ifc_xbox_wishlist_themesheet; GM storage in the userscript), and tries it first. Before, most chunk ids it probed had no stylesheet, so the console filled with `...chunk.css 404` errors (and up to 15 of Xbox's scripts were fetched) on every theme switch. The remembered file name carries Xbox's hash, so after an Xbox release it misses once, the full search runs again and the new sheet is saved. Harness en-ZA fixture PASS (all checks). The fixture has no dark theme sheet, so the remembered path itself was not exercised there; it needs the live check below. The harness "toolbar on the left" failure noted under v1.5.26280.1 was the browser pane reporting width 0; at 1400 wide it passes with and without the change.
 - T-64 (theme-sheet finder, v1.5.26280.1), T-59 (price history in IndexedDB) and T-62 (Filters panel tabs, with the later divider, accordion and Load details changes) confirmed live in Edge by the owner on 2026-10-07.
 - v1.5.26280.1: T-64 built: fixes the Edge error "Could not load Xbox's colours for this theme: no numbered stylesheet chunks on the page" (seen on /wishlist?xr=shellnav). The theme-sheet finder needed a loaded "<number>.<hash>.chunk.css"; Xbox now ships those without ".chunk" (or not at all), so it gave up. It now anchors on any hashed Xbox stylesheet and tries every chunk the script requests, keeping only a theme-only sheet for the current theme. Checked against live xbox.com: finds the dark sheet (5398). Harness en-ZA fixture shows "toolbar is on the left in a ltr page" both with and without this change (pre-existing, likely the narrow browser pane; not investigated).
 - v1.5.26279.5: T-63 built: only one accordion open at a time across the whole panel (opening one closes the other, clicking the open one closes it; chevron icons load in order so fast clicks cannot leave the wrong icon); the Load details button and its status moved from the Capabilities accordion to the top of Stored data, above Clear cached data / Reset everything. Harness: ar-SA, de-DE, en-US, fr-FR, ja-JP, he-IL and the minified build PASS with a new accordions check.
@@ -46,7 +47,8 @@ updated: 2026-10-07
 ## Testing
 | ID | Item | Priority | Status | Next action |
 |---|---|---|---|---|
-| T-65 | Live-confirm older "needs a live check" entries: F-25, F-26, T-19, T-20, T-23, T-24, F-39 | Medium | Not started | Open the wishlist in Edge: star a game and filter Flagged; price badges; light mode looks right; Load details works; chip order; panel dividers; theme toggle |
+| T-65 | Live-confirm older "needs a live check" entries: F-25, F-26, T-19, T-20, T-23, T-24, F-39 | Medium | In progress | Work through the checklist given in chat on 2026-10-07 (7 items); tell me which pass or fail |
+| T-88 | Live-check the remembered theme sheet (v1.5.26280.2) | Medium | Not started | Reload the extension, open /wishlist, DevTools Console + Network, switch theme to dark once (the 404 run happens once and the sheet is saved); reload, switch again: expect one request to the saved chunk.css and no 404s |
 | T-06 | Live check in Chrome and the Tampermonkey userscript (Edge done) | Low | Not started | Repeat the Edge checks in Chrome and Tampermonkey |
 
 ## TODO
@@ -65,8 +67,8 @@ updated: 2026-10-07
 + 5 more in docs/04-FEATURE-BREAKDOWN.md (T-82 to T-84 statistics, T-85 Firefox spike, T-86 Safari)
 
 ## Recent sessions
+- 2026-10-07: v1.5.26280.2 - T-88: theme-sheet finder remembers the working stylesheet per theme (fewer 404s, no script fetches); harness en-ZA PASS; live check pending. Also explained that the request-watcher.js errors were a tracker blocker, not our code
+- 2026-10-07: T-65 live-check checklist (F-25, F-26, T-19, T-20, T-23, T-24, F-39) given to the owner in chat; no code changes
 - 2026-10-07: backlog broken into epics E1 to E7 with IDs T-65 to T-87 (docs/04); PRD planned rows point at them; no code changes
 - 2026-10-07: T-64, T-59 and T-62 confirmed live by the owner; no code changes
 - 2026-10-07: v1.5.26280.1 - T-64: theme-sheet finder no longer needs a numbered ".chunk.css" anchor; verified against live xbox.com; harness toolbar check fails with and without the change
-- 2026-10-06: v1.5.26279.5 - T-63: one accordion open at a time; Load details moved into Stored data; chevron icon race fixed; harness accordions check; 6 fixtures + he-IL + minified build PASS
-- 2026-10-06: v1.5.26279.4 - Filters panel divider clean-up (CSS only); computed-style check per tab, 4 fixtures + minified build PASS

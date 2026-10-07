@@ -166,7 +166,8 @@ window.XboxWishlistCore = {
             // changedKey: when a wishlist add/remove was last seen in any tab (T-34/T-35) - see watchPageRequests()
             // cacheDb: the IndexedDB database of item master records, capability labels (T-58) and price history (T-59)
             cacheDb: { name: 'ifc_xbox_wishlist_cache', version: 2, items: 'items', labels: 'labels', prices: 'prices' },
-            storage: { key: 'ifc_xbox_wishlist', capsKey: 'ifc_xbox_wishlist_caps', flagsKey: 'ifc_xbox_wishlist_flags', pricesKey: 'ifc_xbox_wishlist_prices', changedKey: 'ifc_xbox_wishlist_changed' }
+            // themeSheetKey: the Xbox theme stylesheet that worked per theme, { dark: { id, href }, ... } - see loadThemeSheets()
+            storage: { key: 'ifc_xbox_wishlist', capsKey: 'ifc_xbox_wishlist_caps', flagsKey: 'ifc_xbox_wishlist_flags', pricesKey: 'ifc_xbox_wishlist_prices', changedKey: 'ifc_xbox_wishlist_changed', themeSheetKey: 'ifc_xbox_wishlist_themesheet' }
         };
 
         // ==================== SELECTOR PREFIXES ====================
@@ -2035,6 +2036,27 @@ window.XboxWishlistCore = {
         }
         async function loadThemeSheets(theme) {
             const forTheme = new RegExp(`body\\[data-theme=["']?${theme}["']?\\]`);
+            // Fetches one candidate and adds it only if it is the theme-only sheet for this theme
+            const addSheet = async (id, href) => {
+                if (document.querySelector(`link[href="${CSS.escape(href)}"]`)) return false;
+                const r = await fetch(href); if (!r.ok) return false;
+                const css = await r.text();
+                if (!isThemeOnlySheet(css) || !forTheme.test(css)) return false;   // only the sheet for the theme now shown
+                const link = document.createElement('link');
+                link.rel = 'stylesheet'; link.href = href; link.dataset.ifcThemeSheet = id;
+                document.head.appendChild(link);
+                return true;
+            };
+            // The sheet that worked last time is tried first: most chunk ids in the map have no
+            // stylesheet, so searching for it costs a run of 404s (and fetching Xbox's scripts).
+            // Its file name carries Xbox's hash, so after a release it 404s once, the search below
+            // runs again and the new one is remembered.
+            let hints = {};
+            try { hints = JSON.parse(await new Promise(resolve => { try { adapter.storage.load(CONFIG.storage.themeSheetKey, resolve); } catch (ex) { resolve(null); } })) || {}; }
+            catch (ex) { /* nothing stored, or not readable */ }
+            const hint = hints[theme];
+            if (hint && typeof hint.id === 'string' && typeof hint.href === 'string' && hint.href.startsWith('https://')
+                && await addSheet(hint.id, hint.href).catch(() => false)) return;
             // Xbox's sheets are named <id-or-name>.<hash>.css, with or without ".chunk"; any of
             // them locates the stylesheet map by its hash (the page may hold no numbered chunk)
             const chunkName = /\/([\w-]+)\.([0-9a-f]{8,})(?:\.chunk)?\.css(?:[?#].*)?$/;
@@ -2062,13 +2084,9 @@ window.XboxWishlistCore = {
                     const ids = [...new Set(Array.from(text.matchAll(/\.e\((\d+)\)/g), x => x[1]))].filter(id => hashes.has(id));
                     for (const id of ids) {
                         const href = `${base}${id}.${hashes.get(id)}.chunk.css`;
-                        if (document.querySelector(`link[href="${CSS.escape(href)}"]`)) continue;
-                        const r = await fetch(href); if (!r.ok) continue;
-                        const css = await r.text();
-                        if (!isThemeOnlySheet(css) || !forTheme.test(css)) continue;   // only the sheet for the theme now shown
-                        const link = document.createElement('link');
-                        link.rel = 'stylesheet'; link.href = href; link.dataset.ifcThemeSheet = id;
-                        document.head.appendChild(link);
+                        if (!await addSheet(id, href)) continue;
+                        hints[theme] = { id, href };
+                        if (!state.resetting) { try { adapter.storage.save(CONFIG.storage.themeSheetKey, JSON.stringify(hints)); } catch (ex) { /* the search just runs again next time */ } }
                         return;
                     }
                 }
